@@ -369,7 +369,8 @@ body.live .viewport { position: fixed; }
     controller: ["Brimstone", "Viper", "Omen", "Astra", "Harbor", "Clove"],
     sentinel: ["Sage", "Cypher", "Killjoy", "Chamber", "Deadlock", "Vyse", "Veto"],
   };
-  const agentName = (internal) => AGENTS[internal] || Object.entries(AGENTS).find(([k]) => k.toLowerCase() === String(internal || "").toLowerCase())?.[1] || internal || "";
+  // o jogo manda o agente como "Wushu_PC_C" (Jett); aceita com ou sem o sufixo
+  const agentName = (raw) => { const internal = String(raw || "").replace(/_PC_C$/i, ""); return AGENTS[internal] || Object.entries(AGENTS).find(([k]) => k.toLowerCase() === internal.toLowerCase())?.[1] || internal; };
   const roleOf = (n) => Object.keys(ROLES).find((r) => ROLES[r].includes(n)) || "other";
   const GLYPH = {
     duelist: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 20 12 3l9 17-9-5z"/></svg>',
@@ -555,12 +556,13 @@ body.live .viewport { position: fixed; }
     if (a && a.portrait) return `<img src="${a.portrait}" alt="${n}">`;
     return `<div class="ph">${GLYPH[roleOf(n)]}<span>${n}</span></div>`;
   }
-  function abilsHTML(internal, ab) {
+  // sem o modo auxiliar o servidor não sabe as cargas: mostra os ícones normais, sem pontos
+  function abilsHTML(internal, ab, known = true) {
     const a = agentAsset(internal);
     return [["grenade", "C"], ["ability1", "Q"], ["ability2", "E"]].map(([slot, key]) => {
-      const n = (ab && ab[slot]) || 0;
+      const n = known ? (ab && ab[slot]) || 0 : 1;
       const icon = a && a.abil[slot] ? `<img class="ic" src="${a.abil[slot]}" alt="${key}">` : `<span class="lt">${key}</span>`;
-      return `<div class="ab${n ? "" : " empty"}">${icon}<span class="dots">${"<i></i>".repeat(Math.min(n, 3))}</span></div>`;
+      return `<div class="ab${n ? "" : " empty"}">${icon}<span class="dots">${known ? "<i></i>".repeat(Math.min(n, 3)) : ""}</span></div>`;
     }).join("");
   }
   function ultHTML(internal, cur, max, ready) {
@@ -614,7 +616,7 @@ body.live .viewport { position: fixed; }
   let lastRound = -1;
   const lastScore = [null, null];
   const win = { key: "", hideTimer: null };
-  const RT = { round: -1, clutch: [null, null] }; // acompanha a rodada para detectar clutch
+  const RT = { round: -1, clutch: [null, null], sum: 0 }; // acompanha a rodada para detectar clutch
 
   function render(d, now) {
     if (!d || !Array.isArray(d.teams) || d.teams.length < 2) return;
@@ -686,7 +688,7 @@ body.live .viewport { position: fixed; }
 
   // Acompanha a rodada: quando um time fica com 1 vivo contra 1 ou mais, guarda o candidato a clutch
   function trackRound(d, phase) {
-    if (d.roundNumber !== RT.round) { RT.round = d.roundNumber; RT.clutch = [null, null]; }
+    if (d.roundNumber !== RT.round) { RT.round = d.roundNumber; RT.clutch = [null, null]; RT.sum = d.teams.reduce((a, t) => a + (t.roundsWon || 0), 0); }
     if (phase !== "combat") return;
     const alive = d.teams.map((t) => (t.players || []).filter((p) => p.isAlive));
     [0, 1].forEach((i) => {
@@ -715,6 +717,8 @@ body.live .viewport { position: fixed; }
       }
       return;
     }
+    // espera o placar mudar: o servidor define o vencedor quando chega o placar novo
+    if (phase === "end" && (L.roundsWon || 0) + (R.roundsWon || 0) <= RT.sum) return;
     const wi = d.attackersWon ? (L.isAttacking ? 0 : 1) : (L.isAttacking ? 1 : 0);
     const w = wi ? R : L;
     const key = d.roundNumber + ":" + wi + ":" + phase;
@@ -724,7 +728,11 @@ body.live .viewport { position: fixed; }
 
     const ps = w.players || [];
     const rec = (w.roundRecord || []).find((r) => r.round === d.roundNumber && REASON_TEXT[r.type]);
-    const reason = rec ? REASON_TEXT[rec.type] : "";
+    // o servidor só registra o motivo na rodada seguinte; até lá, deduz pela spike e por quem sobrou vivo
+    const sp = d.spikeState || {};
+    const loser = wi ? L : R;
+    const guess = sp.detonated ? "detonated" : sp.defused ? "defused" : (loser.players || []).some((p) => p.isAlive) && !w.isAttacking ? "timeout" : "kills";
+    const reason = REASON_TEXT[rec ? rec.type : guess] || "";
     const acer = ps.find((p) => (p.killsThisRound || 0) >= 5);
     const cl = RT.clutch[wi];
     const clutcher = cl && ps.find((p) => p.playerId === cl.id || p.name === cl.name);
@@ -787,7 +795,8 @@ body.live .viewport { position: fixed; }
       k.hpb.classList.toggle("low", hp > 0 && hp <= 30);
       k.hpb.firstChild.style.transform = `scaleX(${hp / 100})`;
       const ab = p.abilities || {};
-      setHTML(k.ab, abilsHTML(p.agentInternal, ab), imgKey + [p.agentInternal, ab.grenade, ab.ability1, ab.ability2].join());
+      const abKnown = !p.auxiliaryAvailable || p.auxiliaryAvailable.abilities !== false;
+      setHTML(k.ab, abilsHTML(p.agentInternal, ab, abKnown), imgKey + abKnown + [p.agentInternal, ab.grenade, ab.ability1, ab.ability2].join());
       k.ult.classList.toggle("ready", !!p.ultReady);
       setHTML(k.ult, ultHTML(p.agentInternal, p.currUltPoints || 0, p.maxUltPoints || 0, p.ultReady), imgKey + [p.agentInternal, p.currUltPoints, p.maxUltPoints, p.ultReady].join());
       setHTML(k.wp, p.isAlive ? weaponHTML(p.highestWeapon) : "", imgKey + p.isAlive + p.highestWeapon);
@@ -801,7 +810,8 @@ body.live .viewport { position: fixed; }
       setText(k.spent, p.moneySpent > 0 ? "-" + money(p.moneySpent) : "");
       setHTML(k.cr, (LOCAL.base ? `<img class="cv" src="${LOCAL.base}Escudos/CV.png" alt="">` : CREDIT) + `<span>${money(p.money)}</span>`, imgKey + p.money);
       const ab = p.abilities || {};
-      setHTML(k.ab, abilsHTML(p.agentInternal, ab), imgKey + [p.agentInternal, ab.grenade, ab.ability1, ab.ability2].join());
+      const abKnown = !p.auxiliaryAvailable || p.auxiliaryAvailable.abilities !== false;
+      setHTML(k.ab, abilsHTML(p.agentInternal, ab, abKnown), imgKey + abKnown + [p.agentInternal, ab.grenade, ab.ability1, ab.ability2].join());
       k.ult.classList.toggle("ready", !!p.ultReady);
       setHTML(k.ult, ultHTML(p.agentInternal, p.currUltPoints || 0, p.maxUltPoints || 0, p.ultReady), imgKey + [p.agentInternal, p.currUltPoints, p.maxUltPoints, p.ultReady].join());
       const armor = ARMOR[p.armorName], shSrc = shieldAsset(p.armorName);

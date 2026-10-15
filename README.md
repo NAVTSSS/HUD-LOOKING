@@ -41,6 +41,16 @@ Layout de transmissão com placas na cor de cada time, cartões compactos no com
 **Cores:** edite o bloco `CORES` no começo do script, ou passe pela URL:
 `&left=C8323F&right=14A98A` (cor dos times, sem `#`), `&hl=F5C043` (spike e ultimate pronta) e `&colors=side` para colorir por lado (ataque e defesa) em vez de por time. Na prévia há seletores de cor para testar.
 
+### Partida de teste (`tools/partida-teste.js`)
+
+Simula o capturador e manda uma partida completa para o Spectra Server, para testar o overlay no modo real sem precisar do jogo. Copie o arquivo para a pasta do Spectra-Server (que já tem o `socket.io-client`) e rode:
+
+```
+node partida-teste.js http://localhost:5100 TESTE
+```
+
+No OBS: `broadcast.html?server=http://localhost:5200&groupCode=TESTE`. Com `VELOCIDADE=2` antes do comando, tudo fica duas vezes mais rápido.
+
 ### Versão pro (`overlay/pro.html`)
 
 Mesma lógica e mesmos parâmetros da variante cyber, com visual de transmissão moderna: blocos sólidos na cor do time, cortes inclinados, números condensados e retratos que saem da moldura. Também lê a pasta `Resources` descrita abaixo.
