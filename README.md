@@ -12,7 +12,29 @@ Versão modificada do [Spectra Client](https://github.com/ValoSpectra/Spectra-Cl
 | `src/services/connectorService.ts` | Envia os dados para o servidor (socket.io, porta 5100 por padrão) |
 | `angular/src/app/` | Tela do app (onde se digita o servidor, os times, etc.) |
 
-## Como rodar (Windows)
+## Overlay (pasta `overlay/`)
+
+O overlay foi criado do zero e fica em um único arquivo: `overlay/index.html`. Ele conversa com o Spectra Server no mesmo formato do overlay original, então funciona com o servidor deles sem mudanças.
+
+No OBS, adicione uma fonte **Navegador** com 1920 × 1080 e marque **Arquivo local** apontando para `overlay/index.html`, ou use a URL com os parâmetros:
+
+```
+index.html?server=http://localhost:5200&groupCode=SEUCODIGO
+```
+
+| Parâmetro | O que faz |
+| --- | --- |
+| `server` | Endereço do Spectra Server (padrão `http://localhost:5200`) |
+| `groupCode` | Código da partida, o mesmo digitado no capturador |
+| `demo` | Mostra uma partida simulada com fundo transparente, para testar no OBS |
+| `attack`, `defense` | Cores dos lados, em hexadecimal sem `#` (ex.: `attack=FF5A6A`) |
+| `debug` | Mostra o status da conexão no canto da tela |
+
+Aberto sem parâmetros, o arquivo mostra a página de prévia com controles da simulação.
+
+O cronômetro é estimado pelo overlay a partir da mudança de fase (30 s de compra, 1:40 de combate, 45 s de spike), porque o servidor não envia o tempo da rodada.
+
+## Como rodar o capturador (Windows)
 
 Pré-requisitos: Node.js 22, Git e uma chave de desenvolvedor do Overwolf (veja abaixo).
 
