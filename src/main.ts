@@ -22,6 +22,7 @@ import HotkeyService, { HotkeyType } from "./services/hotkeyService";
 import axios from "axios";
 import * as semver from "semver";
 import find, { ProcessInfo } from "find-process";
+import { APP_NAME, UPDATE_REPO } from "./branding";
 // import { installExtension } from "electron-devtools-installer";
 
 const { app, BrowserWindow, ipcMain } = require("electron/main");
@@ -313,7 +314,7 @@ app.whenReady().then(async () => {
   createWindow();
   const updateAvailable = await updateCheck();
   if (updateAvailable) {
-    shell.openExternal(`https://valospectra.com/download`);
+    shell.openExternal(`https://github.com/${UPDATE_REPO}/releases/latest`);
     app.quit();
     // return to not init overwolf
     return;
@@ -659,9 +660,14 @@ function nativeCheck() {
 }
 
 async function updateCheck(): Promise<boolean> {
+  // Fork: só verifica atualização no SEU repositório (configurado em branding.ts).
+  if (!UPDATE_REPO) {
+    log.info("Update check disabled (UPDATE_REPO not set in branding.ts)");
+    return false;
+  }
   try {
     const versionData = (
-      await axios.get("https://api.github.com/repos/ValoSpectra/Spectra-Client/releases")
+      await axios.get(`https://api.github.com/repos/${UPDATE_REPO}/releases`)
     ).data[0];
     const releaseVersion = versionData.tag_name.replace("v", "");
     const releaseName = versionData.name;
@@ -765,7 +771,7 @@ export enum StatusTypes {
 }
 export function setSpectraStatus(message: string, type: StatusTypes = StatusTypes.NEUTRAL) {
   win.webContents.send("set-spectra-status", { message: message, statusType: type });
-  win.setTitle(`Spectra Client | ${message}`);
+  win.setTitle(`${APP_NAME} | ${message}`);
 }
 
 export function setGameStatus(message: string, type: StatusTypes = StatusTypes.NEUTRAL) {

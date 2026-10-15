@@ -22,6 +22,7 @@ import {
   IFormattedScoreboard,
 } from "./formattingService";
 import HotkeyService from "./hotkeyService";
+import { APP_NAME } from "../branding";
 
 const app = electronApp as overwolf.OverwolfApp;
 const VALORANT_ID = 21640;
@@ -106,7 +107,7 @@ export class GameEventsService {
 
       setTimeout(() => {
         this.win!.setTitle(
-          `Spectra Client | Ready (GEP: ${version}, Spectra: ${app.getVersion()})`,
+          `${APP_NAME} | Ready (GEP: ${version}, versão: ${app.getVersion()}, baseado no Spectra Client)`,
         );
         setLoadingStatus(false);
       }, 300);

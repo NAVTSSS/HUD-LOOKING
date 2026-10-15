@@ -1,11 +1,11 @@
 {
-  "name": "spectra-client",
+  "name": "meu-capturador",
   "author": {
     "name": "Purple Shark UG (haftungsbeschränkt)",
     "url": "https://www.valospectra.com"
   },
   "version": "0.3.3",
-  "description": "https://www.valospectra.com",
+  "description": "Fork modificado do Spectra Client (https://github.com/ValoSpectra/Spectra-Client)",
   "private": true,
   "main": "./app/main.js",
   "overwolf": {
@@ -30,7 +30,7 @@
     "format": "prettier src/ angular/src --write"
   },
   "build": {
-    "productName": "Spectra Client",
+    "productName": "Meu Capturador",
     "icon": "build/icon.ico",
     "compression": "maximum",
     "files": [
@@ -42,7 +42,7 @@
       "en-US"
     ],
     "nsisWeb": {
-      "artifactName": "Spectra-Client-Setup.${ext}",
+      "artifactName": "Meu-Capturador-Setup.${ext}",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
@@ -58,9 +58,10 @@
       ],
       "publish": {
         "provider": "github",
-        "owner": "ValoSpectra",
+        "owner": "SEU_USUARIO_GITHUB",
         "publishAutoUpdate": true,
-        "releaseType": "draft"
+        "releaseType": "draft",
+        "repo": "meu-capturador"
       }
     }
   },
