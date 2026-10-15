@@ -61,86 +61,122 @@ img { display: block; }
 body.live .viewport { position: fixed; }
 .stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform: scale(var(--s, 1)); transform-origin: 0 0; font-family: var(--ui); color: var(--fg); font-variant-numeric: tabular-nums; }
 
-/* Faixa superior */
-.topbar { position: absolute; top: 0; left: 0; right: 0; height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: linear-gradient(180deg, rgba(11, 16, 25, 0.95), rgba(11, 16, 25, 0.82)); font: 600 17px var(--ui); }
-.topbar .group { display: flex; gap: 28px; white-space: pre; }
-.topbar .k { color: var(--muted); font-weight: 500; margin-right: 8px; }
-.topbar .right { padding-right: 250px; }
-.corner { position: absolute; top: 0; right: 0; width: 236px; height: 92px; display: grid; place-items: center; background: var(--base); clip-path: polygon(0 0, 100% 0, 100% 100%, 22px 100%); }
-.corner::after { content: ""; position: absolute; left: 22px; right: 0; bottom: 0; height: 4px; background: linear-gradient(90deg, var(--team-l), var(--team-r)); }
-.corner img { max-width: 170px; max-height: 58px; object-fit: contain; transition: opacity 0.4s; }
+/* Selo de informações (canto superior esquerdo) e patrocinador (canto direito) */
+.info { position: absolute; top: 12px; left: 16px; height: 30px; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: rgba(11, 16, 25, 0.84); font: 600 15px var(--ui); white-space: nowrap; }
+.info .dim { color: var(--muted); }
+.info i { width: 1px; height: 14px; background: rgba(243, 245, 249, 0.2); }
+.corner { position: absolute; top: 0; right: 0; width: 212px; height: 62px; display: grid; place-items: center; background: rgba(11, 16, 25, 0.9); clip-path: polygon(16px 0, 100% 0, 100% 100%, 0 100%); }
+.corner::after { content: ""; position: absolute; left: 16px; right: 0; bottom: 0; height: 3px; background: linear-gradient(90deg, var(--team-l), var(--team-r)); }
+.corner img { max-width: 150px; max-height: 40px; object-fit: contain; transition: opacity 0.4s; }
 
-/* Placar */
-.bug { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: 420px 176px 420px; height: 76px; z-index: 2; }
-.tp { position: relative; display: flex; align-items: center; gap: 16px; padding: 0 22px; overflow: hidden; }
-.tp.l { justify-content: flex-end; background: linear-gradient(90deg, color-mix(in srgb, var(--tc) 18%, var(--base)) 0%, color-mix(in srgb, var(--tc) 70%, var(--base)) 62%, var(--tc) 100%); clip-path: polygon(0 0, 100% 0, 100% 100%, 30px 100%); }
-.tp.r { justify-content: flex-start; background: linear-gradient(270deg, color-mix(in srgb, var(--tc) 18%, var(--base)) 0%, color-mix(in srgb, var(--tc) 70%, var(--base)) 62%, var(--tc) 100%); clip-path: polygon(0 0, 100% 0, calc(100% - 30px) 100%, 0 100%); }
-.tp .logo { width: 48px; height: 48px; object-fit: contain; }
-.tp .tri { font: 600 46px/1 var(--num); letter-spacing: 0.03em; padding-top: 5px; }
-.tp .score { font: 600 74px/1 var(--num); min-width: 64px; text-align: center; padding-top: 6px; }
-.tp .shine { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.35) 50%, transparent 60%); transform: translateX(-120%); pointer-events: none; }
-.tp.scored .shine { animation: shine 0.9s ease-out 1; }
+/* Placar: placa escura, cor concentrada no bloco do número e num fio inferior */
+.bug { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: 296px 74px 148px 74px 296px; height: 56px; z-index: 3; }
+.tp { position: relative; display: flex; align-items: center; gap: 12px; padding: 0 18px; }
+.tp.l { justify-content: flex-end; background: linear-gradient(90deg, rgba(11, 16, 25, 0.86) 0%, rgba(11, 16, 25, 0.92) 45%, color-mix(in srgb, var(--tc) 32%, var(--base)) 100%); clip-path: polygon(0 0, 100% 0, 100% 100%, 22px 100%); }
+.tp.r { justify-content: flex-start; background: linear-gradient(270deg, rgba(11, 16, 25, 0.86) 0%, rgba(11, 16, 25, 0.92) 45%, color-mix(in srgb, var(--tc) 32%, var(--base)) 100%); clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 100%, 0 100%); }
+.tp::after { content: ""; position: absolute; bottom: 0; height: 3px; background: var(--tc); }
+.tp.l::after { left: 22px; right: 0; }
+.tp.r::after { left: 0; right: 22px; }
+.tp .logo { width: 32px; height: 32px; object-fit: contain; }
+.tp .tri { font: 600 36px/1 var(--num); letter-spacing: 0.05em; padding-top: 4px; }
+.sc { position: relative; overflow: hidden; display: grid; place-items: center; background: var(--tc); color: #fff; font: 600 50px/1 var(--num); padding-top: 5px; }
+.sc .shine { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.45) 50%, transparent 65%); transform: translateX(-120%); }
+.sc.scored .shine { animation: shine 0.8s ease-out 1; }
 @keyframes shine { to { transform: translateX(120%); } }
-.under { position: absolute; top: 76px; display: flex; align-items: center; gap: 10px; height: 22px; padding: 0 14px; background: var(--base); font: 600 14px var(--ui); color: var(--muted); }
-.under.l { right: calc(50% + 88px); clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%); }
-.under.r { left: calc(50% + 88px); clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
-.under .side { color: var(--tc); }
-.under .pips { display: flex; gap: 4px; }
-.under .pips i { width: 16px; height: 5px; transform: skewX(-20deg); background: rgba(243, 245, 249, 0.18); }
-.under .pips i.won { background: var(--tc); }
-.clock { position: relative; display: grid; place-items: center; align-content: center; background: var(--base); }
-.clock .round { font: 600 15px var(--ui); color: var(--muted); }
-.clock .time { font: 600 56px/0.9 var(--num); letter-spacing: 0.03em; }
-.clock .bar { position: absolute; left: 0; bottom: 0; height: 4px; width: 100%; background: var(--fg); transform-origin: center; transition: transform 0.25s linear; }
+.clock { position: relative; display: grid; place-items: center; align-content: center; background: rgba(7, 10, 16, 0.95); }
+.clock .round { font: 600 12px var(--ui); color: var(--muted); letter-spacing: 0.04em; }
+.clock .time { font: 600 40px/0.85 var(--num); letter-spacing: 0.04em; padding-top: 2px; }
+.clock .bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--fg); transform-origin: center; transition: transform 0.25s linear; }
 .clock.spike { background: var(--hl); }
 .clock.spike .time, .clock.spike .round { color: var(--base); }
 .clock.spike .bar { background: var(--base); }
-.spike-icon { position: absolute; left: 10px; top: 50%; width: 22px; height: 22px; margin-top: -11px; opacity: 0; }
-.spike-icon svg, .spike-icon img { width: 22px; height: 22px; }
+.spike-icon { position: absolute; left: 8px; top: 50%; width: 18px; height: 18px; margin-top: -9px; opacity: 0; }
+.spike-icon svg, .spike-icon img { width: 18px; height: 18px; }
 .spike-icon img { filter: brightness(0); }
 .clock.spike .spike-icon { opacity: 1; animation: pulse 0.9s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.75); } }
+.under { position: absolute; top: 56px; display: flex; align-items: center; gap: 8px; height: 18px; padding: 0 10px; background: rgba(11, 16, 25, 0.86); font: 600 12px var(--ui); color: var(--muted); }
+.under.l { right: calc(50% + 74px); flex-direction: row-reverse; clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%); padding-left: 16px; }
+.under.r { left: calc(50% + 74px); clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%); padding-right: 16px; }
+.under .side { color: var(--tc); }
+.under .pips { display: flex; gap: 3px; }
+.under .pips i { width: 12px; height: 4px; transform: skewX(-20deg); background: rgba(243, 245, 249, 0.18); }
+.under .pips i.won { background: var(--tc); }
 
 /* Aviso de pausa */
-.pause { position: absolute; top: 110px; left: 50%; transform: translateX(-50%); padding: 10px 28px 8px; background: var(--base); border-bottom: 4px solid var(--tc, var(--hl)); font: 600 40px/1 var(--num); letter-spacing: 0.03em; text-align: center; }
-.pause small { display: block; font: 600 16px var(--ui); color: var(--muted); margin-top: 4px; }
+.pause { position: absolute; top: 88px; left: 50%; transform: translateX(-50%); padding: 8px 24px 6px; background: rgba(11, 16, 25, 0.92); border-bottom: 3px solid var(--tc, var(--hl)); font: 600 34px/1 var(--num); letter-spacing: 0.03em; text-align: center; }
+.pause small { display: block; font: 600 14px var(--ui); color: var(--muted); margin-top: 3px; }
 
-/* ---------- Cartão de vitória de rodada ---------- */
-.win { position: absolute; top: 132px; left: 50%; width: 820px; height: 168px; transform: translateX(-50%); pointer-events: none; }
-.win[hidden] { display: none !important; }
-.win .beam { position: absolute; left: -60px; right: -60px; top: 50%; height: 120px; margin-top: -60px; background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--tc) 70%, transparent), transparent 70%); opacity: 0; }
-.win .panel { position: absolute; inset: 0 40px; background: linear-gradient(90deg, color-mix(in srgb, var(--tc) 22%, var(--base)) 0%, var(--base) 40%, var(--base) 70%, color-mix(in srgb, var(--tc) 30%, var(--base)) 100%); clip-path: polygon(28px 0, calc(100% - 28px) 0, 100% 50%, calc(100% - 28px) 100%, 28px 100%, 0 50%); overflow: hidden; }
-.win .panel::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--tc); }
-.win .panel::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.22) 50%, transparent 65%); transform: translateX(-120%); }
-.win .mvp { position: absolute; left: 40px; bottom: 0; width: 200px; height: 186px; object-fit: cover; object-position: center top; -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 30%, #000 70%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 30%, #000 70%, transparent 100%); opacity: 0; }
-.win .txt { position: absolute; left: 250px; right: 200px; top: 0; bottom: 0; display: grid; align-content: center; justify-items: center; text-align: center; gap: 4px; }
-.win .rnd { font: 600 16px var(--ui); color: var(--muted); padding: 2px 12px; background: rgba(243, 245, 249, 0.07); opacity: 0; }
-.win .who { font: 600 72px/0.9 var(--num); letter-spacing: 0.03em; white-space: nowrap; padding-top: 6px; opacity: 0; }
-.win .how { font: 600 18px var(--ui); color: var(--tc); opacity: 0; }
-.win .how b { color: var(--fg); font-weight: 700; }
-.win .badge { position: absolute; right: 74px; top: 50%; width: 112px; height: 112px; margin-top: -56px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, color-mix(in srgb, var(--tc) 45%, var(--base)), var(--base) 72%); box-shadow: 0 0 0 3px var(--tc); opacity: 0; }
-.win .badge img { width: 70px; height: 70px; object-fit: contain; }
-.win .badge span { font: 600 40px/1 var(--num); padding-top: 4px; }
-.win .badge::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; box-shadow: 0 0 0 3px var(--tc); opacity: 0; }
-/* entrada em etapas */
-.win.on .beam { animation: beam 1.2s ease-out forwards; }
-.win.on .panel { animation: unfold 0.5s cubic-bezier(0.2, 0.9, 0.2, 1) 0.1s both; }
-.win.on .panel::after { animation: sweep 0.9s ease-out 0.55s 1; }
-.win.on .mvp { animation: slideR 0.5s ease-out 0.45s forwards; }
-.win.on .rnd { animation: up 0.35s ease-out 0.35s forwards; }
-.win.on .who { animation: up 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) 0.42s forwards; }
-.win.on .how { animation: up 0.35s ease-out 0.55s forwards; }
-.win.on .badge { animation: pop 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) 0.5s forwards; }
-.win.on .badge::after { animation: ring 0.9s ease-out 0.85s 1; }
-.win.out { animation: fold 0.35s ease-in forwards; }
-@keyframes beam { 0% { opacity: 0; transform: scaleX(0.2); } 30% { opacity: 1; transform: scaleX(1); } 100% { opacity: 0.55; transform: scaleX(1); } }
-@keyframes unfold { from { clip-path: polygon(50% 0, 50% 0, 50% 50%, 50% 100%, 50% 100%, 50% 50%); } to { clip-path: polygon(28px 0, calc(100% - 28px) 0, 100% 50%, calc(100% - 28px) 100%, 28px 100%, 0 50%); } }
+/* ---------- Vitória de rodada: desce do placar ----------
+   Variações: normal, clutch, ace e perfeita (sem baixas). */
+.rw { --w: 660px; --h: 96px; position: absolute; top: 80px; left: 50%; width: var(--w); height: var(--h); margin-left: calc(var(--w) / -2); pointer-events: none; }
+.rw.clutch { --w: 820px; --h: 124px; }
+.rw.ace { --w: 860px; --h: 126px; }
+.rw.flawless { --w: 700px; --h: 108px; }
+.rw-line { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--tc); transform: scaleX(0); }
+.rw-panel { position: absolute; top: 3px; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 20px; padding: 0 26px; overflow: hidden; transform-origin: top; transform: scaleY(0);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 30%, var(--base)) 0%, rgba(11, 16, 25, 0.96) 75%);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px)); }
+.rw.has-agent .rw-panel { padding-left: 200px; }
+.rw-agent { position: absolute; left: 6px; bottom: 0; width: 190px; height: calc(var(--h) + 34px); object-fit: cover; object-position: center top; opacity: 0; z-index: 2;
+  -webkit-mask-image: linear-gradient(0deg, transparent 0, #000 22%); mask-image: linear-gradient(0deg, transparent 0, #000 22%); }
+.rw-logo { flex: none; width: 64px; height: 64px; display: grid; place-items: center; background: color-mix(in srgb, var(--tc) 35%, var(--base)); clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); opacity: 0; }
+.rw-logo img { width: 44px; height: 44px; object-fit: contain; }
+.rw-logo span { font: 600 26px/1 var(--num); padding-top: 3px; }
+.rw.has-agent .rw-logo { display: none; }
+.rw-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.rw-kicker { font: 600 13px var(--ui); color: var(--muted); letter-spacing: 0.04em; opacity: 0; }
+.rw-title { font: 600 52px/0.9 var(--num); letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 4px; opacity: 0; }
+.rw.clutch .rw-title { font-size: 76px; }
+.rw.ace .rw-title { font-size: 84px; color: var(--hl); letter-spacing: 0.1em; }
+.rw-sub { font: 600 16px var(--ui); color: rgba(243, 245, 249, 0.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; }
+.rw-sub b { color: var(--fg); font-weight: 700; }
+.rw-tag { flex: none; padding: 7px 14px 5px; background: rgba(243, 245, 249, 0.1); font: 600 16px var(--ui); white-space: nowrap; opacity: 0; }
+.rw.clutch .rw-tag, .rw.ace .rw-tag { background: var(--tc); font: 600 46px/1 var(--num); padding: 8px 16px 4px; }
+.rw-tag:empty { display: none; }
+.rw-marks { flex: none; display: flex; gap: 6px; }
+.rw-marks:empty { display: none; }
+.rw-marks i { width: 34px; height: 34px; display: grid; place-items: center; background: rgba(243, 245, 249, 0.08); color: rgba(243, 245, 249, 0.3); }
+.rw-marks i svg { width: 20px; height: 20px; }
+.rw-sweep { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.2) 50%, transparent 62%); transform: translateX(-120%); }
+.flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 55%, color-mix(in srgb, var(--tc) 60%, transparent) 100%); }
+
+/* entrada */
+.rw.on .rw-line { animation: lineIn 0.25s ease-out forwards; }
+.rw.on .rw-panel { animation: drop 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) 0.15s forwards; }
+.rw.on .rw-logo { animation: pop 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) 0.38s forwards; }
+.rw.on .rw-agent { animation: rise 0.5s cubic-bezier(0.2, 0.9, 0.2, 1) 0.32s forwards; }
+.rw.on .rw-kicker { animation: up 0.3s ease-out 0.4s forwards; }
+.rw.on .rw-title { animation: slideIn 0.42s cubic-bezier(0.2, 0.9, 0.2, 1) 0.45s forwards; }
+.rw.on .rw-sub { animation: up 0.3s ease-out 0.6s forwards; }
+.rw.on .rw-tag { animation: slideL 0.35s ease-out 0.62s forwards; }
+.rw.on .rw-sweep { animation: sweep 0.9s ease-out 0.8s 1; }
+.rw.on .rw-marks i { animation: mark 0.28s ease-out calc(0.85s + var(--n) * 0.12s) forwards; }
+.rw.ace.on .rw-title { animation: stamp 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.45s forwards; }
+.rw.ace.on .rw-panel { animation: drop 0.4s cubic-bezier(0.2, 0.9, 0.2, 1) 0.15s forwards, shake 0.32s ease-in-out 0.9s 1; }
+.rw.clutch.on .rw-tag { animation: stamp 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.75s forwards; }
+.flash.on { animation: flash 1.5s ease-out 1; }
+/* saída: recolhe para dentro do placar */
+.rw.out .rw-panel { transform: scaleY(1); animation: lift 0.26s ease-in forwards; }
+.rw.out .rw-agent { animation: fadeOut 0.2s ease-in forwards; }
+.rw.out .rw-line { transform: scaleX(1); animation: lineOut 0.22s ease-in 0.16s forwards; }
+.rw.out .rw-logo, .rw.out .rw-kicker, .rw.out .rw-title, .rw.out .rw-sub, .rw.out .rw-tag { opacity: 1; }
+
+@keyframes lineIn { to { transform: scaleX(1); } }
+@keyframes lineOut { to { transform: scaleX(0); } }
+@keyframes drop { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes lift { to { transform: scaleY(0); } }
+@keyframes pop { from { opacity: 0; transform: scale(0.4) rotate(-30deg); } to { opacity: 1; transform: none; } }
+@keyframes rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+@keyframes up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-28px) skewX(-10deg); } to { opacity: 1; transform: none; } }
+@keyframes slideL { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
 @keyframes sweep { to { transform: translateX(120%); } }
-@keyframes slideR { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: none; } }
-@keyframes up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-@keyframes pop { from { opacity: 0; transform: scale(0.55) rotate(-12deg); } to { opacity: 1; transform: none; } }
-@keyframes ring { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.45); } }
-@keyframes fold { to { opacity: 0; transform: translateX(-50%) scaleY(0.2); } }
+@keyframes stamp { 0% { opacity: 0; transform: scale(2.1); } 60% { opacity: 1; transform: scale(0.94); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes shake { 0%, 100% { translate: 0 0; } 20% { translate: -6px 2px; } 40% { translate: 5px -2px; } 60% { translate: -3px 1px; } 80% { translate: 2px 0; } }
+@keyframes mark { from { background: rgba(243, 245, 249, 0.08); color: rgba(243, 245, 249, 0.3); transform: scale(0.7); } to { background: var(--tc); color: #fff; transform: none; } }
+@keyframes flash { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes fadeOut { to { opacity: 0; } }
 
 /* ---------- Combate: cartões compactos ---------- */
 .cards { position: absolute; bottom: 22px; width: 318px; display: grid; gap: 8px; transition: opacity 0.3s, transform 0.3s; }
@@ -266,9 +302,11 @@ body.live .viewport { position: fixed; }
 .status-pill { position: absolute; left: 24px; top: 50px; padding: 8px 14px; background: var(--base); font: 600 17px var(--ui); color: var(--hl); }
 
 @media (prefers-reduced-motion: reduce) {
-  .win.on .beam, .win.on .panel, .win.on .panel::after, .win.on .mvp, .win.on .rnd, .win.on .who, .win.on .how, .win.on .badge, .win.on .badge::after, .win.out, .tp.scored .shine, .clock.spike .spike-icon { animation: none; }
-  .win.on .beam, .win.on .mvp, .win.on .rnd, .win.on .who, .win.on .how, .win.on .badge { opacity: 1; }
+  .rw.on *, .rw.out *, .flash.on, .sc.scored .shine, .clock.spike .spike-icon { animation: none !important; }
+  .rw.on .rw-line, .rw.on .rw-panel { transform: none; }
+  .rw.on .rw-logo, .rw.on .rw-agent, .rw.on .rw-kicker, .rw.on .rw-title, .rw.on .rw-sub, .rw.on .rw-tag { opacity: 1; }
   .cards, .econ, .hpbar i, .clock .bar, .ult .fill, .pc { transition: none; }
+}
 }
 @media (max-width: 640px) { .page h1 { font-size: 2.4rem; } .controls .sep { display: none; } }
 </style>
@@ -433,7 +471,9 @@ body.live .viewport { position: fixed; }
             <button class="btn" data-jump="shopping">Ir para a compra</button>
             <button class="btn" data-jump="combat">Ir para o combate</button>
             <button class="btn" data-jump="plant">Plantar a spike</button>
-            <button class="btn" data-jump="end">Mostrar vitória de rodada</button>
+            <button class="btn" data-jump="end">Vitória normal</button>
+            <button class="btn" data-jump="clutch">Clutch</button>
+            <button class="btn" data-jump="ace">Ace</button>
           </div>
           <span class="sep" aria-hidden="true"></span>
           <div class="group">
@@ -457,22 +497,29 @@ body.live .viewport { position: fixed; }
   const viewport = document.getElementById("viewport");
   viewport.innerHTML = `
     <div class="stage" id="stage">
-      <div class="topbar"><div class="group"><span id="ev"></span><span><span class="k">Mapa</span><span id="map"></span></span><span id="series"></span></div></div>
+      <div class="info"><span id="ev"></span><i></i><span id="map"></span><span class="dim" id="series"></span></div>
       <div class="corner" id="corner"><img id="corner-img" alt="" hidden></div>
       <div class="bug">
-        <div class="tp l" id="tp-l"><i class="shine"></i><img class="logo" id="logo-l" alt="" hidden><span class="tri" id="tri-l"></span><span class="score" id="score-l">0</span></div>
+        <div class="tp l" id="tp-l"><img class="logo" id="logo-l" alt="" hidden><span class="tri" id="tri-l"></span></div>
+        <div class="sc l" id="sc-l"><i class="shine"></i><span id="score-l">0</span></div>
         <div class="clock" id="clock"><span class="spike-icon" id="spike-icon">${SPIKE}</span><span class="round" id="round">Rodada 1</span><span class="time" id="time">0:30</span><i class="bar" id="bar"></i></div>
-        <div class="tp r" id="tp-r"><i class="shine"></i><span class="score" id="score-r">0</span><span class="tri" id="tri-r"></span><img class="logo" id="logo-r" alt="" hidden></div>
+        <div class="sc r" id="sc-r"><i class="shine"></i><span id="score-r">0</span></div>
+        <div class="tp r" id="tp-r"><span class="tri" id="tri-r"></span><img class="logo" id="logo-r" alt="" hidden></div>
       </div>
-      <div class="under l" id="un-l"><span class="pips" id="pips-l"></span><span class="side" id="side-l"></span></div>
+      <div class="under l" id="un-l"><span class="side" id="side-l"></span><span class="pips" id="pips-l"></span></div>
       <div class="under r" id="un-r"><span class="side" id="side-r"></span><span class="pips" id="pips-r"></span></div>
       <div class="pause" id="pause" hidden><span id="pause-t"></span><small id="pause-s"></small></div>
-      <div class="win" id="win" hidden>
-        <i class="beam"></i>
-        <div class="panel"></div>
-        <img class="mvp" id="win-mvp" alt="" hidden>
-        <div class="txt"><span class="rnd" id="win-rnd"></span><span class="who" id="win-who"></span><span class="how" id="win-how"></span></div>
-        <div class="badge" id="win-badge"></div>
+      <div class="flash" id="flash"></div>
+      <div class="rw" id="rw" hidden>
+        <i class="rw-line"></i>
+        <div class="rw-panel">
+          <div class="rw-logo" id="rw-logo"></div>
+          <div class="rw-main"><span class="rw-kicker" id="rw-kicker"></span><span class="rw-title" id="rw-title"></span><span class="rw-sub" id="rw-sub"></span></div>
+          <span class="rw-marks" id="rw-marks"></span>
+          <div class="rw-tag" id="rw-tag"></div>
+          <i class="rw-sweep"></i>
+        </div>
+        <img class="rw-agent" id="rw-agent" alt="" hidden>
       </div>
       <div class="cards l" id="cards-l"></div>
       <div class="cards r" id="cards-r"></div>
@@ -567,6 +614,7 @@ body.live .viewport { position: fixed; }
   let lastRound = -1;
   const lastScore = [null, null];
   const win = { key: "", hideTimer: null };
+  const RT = { round: -1, clutch: [null, null] }; // acompanha a rodada para detectar clutch
 
   function render(d, now) {
     if (!d || !Array.isArray(d.teams) || d.teams.length < 2) return;
@@ -602,11 +650,11 @@ body.live .viewport { position: fixed; }
 
     [[L, "l", 0], [R, "r", 1]].forEach(([t, s, i]) => {
       const c = colorOf(i, t);
-      ["tp-", "un-", "cards-", "er-", "pl-", "mini-", "to-"].forEach((p) => $(p + s).style.setProperty("--tc", c));
+      ["tp-", "sc-", "un-", "cards-", "er-", "pl-", "mini-", "to-"].forEach((p) => $(p + s).style.setProperty("--tc", c));
       setText($("tri-" + s), tri(t));
       const sc = String(t.roundsWon ?? 0);
       setText($("score-" + s), sc);
-      if (lastScore[i] !== null && lastScore[i] !== sc) { const tp = $("tp-" + s); tp.classList.remove("scored"); void tp.offsetWidth; tp.classList.add("scored"); }
+      if (lastScore[i] !== null && lastScore[i] !== sc) { const el = $("sc-" + s); el.classList.remove("scored"); void el.offsetWidth; el.classList.add("scored"); }
       lastScore[i] = sc;
       setText($("side-" + s), t.isAttacking ? "Ataque" : "Defesa");
       const logo = teamLogo(t, i);
@@ -623,6 +671,7 @@ body.live .viewport { position: fixed; }
     });
     renderHistory(d, L, R);
     renderPause(d, L, R, tri);
+    trackRound(d, phase);
     renderWin(d, phase, L, R, tri);
   }
 
@@ -635,12 +684,35 @@ body.live .viewport { position: fixed; }
     if (t) { setText($("pause-t"), t); setText($("pause-s"), sub); box.style.setProperty("--tc", c || CORES.destaque); }
   }
 
-  // Cartão de vitória: aparece quando a rodada termina e sai quando a próxima começa
+  // Acompanha a rodada: quando um time fica com 1 vivo contra 1 ou mais, guarda o candidato a clutch
+  function trackRound(d, phase) {
+    if (d.roundNumber !== RT.round) { RT.round = d.roundNumber; RT.clutch = [null, null]; }
+    if (phase !== "combat") return;
+    const alive = d.teams.map((t) => (t.players || []).filter((p) => p.isAlive));
+    [0, 1].forEach((i) => {
+      const mine = alive[i], other = alive[1 - i];
+      if (!RT.clutch[i] && mine.length === 1 && other.length >= 1) {
+        RT.clutch[i] = { id: mine[0].playerId, name: mine[0].name, vs: other.length };
+      }
+    });
+  }
+
+  const MARK = {
+    kill: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="7"/><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/></svg>',
+    shield: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 20 6v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6z"/></svg>',
+  };
+
+  // Vitória de rodada: escolhe a variação (ace, clutch, perfeita ou normal) e anima
   function renderWin(d, phase, L, R, tri) {
-    const box = $("win");
+    const box = $("rw");
     const ended = phase === "end" || phase === "game_end";
     if (!ended) {
-      if (win.key) { win.key = ""; box.classList.remove("on"); box.classList.add("out"); clearTimeout(win.hideTimer); win.hideTimer = setTimeout(() => { box.hidden = true; box.classList.remove("out"); }, 380); }
+      if (win.key) {
+        win.key = "";
+        box.classList.remove("on"); box.classList.add("out");
+        clearTimeout(win.hideTimer);
+        win.hideTimer = setTimeout(() => { box.hidden = true; box.classList.remove("out"); }, 420);
+      }
       return;
     }
     const wi = d.attackersWon ? (L.isAttacking ? 0 : 1) : (L.isAttacking ? 1 : 0);
@@ -649,21 +721,52 @@ body.live .viewport { position: fixed; }
     if (win.key === key) return;
     win.key = key;
     clearTimeout(win.hideTimer);
+
+    const ps = w.players || [];
     const rec = (w.roundRecord || []).find((r) => r.round === d.roundNumber && REASON_TEXT[r.type]);
-    const mvp = (w.players || []).slice().sort((a, b) => (b.killsThisRound || 0) - (a.killsThisRound || 0))[0];
-    box.style.setProperty("--tc", colorOf(wi, w));
-    setText($("win-rnd"), phase === "game_end" ? "Fim do mapa" : "Rodada " + d.roundNumber);
-    setText($("win-who"), phase === "game_end" ? `${w.teamName || tri(w)} vence o mapa` : w.teamName || tri(w));
-    const side = w.isAttacking ? "Ataque" : "Defesa";
     const reason = rec ? REASON_TEXT[rec.type] : "";
-    const mvpTxt = mvp && mvp.killsThisRound > 0 ? `  <b>${mvp.name}</b> ${mvp.killsThisRound} ${mvp.killsThisRound > 1 ? "abates" : "abate"}` : "";
-    $("win-how").innerHTML = `${side}${reason ? " · " + reason : ""}${mvpTxt}`;
+    const acer = ps.find((p) => (p.killsThisRound || 0) >= 5);
+    const cl = RT.clutch[wi];
+    const clutcher = cl && ps.find((p) => p.playerId === cl.id || p.name === cl.name);
+    const isClutch = !!(clutcher && (clutcher.isAlive || (rec && rec.type === "detonated")));
+    const flawless = ps.length > 0 && ps.every((p) => p.isAlive);
+    const kind = phase === "game_end" ? "normal" : acer ? "ace" : isClutch ? "clutch" : flawless ? "flawless" : "normal";
+    const star = kind === "ace" ? acer : kind === "clutch" ? clutcher : ps.slice().sort((a, b) => (b.killsThisRound || 0) - (a.killsThisRound || 0))[0];
+    const name = w.teamName || tri(w);
+    const side = w.isAttacking ? "Ataque" : "Defesa";
     const logo = teamLogo(w, wi);
-    $("win-badge").innerHTML = logo ? `<img src="${logo}" alt="">` : `<span>${tri(w)}</span>`;
-    const a = mvp && mvp.killsThisRound > 0 ? agentAsset(mvp.agentInternal) : null;
-    setImg($("win-mvp"), a && a.portrait);
+
+    box.className = "rw " + kind;
+    box.style.setProperty("--tc", colorOf(wi, w));
+    $("flash").style.setProperty("--tc", kind === "ace" ? CORES.destaque : colorOf(wi, w));
+    $("rw-logo").innerHTML = logo ? `<img src="${logo}" alt="">` : `<span>${tri(w)}</span>`;
+    let kicker = "Rodada " + d.roundNumber, title = name, sub = "", tag = "", marks = "";
+    if (phase === "game_end") { kicker = "Fim do mapa"; title = name + " vence o mapa"; sub = `${L.roundsWon} a ${R.roundsWon}`; }
+    else if (kind === "ace") {
+      title = "ACE"; sub = `<b>${star.name}</b>  ${name}`; tag = "";
+      marks = Array.from({ length: 5 }, (_, n) => `<i style="--n:${n}">${MARK.kill}</i>`).join("");
+    } else if (kind === "clutch") {
+      title = "CLUTCH"; sub = `<b>${star.name}</b>  ${name}${reason ? "  " + reason : ""}`; tag = "1v" + cl.vs;
+    } else if (kind === "flawless") {
+      sub = `Rodada perfeita  ${side}`; tag = reason;
+      marks = Array.from({ length: 5 }, (_, n) => `<i style="--n:${n}">${MARK.shield}</i>`).join("");
+    } else {
+      const k = star && star.killsThisRound > 0 ? `  <b>${star.name}</b> ${star.killsThisRound} ${star.killsThisRound > 1 ? "abates" : "abate"}` : "";
+      sub = side + k; tag = reason;
+    }
+    setText($("rw-kicker"), kicker);
+    setText($("rw-title"), title);
+    $("rw-sub").innerHTML = sub.replace(/  /g, '<span style="opacity:.45"> / </span>');
+    setText($("rw-tag"), tag);
+    $("rw-marks").innerHTML = marks;
+    const showAgent = (kind === "ace" || kind === "clutch") && star;
+    const a = showAgent ? agentAsset(star.agentInternal) : null;
+    box.classList.toggle("has-agent", !!(a && a.portrait));
+    setImg($("rw-agent"), a && a.portrait);
     box.hidden = false;
-    box.classList.remove("on", "out"); void box.offsetWidth; box.classList.add("on");
+    void box.offsetWidth;
+    box.classList.add("on");
+    if (kind === "ace" || kind === "clutch") { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); }
   }
 
   function renderCards(list, team, imgKey) {
@@ -922,16 +1025,34 @@ body.live .viewport { position: fixed; }
       if (j === "shopping") { if (d.roundPhase !== "shopping") nextRound(); }
       else if (j === "combat") { if (d.roundPhase === "end") nextRound(); if (sim.d.roundPhase === "shopping") startCombat(); }
       else if (j === "plant") { if (d.roundPhase === "end") nextRound(); if (sim.d.roundPhase === "shopping") startCombat(); plant(); }
-      else if (j === "end") {
-        if (d.roundPhase === "end") nextRound();
-        if (sim.d.roundPhase === "shopping") startCombat();
-        const attWins = sim.d.spikeState.planted ? true : Math.random() < 0.5;
-        const winners = sim.d.teams.find((t) => t.isAttacking === attWins);
-        const star = pick(winners.players.filter((p) => p.isAlive).length ? winners.players.filter((p) => p.isAlive) : winners.players);
-        sim.d.teams.filter((t) => t.isAttacking !== attWins).forEach((t) => t.players.forEach((p) => { if (p.isAlive) { p.isAlive = false; p.health = 0; p.deaths++; star.kills++; star.killsThisRound++; } }));
-        endRound(attWins, "kills");
-      }
+      else forceWin(j);
     }));
+    // Força um fim de rodada para ver cada animação
+    function forceWin(kind) {
+      if (sim.d.roundPhase === "end") nextRound();
+      if (sim.d.roundPhase === "shopping") startCombat();
+      const d = sim.d;
+      d.spikeState.planted = false;
+      sim.nextEvent = sim.t + 999; sim.plantAt = sim.t + 999;
+      const attWins = Math.random() < 0.5;
+      const W = d.teams.find((t) => t.isAttacking === attWins), Lo = d.teams.find((t) => t.isAttacking !== attWins);
+      [W, Lo].forEach((t) => t.players.forEach((p) => { p.isAlive = true; p.health = 100; p.killsThisRound = 0; p.deathsThisRound = 0; }));
+      const die = (p) => { p.isAlive = false; p.health = 0; p.deaths++; p.deathsThisRound++; };
+      const star = pick(W.players);
+      const killBy = (by, list) => list.forEach((p) => { if (p.isAlive) { die(p); by.kills++; by.killsThisRound++; } });
+      if (kind === "ace") { killBy(star, Lo.players); endRound(attWins, "kills"); return; }
+      if (kind === "clutch") {
+        W.players.forEach((p) => { if (p !== star) die(p); });
+        killBy(pick(W.players), Lo.players.slice(0, 2));
+        star.health = 34;
+        setTimeout(() => { if (sim.d === d && d.roundPhase === "combat") { killBy(star, Lo.players); endRound(attWins, "kills"); } }, 700);
+        return;
+      }
+      die(W.players[0]);
+      const alive = W.players.filter((p) => p.isAlive);
+      Lo.players.forEach((p, n) => killBy(alive[n % 2 === 0 ? 0 : 1 + (n % (alive.length - 1))], [p]));
+      endRound(attWins, "kills");
+    }
     const cl = $("c-left"), cr = $("c-right");
     cl.value = CORES.esquerda; cr.value = CORES.direita;
     cl.addEventListener("input", () => { CORES.esquerda = cl.value; applyColors(); });
