@@ -102,7 +102,25 @@ body.live .viewport { position: fixed; }
   clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
 }
 .info .k { color: var(--muted); margin-right: 6px; font-weight: 500; }
-.event-logo { position: absolute; top: 12px; right: 24px; height: 72px; max-width: 260px; object-fit: contain; }
+.event-logo { position: absolute; top: 52px; left: 22px; height: 60px; max-width: 220px; object-fit: contain; }
+.sponsor {
+  position: absolute; top: 0; right: 0; width: 300px; height: 64px; display: grid; place-items: center;
+  background: var(--glass); clip-path: polygon(18px 0, 100% 0, 100% 100%, 0 100%);
+}
+.sponsor img { max-width: 210px; max-height: 40px; object-fit: contain; transition: opacity 0.4s; }
+.cv { width: 14px; height: 14px; object-fit: contain; }
+.spike-icon img { width: 26px; height: 26px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(255, 200, 61, 0.8)); }
+.mini { position: relative; overflow: hidden; }
+.mini .art { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.28; }
+.mini > :not(.art) { position: relative; }
+/* Com a fonte Tungsten da pasta local: números e nomes grandes mais condensados e altos */
+.stage.tungsten .bug .score { font: 400 84px/1 "Tungsten", var(--display); letter-spacing: 0.02em; }
+.stage.tungsten .clock .time { font: 400 62px/1 "Tungsten", var(--display); letter-spacing: 0.04em; }
+.stage.tungsten .plate .name { font: 400 56px/1 "Tungsten", var(--display); letter-spacing: 0.04em; }
+.stage.tungsten .banner .big { font: 400 68px/1 "Tungsten", var(--display); letter-spacing: 0.04em; }
+.stage.tungsten .tplate .tn { font: 400 46px/1 "Tungsten", var(--display); letter-spacing: 0.03em; }
+.stage.tungsten .mini { font: 400 30px "Tungsten", var(--display); letter-spacing: 0.04em; }
+.stage.tungsten .hpn { font: 400 30px/1 "Tungsten", var(--display); }
 
 /* Placar */
 .bug { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: 330px 92px 210px 92px 330px; height: 92px; }
@@ -192,7 +210,8 @@ body.live .viewport { position: fixed; }
 .ult.ready .fill { stroke: var(--spike); filter: drop-shadow(0 0 4px var(--spike)); }
 .ult .uic { position: absolute; inset: 7px; width: 16px; height: 16px; object-fit: contain; filter: brightness(0) invert(1); }
 .ult.ready .uic { filter: brightness(0) invert(1) drop-shadow(0 0 3px var(--spike)); }
-.weap { height: 24px; max-width: 110px; object-fit: contain; filter: brightness(0) invert(1); }
+.weap { height: 24px; max-width: 96px; object-fit: contain; filter: brightness(0) invert(1); }
+.pc .weap { max-width: 88px; }
 .side-cards.r .weap { transform: scaleX(-1); }
 .wtxt { font: 600 15px var(--ui); color: var(--muted); white-space: nowrap; }
 
@@ -345,8 +364,48 @@ body.live .viewport { position: fixed; }
       ASSETS.ready = false; // sem internet ou API fora do ar: o overlay usa ícones próprios
     }
   }
-  const agentAsset = (internal) => ASSETS.agents[String(internal || "").toLowerCase()] || ASSETS.agents[agentName(internal).toLowerCase()] || null;
-  const weaponAsset = (w) => ASSETS.weapons[String(w || "").toLowerCase()] || null;
+  // ---------- Pasta local de recursos (prioridade sobre a internet) ----------
+  // Estrutura esperada: Agentes/<Nome>/<Nome>.png e C/Q/E/X.png, Armas/<Arma>.png, Escudos/*.png,
+  // Logos/logo1.png e logo2.png, Sponsors/Sponsor1.png..., Maps/<Mapa>.png, spike.png, Tungsten-Bold.ttf
+  const LOCAL = { base: null, sponsors: [] };
+  const FOLDER = { "KAY/O": "Kayo" };
+  const MAP_NAMES = { Triad: "Haven", Bonsai: "Split", Duality: "Bind", Port: "Icebox", Foxtrot: "Breeze", Canyon: "Fracture", Pitt: "Pearl", Jam: "Lotus", Juliett: "Sunset", Infinity: "Abyss", Rook: "Corrode", Ascent: "Ascent" };
+  const mapName = (m) => MAP_NAMES[m] || m || "";
+  const probe = (src, ms = 2500) => new Promise((ok) => {
+    const im = new Image(); const t = setTimeout(() => ok(false), ms);
+    im.onload = () => { clearTimeout(t); ok(true); }; im.onerror = () => { clearTimeout(t); ok(false); };
+    im.src = src;
+  });
+  async function loadLocal() {
+    if (!USE_IMAGES) return;
+    const given = params.get("assets");
+    const candidates = given ? [given.endsWith("/") ? given : given + "/"] : ["Resources/", "./"];
+    for (const base of candidates) {
+      if (await probe(base + "Agentes/Jett/Jett.png")) { LOCAL.base = base; break; }
+    }
+    if (!LOCAL.base) return;
+    try {
+      const f = new FontFace("Tungsten", `url("${LOCAL.base}Tungsten-Bold.ttf")`);
+      document.fonts.add(await f.load());
+      stage.classList.add("tungsten");
+    } catch (e) { /* fonte ausente: segue com a fonte padrão */ }
+    for (let i = 1; i <= 12; i++) {
+      const src = `${LOCAL.base}Sponsors/Sponsor${i}.png`;
+      if (await probe(src, 1500)) LOCAL.sponsors.push(src); else break;
+    }
+    startSponsors();
+  }
+  function localAgent(internal) {
+    const n = agentName(internal); if (!n) return null;
+    const f = FOLDER[n] || n, b = `${LOCAL.base}Agentes/${f}/`;
+    return { portrait: `${b}${f}.png`, abil: { grenade: b + "C.png", ability1: b + "Q.png", ability2: b + "E.png", ultimate: b + "X.png" } };
+  }
+  const LOCAL_SHIELD = { Heavy: "Escudo50.png", Light: "Escudo100.png", Regen: "EscudoReg.png" };
+
+  const agentAsset = (internal) => (LOCAL.base ? localAgent(internal) : null) || ASSETS.agents[String(internal || "").toLowerCase()] || ASSETS.agents[agentName(internal).toLowerCase()] || null;
+  const weaponAsset = (w) => (LOCAL.base && w ? `${LOCAL.base}Armas/${w}.png` : null) || ASSETS.weapons[String(w || "").toLowerCase()] || null;
+  const shieldAsset = (a) => (LOCAL.base && LOCAL_SHIELD[a] ? `${LOCAL.base}Escudos/${LOCAL_SHIELD[a]}` : null) || ASSETS.shields[a] || null;
+  const imagesReady = () => !!LOCAL.base || ASSETS.ready;
 
   // ---------- Página ----------
   const app = document.getElementById("app");
@@ -376,7 +435,7 @@ body.live .viewport { position: fixed; }
           <h2>Como usar no OBS</h2>
           <p>Fonte <em>Navegador</em> de 1920 × 1080 apontando para este arquivo:</p>
           <pre><code>cyber.html?server=http://localhost:5200&amp;groupCode=SEUCODIGO</code></pre>
-          <p>Use <code>cyber.html?demo</code> para testar sem partida rodando. As imagens do jogo são carregadas da internet; para desligar, acrescente <code>&amp;images=0</code>.</p>
+          <p>Use <code>cyber.html?demo</code> para testar sem partida rodando. As imagens do jogo vêm de uma pasta <code>Resources</code> ao lado do arquivo ou, sem ela, da internet; para desligar, acrescente <code>&amp;images=0</code>.</p>
         </section>
       </main>`;
   } else {
@@ -389,6 +448,7 @@ body.live .viewport { position: fixed; }
     <div class="stage" id="stage">
       <div class="info scan" id="info"><span><span class="k">Evento</span><span id="ev"></span></span><span><span class="k">Mapa</span><span id="map"></span></span></div>
       <img class="event-logo" id="event-logo" alt="" hidden>
+      <div class="sponsor scan" id="sponsor" hidden><img id="sponsor-img" alt=""></div>
       <div class="bug">
         <div class="plate l scan" id="pl-l"><span class="side" id="side-l"></span><span class="name" id="name-l"></span><img class="logo" id="logo-l" alt="" hidden></div>
         <div class="score" id="sc-l"><span id="score-l">0</span><div class="pips" id="pips-l"></div></div>
@@ -403,7 +463,7 @@ body.live .viewport { position: fixed; }
         <div class="econ-head">
           <div class="tplate l chamfer scan" id="tp-l"><img class="logo" id="tlogo-l" alt="" hidden><div><div class="tn" id="tn-l"></div><div class="val">Equipamento <b id="eq-l"></b></div></div></div>
           <div class="mid">
-            <div class="mini scan"><div class="row" id="mini-l"><span></span><span></span></div><div class="row" id="mini-r"><span></span><span></span></div><div class="to"><span>Pausas</span><span><b id="to-l"></b> <b id="to-r"></b></span></div></div>
+            <div class="mini scan"><i class="art" id="map-art"></i><div class="row" id="mini-l"><span></span><span></span></div><div class="row" id="mini-r"><span></span><span></span></div><div class="to"><span>Pausas</span><span><b id="to-l"></b> <b id="to-r"></b></span></div></div>
             <div class="hist scan" id="hist"></div>
           </div>
           <div class="tplate r chamfer-r scan" id="tp-r"><img class="logo" id="tlogo-r" alt="" hidden><div><div class="tn" id="tn-r"></div><div class="val">Equipamento <b id="eq-r"></b></div></div></div>
@@ -491,7 +551,7 @@ body.live .viewport { position: fixed; }
 
   function render(d, now) {
     if (!d || !Array.isArray(d.teams) || d.teams.length < 2) return;
-    const imgKey = ASSETS.ready ? "img" : "noimg"; // força redesenho quando as imagens chegam
+    const imgKey = LOCAL.base ? "loc" : ASSETS.ready ? "img" : "no"; // força redesenho quando as imagens chegam
     const phase = d.roundPhase || "shopping";
     if (phase !== clock.phase || d.roundNumber !== lastRound) { clock.phase = phase; clock.at = now; lastRound = d.roundNumber; }
     const planted = phase === "combat" && !!(d.spikeState && d.spikeState.planted && !d.spikeState.defused && !d.spikeState.detonated);
@@ -511,7 +571,9 @@ body.live .viewport { position: fixed; }
 
     const tools = d.tools || {};
     setText($("ev"), (tools.tournamentInfo && tools.tournamentInfo.name) || "Partida");
-    setText($("map"), d.map || "");
+    setText($("map"), mapName(d.map));
+    const art = $("map-art"), artSrc = LOCAL.base && d.map ? `url("${LOCAL.base}Maps/${mapName(d.map)}.png")` : "none";
+    if (art._k !== artSrc) { art._k = artSrc; art.style.backgroundImage = artSrc; }
     setImg($("event-logo"), MODE === "live" && tools.tournamentInfo && tools.tournamentInfo.logoUrl);
 
     const [L, R] = d.teams;
@@ -526,7 +588,7 @@ body.live .viewport { position: fixed; }
       setText($("name-" + s), tri(t));
       setText($("side-" + s), t.isAttacking ? "Ataque" : "Defesa");
       setText($("score-" + s), String(t.roundsWon ?? 0));
-      const logo = MODE === "live" ? t.teamUrl : "";
+      const logo = MODE === "live" && t.teamUrl ? t.teamUrl : LOCAL.base ? `${LOCAL.base}Logos/logo${i + 1}.png` : "";
       setImg($("logo-" + s), logo); setImg($("tlogo-" + s), logo);
       const need = series && series.needed > 1 ? series.needed : 0, won = series ? (i ? series.wonRight : series.wonLeft) : 0;
       setHTML($("pips-" + s), Array.from({ length: need }, (_, n) => `<i class="${n < won ? "won" : ""}"></i>`).join(""), need + ":" + won);
@@ -589,13 +651,13 @@ body.live .viewport { position: fixed; }
       const p = ps[i];
       k.el.hidden = !p; if (!p) return;
       setText(k.spent, p.moneySpent > 0 ? "-" + money(p.moneySpent) : "");
-      setHTML(k.cr, CREDIT + `<span>${money(p.money)}</span>`, String(p.money));
+      setHTML(k.cr, (LOCAL.base ? `<img class="cv" src="${LOCAL.base}Escudos/CV.png" alt="">` : CREDIT) + `<span>${money(p.money)}</span>`, imgKey + p.money);
       const ab = p.abilities || {};
       setHTML(k.ab, abilsHTML(p.agentInternal, ab), imgKey + [p.agentInternal, ab.grenade, ab.ability1, ab.ability2].join());
       k.ult.classList.toggle("ready", !!p.ultReady);
       setHTML(k.ult, ultHTML(p.agentInternal, p.currUltPoints || 0, p.maxUltPoints || 0, p.ultReady), imgKey + [p.agentInternal, p.currUltPoints, p.maxUltPoints, p.ultReady].join());
       const armor = ARMOR[p.armorName];
-      const shSrc = ASSETS.shields[p.armorName];
+      const shSrc = shieldAsset(p.armorName);
       setHTML(k.sh, armor ? (shSrc ? `<img class="weap" style="height:26px" src="${shSrc}" alt="${armor}">` : `<span class="shield-b">${armor}</span>`) : "", imgKey + p.armorName);
       setHTML(k.wp, weaponHTML(p.highestWeapon), imgKey + p.highestWeapon);
       setHTML(k.face, faceHTML(p.agentInternal), imgKey + p.agentInternal);
@@ -633,6 +695,22 @@ body.live .viewport { position: fixed; }
   }
 
   // ---------- Partida real ----------
+  // Logos que não existirem somem em vez de mostrar imagem quebrada
+  stage.addEventListener("error", (e) => { if (e.target.tagName === "IMG" && e.target.classList.contains("logo")) e.target.hidden = true; }, true);
+  function startSponsors() {
+    if (!LOCAL.sponsors.length) return;
+    const box = $("sponsor"), img = $("sponsor-img");
+    let n = 0;
+    box.hidden = false; img.src = LOCAL.sponsors[0];
+    if (LOCAL.sponsors.length > 1) setInterval(() => {
+      n = (n + 1) % LOCAL.sponsors.length;
+      img.style.opacity = "0";
+      setTimeout(() => { img.src = LOCAL.sponsors[n]; img.style.opacity = "1"; }, 400);
+    }, 6000);
+  }
+  loadLocal().then(() => {
+    if (LOCAL.base) document.querySelector(".spike-icon").innerHTML = `<img src="${LOCAL.base}spike.png" alt="">`;
+  });
   loadAssets();
   if (MODE === "live") {
     const status = $("status");
@@ -802,8 +880,10 @@ body.live .viewport { position: fixed; }
 
   if (MODE === "preview") {
     const note = $("img-note");
-    const updNote = () => setText(note, ASSETS.ready
-      ? "Imagens oficiais do jogo carregadas."
+    const updNote = () => setText(note, LOCAL.base
+      ? "Imagens carregadas da pasta de recursos do seu PC (" + LOCAL.base + ")."
+      : ASSETS.ready
+      ? "Imagens oficiais do jogo carregadas da internet."
       : "Esta prévia mostra ícones próprios no lugar das imagens do jogo, porque a página publicada não pode carregar imagens de outros sites. Aberto no navegador ou no OBS, o arquivo puxa os retratos, habilidades, armas e escudos oficiais.");
     updNote(); setTimeout(updNote, 4000);
     const pb = $("btn-play"), sb = $("btn-speed");

@@ -36,7 +36,18 @@ Aberto sem parâmetros, o arquivo mostra a página de prévia com controles da s
 
 Mesmos parâmetros do `index.html`. No combate mostra cartões nas laterais com retrato, vida, escudo, K/D/A, habilidades, ultimate e arma; na fase de compra troca para um painel de economia com créditos, gastos, equipamento e o histórico de rodadas.
 
-Ela carrega as imagens oficiais do jogo (retratos, habilidades, ultimates, armas e escudos) da [valorant-api.com](https://valorant-api.com), então o PC do OBS precisa de internet. Sem internet, ou com `&images=0`, usa ícones próprios no lugar.
+De onde vêm as imagens, em ordem de prioridade:
+
+1. **Pasta de recursos local.** Se existir uma pasta `Resources/` ao lado do arquivo, ou se o arquivo estiver dentro dela, o overlay usa as imagens de lá. Para apontar outra pasta, use `&assets=file:///E:/caminho/Resources/`. Estrutura esperada:
+   - `Agentes/<Nome>/<Nome>.png` e `C.png`, `Q.png`, `E.png`, `X.png` (KAY/O fica em `Kayo`)
+   - `Armas/<Arma>.png`, `Escudos/CV.png` (créditos), `Escudos/Escudo50.png` (pesado), `Escudo100.png` (leve), `EscudoReg.png`
+   - `Logos/logo1.png` e `logo2.png` (time da esquerda e da direita, quando o capturador não manda logo)
+   - `Sponsors/Sponsor1.png`, `Sponsor2.png`… (rodízio no canto superior direito)
+   - `Maps/<Mapa>.png`, `spike.png` e `Tungsten-Bold.ttf` (fonte dos números grandes)
+2. **Internet**, pela [valorant-api.com](https://valorant-api.com).
+3. **Ícones próprios**, quando nenhuma das duas está disponível ou com `&images=0`.
+
+A pasta `overlay/Resources/` está no `.gitignore`: imagens do jogo, fontes e logos ficam só no seu PC e não vão para o GitHub.
 
 O cronômetro é estimado pelo overlay a partir da mudança de fase (30 s de compra, 1:40 de combate, 45 s de spike), porque o servidor não envia o tempo da rodada.
 

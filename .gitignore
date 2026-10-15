@@ -134,3 +134,5 @@ app
 !angular/src/app
 
 electron-builder.env
+# Recursos locais do overlay (imagens do jogo, fontes e logos): ficam só no PC
+overlay/Resources/
