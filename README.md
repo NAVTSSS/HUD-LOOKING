@@ -32,6 +32,12 @@ index.html?server=http://localhost:5200&groupCode=SEUCODIGO
 
 Aberto sem parâmetros, o arquivo mostra a página de prévia com controles da simulação.
 
+### Variante cyber (`overlay/cyber.html`)
+
+Mesmos parâmetros do `index.html`. No combate mostra cartões nas laterais com retrato, vida, escudo, K/D/A, habilidades, ultimate e arma; na fase de compra troca para um painel de economia com créditos, gastos, equipamento e o histórico de rodadas.
+
+Ela carrega as imagens oficiais do jogo (retratos, habilidades, ultimates, armas e escudos) da [valorant-api.com](https://valorant-api.com), então o PC do OBS precisa de internet. Sem internet, ou com `&images=0`, usa ícones próprios no lugar.
+
 O cronômetro é estimado pelo overlay a partir da mudança de fase (30 s de compra, 1:40 de combate, 45 s de spike), porque o servidor não envia o tempo da rodada.
 
 ## Como rodar o capturador (Windows)
