@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HUD Looking Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+/* Layout: faixa fina de informações no topo com o placar pendurado no centro; blocos de placar em cor
+   sólida do time; no combate, cartões com retrato que sai da moldura; na compra, painel de economia
+   com histórico de rodadas. Cores chapadas, cortes inclinados, números condensados. Palco 1920x1080. */
+:root {
+  --ink: #0a0e16;
+  --card: rgba(13, 18, 28, 0.95);
+  --card-2: rgba(18, 24, 38, 0.95);
+  --line: rgba(244, 246, 250, 0.09);
+  --fg: #f4f6fa;
+  --muted: #8a94a8;
+  --atk: #f0384b;
+  --def: #18cfa4;
+  --spike: #f5c043;
+  --loss: #ff6b6b;
+  --chrome-bg: #06080e;
+  --chrome-raise: #111725;
+  --num: "Tungsten", "Teko", "Bahnschrift Condensed", "Arial Narrow", sans-serif;
+  --ui: "Barlow Semi Condensed", "Bahnschrift", "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+html, body { background: var(--chrome-bg); color: var(--fg); font-family: var(--ui); }
+html:has(body.live), body.live { background: transparent; }
+* { box-sizing: border-box; }
+img { display: block; }
+[hidden] { display: none !important; }
+
+/* ---------- Página de prévia ---------- */
+.page {
+  max-width: 1240px; margin: 0 auto;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 18px;
+}
+.page h1 { font: 600 3.2rem/0.95 var(--num); margin: 0; letter-spacing: 0.01em; text-wrap: balance; }
+.page .lede { margin: 8px 0 0; color: var(--muted); max-width: 64ch; line-height: 1.5; font-size: 1.05rem; }
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; overflow: hidden; background: #1c1f27; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.controls .group { display: flex; flex-wrap: wrap; gap: 6px; }
+.controls .sep { width: 1px; height: 26px; background: var(--line); margin-inline: 6px; }
+.btn { font: 600 1rem var(--ui); color: var(--fg); background: var(--chrome-raise); border: 0; padding: 9px 16px; cursor: pointer; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+.btn:hover { background: #1b2336; }
+.btn:focus-visible { outline: 2px solid var(--spike); outline-offset: 2px; }
+.btn[aria-pressed="true"] { background: var(--fg); color: var(--ink); }
+.note { color: var(--muted); line-height: 1.55; max-width: 76ch; margin: 0; }
+.howto { display: grid; gap: 10px; max-width: 780px; line-height: 1.55; color: var(--muted); }
+.howto h2 { font: 600 2rem/1 var(--num); color: var(--fg); margin: 10px 0 0; }
+.howto p { margin: 0; }
+.howto code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.86rem; color: var(--fg); }
+.howto pre { margin: 0; padding: 12px 14px; background: var(--chrome-raise); overflow-x: auto; }
+.scene {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(60% 50% at 62% 38%, rgba(214, 170, 120, 0.35), transparent 70%),
+    linear-gradient(180deg, #4b4f5c 0%, #6b6560 45%, #7b6a58 55%, #3a3430 100%);
+}
+.scene::after {
+  content: ""; position: absolute; inset: 55% 0 0 0;
+  background: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.08) 0 3px, transparent 3px 140px);
+  transform: perspective(500px) rotateX(58deg); transform-origin: top;
+}
+
+/* ---------- Palco ---------- */
+.viewport { position: absolute; inset: 0; overflow: hidden; }
+body.live .viewport { position: fixed; }
+.stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform: scale(var(--s, 1)); transform-origin: 0 0; font-family: var(--ui); color: var(--fg); font-variant-numeric: tabular-nums; }
+
+/* Faixa de informações no topo */
+.info { position: absolute; top: 0; left: 0; right: 0; height: 36px; display: flex; align-items: center; gap: 34px; padding: 0 26px; background: rgba(10, 14, 22, 0.92); font: 600 17px var(--ui); color: var(--fg); }
+.info .k { color: var(--muted); font-weight: 500; margin-right: 8px; }
+.event-logo { position: absolute; top: 46px; left: 24px; height: 56px; max-width: 220px; object-fit: contain; }
+.sponsor { position: absolute; top: 36px; right: 0; width: 280px; height: 58px; display: grid; place-items: center; background: rgba(10, 14, 22, 0.88); clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%); }
+.sponsor img { max-width: 200px; max-height: 36px; object-fit: contain; transition: opacity 0.4s; }
+
+/* Placar */
+.bug { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: 320px 112px 184px 112px 320px; height: 88px; z-index: 2; }
+.plate { position: relative; display: flex; align-items: center; gap: 14px; padding: 0 22px; background: var(--ink); }
+.plate.l { justify-content: flex-end; clip-path: polygon(0 0, 100% 0, 100% 100%, 26px 100%); }
+.plate.r { justify-content: flex-start; clip-path: polygon(0 0, 100% 0, calc(100% - 26px) 100%, 0 100%); }
+.plate::after { content: ""; position: absolute; bottom: 0; height: 4px; background: var(--side); }
+.plate.l::after { left: 26px; right: 0; }
+.plate.r::after { left: 0; right: 26px; }
+.plate .name { font: 600 58px/1 var(--num); letter-spacing: 0.02em; margin-top: 6px; }
+.plate .logo { width: 52px; height: 52px; object-fit: contain; }
+.plate .side { font: 600 15px var(--ui); color: var(--side); }
+.bug .score { position: relative; display: grid; place-items: center; background: var(--side); color: #fff; font: 600 82px/1 var(--num); padding: 4px 0 14px; }
+#sc-l { clip-path: polygon(16px 0, 100% 0, 100% 100%, 0 100%); }
+#sc-r { clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 100%, 0 100%); }
+.pips { position: absolute; bottom: 7px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; }
+.pips i { width: 16px; height: 4px; transform: skewX(-20deg); background: rgba(10, 14, 22, 0.35); }
+.pips i.won { background: #fff; }
+.clock { position: relative; display: grid; place-items: center; align-content: center; gap: 0; background: var(--ink); }
+.clock .round { font: 600 15px var(--ui); color: var(--muted); }
+.clock .time { font: 600 64px/0.9 var(--num); letter-spacing: 0.03em; }
+.clock .bar { position: absolute; left: 0; bottom: 0; height: 4px; width: 100%; background: var(--fg); transform-origin: left; transition: transform 0.25s linear; }
+.clock.spike { background: var(--spike); }
+.clock.spike .time, .clock.spike .round { color: var(--ink); }
+.clock.spike .bar { background: var(--ink); }
+.spike-icon { position: absolute; left: 12px; top: 50%; width: 24px; height: 24px; margin-top: -12px; opacity: 0; color: var(--ink); }
+.spike-icon svg, .spike-icon img { width: 24px; height: 24px; }
+.spike-icon img { filter: brightness(0); }
+.clock.spike .spike-icon { opacity: 1; animation: pulse 0.9s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.78); } }
+
+/* Faixa de fim de rodada: entra abrindo do centro */
+.banner { position: absolute; top: 108px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 18px; height: 74px; padding: 0 48px; background: var(--side); color: #fff; clip-path: polygon(22px 0, 100% 0, calc(100% - 22px) 100%, 0 100%); opacity: 0; }
+.banner.on { opacity: 1; animation: wipe 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) 1; }
+@keyframes wipe { from { clip-path: polygon(50% 0, 50% 0, 50% 100%, 50% 100%); } to { clip-path: polygon(22px 0, 100% 0, calc(100% - 22px) 100%, 0 100%); } }
+.banner .big { font: 600 64px/1 var(--num); letter-spacing: 0.02em; padding-top: 6px; white-space: nowrap; }
+.banner .small { font: 700 18px var(--ui); background: var(--ink); color: var(--fg); padding: 6px 12px; white-space: nowrap; }
+.banner .small:empty { display: none; }
+
+/* ---------- Combate: cartões laterais ---------- */
+.side-cards { position: absolute; bottom: 20px; width: 338px; display: grid; gap: 12px; transition: opacity 0.3s, transform 0.3s; }
+.side-cards.l { left: 18px; }
+.side-cards.r { right: 18px; }
+.stage.buy .side-cards { opacity: 0; transform: translateY(30px); }
+.pc { position: relative; height: 84px; display: grid; grid-template-columns: 92px 1fr; background: var(--card); transition: transform 0.25s, background-color 0.25s; }
+.side-cards.r .pc { grid-template-columns: 1fr 92px; }
+.side-cards.r .pc .face { order: 2; }
+.pc::before { content: ""; position: absolute; top: 0; bottom: 0; width: 4px; background: var(--side); z-index: 1; }
+.side-cards.l .pc::before { left: 0; }
+.side-cards.r .pc::before { right: 0; }
+.side-cards.l .pc.observed { transform: translateX(8px); }
+.side-cards.r .pc.observed { transform: translateX(-8px); }
+.pc.observed { background: var(--card-2); box-shadow: 0 0 0 2px var(--side); }
+.face { position: relative; background: linear-gradient(0deg, color-mix(in srgb, var(--side) 75%, #000) 0%, color-mix(in srgb, var(--side) 22%, transparent) 100%); }
+.face img { position: absolute; left: 0; bottom: 0; width: 92px; height: 100px; object-fit: cover; object-position: center top; }
+.side-cards.r .face img { transform: scaleX(-1); }
+.ph { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 2px; font: 600 22px var(--num); color: #fff; }
+.ph svg { width: 30px; height: 30px; color: #fff; }
+.pc.dead { background: rgba(13, 18, 28, 0.8); }
+.pc.dead .face { background: #1a1f2a; }
+.pc.dead .face img { filter: grayscale(1) brightness(0.5); }
+.pc.dead .pbody { opacity: 0.4; }
+.pbody { display: grid; align-content: center; gap: 5px; padding: 0 14px; min-width: 0; }
+.prow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.side-cards.r .prow { flex-direction: row-reverse; }
+.pname { font: 600 30px/0.9 var(--num); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; padding-top: 3px; }
+.side-cards.r .pname { text-align: right; }
+.kda { font: 600 16px var(--ui); color: var(--muted); white-space: nowrap; }
+.shield-b { display: inline-grid; place-items: center; min-width: 28px; height: 20px; padding: 0 4px; font: 700 13px var(--ui); color: var(--ink); background: var(--fg); clip-path: polygon(0 0, 100% 0, 100% 72%, 50% 100%, 0 72%); }
+.shield-b.none { visibility: hidden; }
+.hpn { font: 600 30px/0.9 var(--num); min-width: 40px; padding-top: 3px; }
+.side-cards.r .hpn { text-align: right; }
+.hpbar { flex: 1; height: 5px; background: rgba(244, 246, 250, 0.12); position: relative; overflow: hidden; }
+.hpbar i { position: absolute; inset: 0; background: var(--side); transform-origin: left; transition: transform 0.25s; }
+.side-cards.r .hpbar i { transform-origin: right; }
+.hpbar.low i { background: var(--loss); }
+.kit { justify-content: space-between; }
+.abils { display: flex; gap: 8px; align-items: flex-end; }
+.ab { display: grid; justify-items: center; gap: 2px; width: 24px; }
+.ab .ic { width: 22px; height: 22px; object-fit: contain; filter: brightness(0) invert(1); }
+.ab .lt { width: 22px; height: 22px; display: grid; place-items: center; font: 700 13px var(--ui); color: var(--muted); background: rgba(244, 246, 250, 0.08); }
+.ab.empty .ic, .ab.empty .lt { opacity: 0.25; }
+.dots { display: flex; gap: 2px; height: 4px; }
+.dots i { width: 4px; height: 4px; background: var(--fg); }
+.ult { position: relative; width: 30px; height: 30px; flex: none; }
+.ult svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.ult .track { stroke: rgba(244, 246, 250, 0.14); }
+.ult .fill { stroke: var(--fg); transition: stroke-dashoffset 0.3s; }
+.ult.ready .fill { stroke: var(--spike); }
+.ult .uic { position: absolute; inset: 7px; width: 16px; height: 16px; object-fit: contain; filter: brightness(0) invert(1); }
+.ult.ready { background: var(--spike); border-radius: 50%; }
+.ult.ready .uic { filter: brightness(0); }
+.weap { height: 24px; max-width: 96px; object-fit: contain; filter: brightness(0) invert(1); }
+.pc .weap { max-width: 90px; }
+.side-cards.r .weap { transform: scaleX(-1); }
+.wtxt { font: 600 15px var(--ui); color: var(--muted); white-space: nowrap; }
+
+/* ---------- Compra: painel de economia ---------- */
+.econ { position: absolute; left: 34px; right: 34px; bottom: 18px; display: grid; gap: 4px; opacity: 0; transform: translateY(30px); transition: opacity 0.35s, transform 0.35s; pointer-events: none; }
+.stage.buy .econ { opacity: 1; transform: none; }
+.econ-head { display: grid; grid-template-columns: 410px 1fr 410px; height: 96px; gap: 4px; }
+.tplate { position: relative; display: flex; align-items: center; gap: 18px; padding: 0 26px; overflow: hidden; background: linear-gradient(90deg, color-mix(in srgb, var(--side) 92%, #000), color-mix(in srgb, var(--side) 45%, var(--ink))); }
+.tplate.r { flex-direction: row-reverse; text-align: right; background: linear-gradient(270deg, color-mix(in srgb, var(--side) 92%, #000), color-mix(in srgb, var(--side) 45%, var(--ink))); }
+.tplate > div { min-width: 0; }
+.tplate .logo { width: 66px; height: 66px; object-fit: contain; }
+.tplate .tn { font: 600 54px/0.9 var(--num); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 4px; }
+.tplate .val { font: 600 17px var(--ui); color: rgba(255, 255, 255, 0.78); margin-top: 2px; }
+.tplate .val b { color: #fff; font-weight: 700; }
+.mid { display: grid; grid-template-columns: 180px 1fr; gap: 4px; }
+.mini { position: relative; overflow: hidden; display: grid; align-content: center; gap: 0; padding: 0 16px; background: var(--ink); font: 600 32px/1 var(--num); }
+.mini .art { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.22; }
+.mini > :not(.art) { position: relative; }
+.mini .row { display: flex; justify-content: space-between; align-items: center; }
+.mini .row span:last-child { color: var(--side); }
+.mini .to { display: flex; justify-content: space-between; align-items: center; font: 600 14px var(--ui); color: var(--muted); margin-top: 4px; }
+.mini .to b { display: inline-flex; gap: 3px; }
+.mini .to b i { width: 12px; height: 4px; transform: skewX(-20deg); background: rgba(244, 246, 250, 0.16); }
+.mini .to b i.on { background: var(--fg); }
+.hist { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); grid-template-rows: 1fr 1fr; gap: 3px; padding: 8px; background: var(--ink); }
+.hc { display: grid; place-items: center; font: 600 20px var(--num); color: rgba(244, 246, 250, 0.3); background: rgba(244, 246, 250, 0.04); padding-top: 2px; }
+.hc.win { background: var(--side); color: var(--ink); }
+.hc.win svg { width: 18px; height: 18px; color: var(--ink); }
+.hc.now { color: var(--fg); box-shadow: inset 0 0 0 2px var(--fg); }
+.hc.half { margin-left: 8px; }
+.econ-body { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.erows { display: grid; gap: 2px; }
+.er { display: grid; grid-template-columns: 76px 92px 104px 34px 36px 116px 48px minmax(0, 1fr) 86px; align-items: center; gap: 10px; height: 52px; padding: 0 14px; background: var(--card); position: relative; }
+.er:nth-child(even) { background: var(--card-2); }
+.erows.r .er { direction: rtl; }
+.erows.r .er > * { direction: ltr; }
+.er::after { content: ""; position: absolute; top: 0; bottom: 0; width: 4px; background: var(--side); }
+.erows.l .er::after { left: 0; }
+.erows.r .er::after { right: 0; }
+.er .spent { font: 600 26px/1 var(--num); color: var(--loss); text-align: right; padding-top: 3px; }
+.er .cr { font: 600 28px/1 var(--num); display: flex; align-items: center; gap: 6px; justify-content: flex-end; padding-top: 3px; }
+.erows.r .er .spent { text-align: left; }
+.erows.r .er .cr { justify-content: flex-start; }
+.cr svg, .cv { width: 14px; height: 14px; object-fit: contain; color: var(--spike); margin-top: -3px; }
+.er .abils { justify-content: center; }
+.er .weap-cell { display: flex; justify-content: center; }
+.er .face-s { width: 48px; height: 52px; overflow: hidden; align-self: end; background: linear-gradient(0deg, color-mix(in srgb, var(--side) 70%, #000), transparent); }
+.er .face-s img { width: 48px; height: 52px; object-fit: cover; object-position: center top; }
+.erows.r .er .face-s img { transform: scaleX(-1); }
+.er .face-s .ph { position: static; width: 48px; height: 52px; }
+.er .face-s .ph svg { width: 22px; height: 22px; }
+.er .face-s .ph span { display: none; }
+.er .nm { font: 600 30px/1 var(--num); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; padding-top: 3px; }
+.er .kd { font: 600 17px var(--ui); color: var(--muted); text-align: right; }
+.erows.r .er .kd { text-align: left; }
+.erows.r .er .nm { text-align: right; }
+.erows.r .er .weap { transform: scaleX(-1); }
+.shield-s { display: flex; justify-content: center; }
+.shield-s img { height: 26px; width: auto; filter: brightness(0) invert(1); }
+
+.status-pill { position: absolute; left: 24px; top: 48px; padding: 8px 14px; background: var(--ink); font: 600 17px var(--ui); color: var(--spike); }
+
+@media (prefers-reduced-motion: reduce) {
+  .clock.spike .spike-icon, .banner.on { animation: none; }
+  .side-cards, .econ, .hpbar i, .clock .bar, .ult .fill, .pc { transition: none; }
+}
+@media (max-width: 640px) { .page h1 { font-size: 2.4rem; } .controls .sep { display: none; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(() => {
+  "use strict";
+  const params = new URLSearchParams(location.search);
+  const groupCode = (params.get("groupCode") || "").toUpperCase();
+  const MODE = groupCode ? "live" : params.has("demo") ? "demo" : "preview";
+  const SERVER = params.get("server") || "http://localhost:5200";
+  const DEBUG = params.has("debug");
+  const USE_IMAGES = params.get("images") !== "0";
+  const root = document.documentElement;
+  const hex = (k) => (/^[0-9a-f]{6}$/i.test(params.get(k) || "") ? "#" + params.get(k) : null);
+  if (hex("attack")) root.style.setProperty("--atk", hex("attack"));
+  if (hex("defense")) root.style.setProperty("--def", hex("defense"));
+
+  // ---------- Referências do jogo ----------
+  const AGENTS = {
+    AggroBot: "Gekko", BountyHunter: "Fade", Breach: "Breach", Cable: "Deadlock", Cashew: "Tejo",
+    Clay: "Raze", Deadeye: "Chamber", Grenadier: "KAY/O", Guide: "Skye", Gumshoe: "Cypher",
+    Hunter: "Sova", Iris: "Miks", Killjoy: "Killjoy", Mage: "Harbor", Nox: "Vyse", Pandemic: "Viper",
+    Pine: "Veto", Phoenix: "Phoenix", Rift: "Astra", Sarge: "Brimstone", Sequoia: "Iso", Smonk: "Clove",
+    Sprinter: "Neon", Stealth: "Yoru", Terra: "Waylay", Thorne: "Sage", Vampire: "Reyna", Wraith: "Omen",
+    Wushu: "Jett",
+  };
+  const ROLES = {
+    duelist: ["Jett", "Raze", "Phoenix", "Reyna", "Yoru", "Neon", "Iso", "Waylay"],
+    initiator: ["Sova", "Breach", "Skye", "KAY/O", "Fade", "Gekko", "Tejo"],
+    controller: ["Brimstone", "Viper", "Omen", "Astra", "Harbor", "Clove"],
+    sentinel: ["Sage", "Cypher", "Killjoy", "Chamber", "Deadlock", "Vyse", "Veto"],
+  };
+  const agentName = (internal) => AGENTS[internal] || Object.entries(AGENTS).find(([k]) => k.toLowerCase() === String(internal || "").toLowerCase())?.[1] || internal || "";
+  const roleOf = (n) => Object.keys(ROLES).find((r) => ROLES[r].includes(n)) || "other";
+  const GLYPH = {
+    duelist: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 20 12 3l9 17-9-5z"/></svg>',
+    initiator: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 18a10 10 0 0 1 16 0"/><path d="M8 18a5 5 0 0 1 8 0"/><circle cx="12" cy="18" r="1.6" fill="currentColor"/></svg>',
+    controller: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>',
+    sentinel: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 20 6v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6z"/></svg>',
+    other: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" transform="rotate(45 12 12)"/></svg>',
+  };
+  const CREDIT = '<svg viewBox="0 0 14 14" fill="currentColor"><path d="M7 0 14 7 7 14 0 7z"/><path d="M7 4 10 7 7 10 4 7z" fill="#050812"/></svg>';
+  const SPIKE = '<svg viewBox="0 0 22 22" fill="#ffc83d"><path d="M11 1 19 6v10l-8 5-8-5V6z"/><path d="M11 6l4 2.5v5L11 16l-4-2.5v-5z" fill="#1a1204"/></svg>';
+  const REASON_ICON = {
+    kills: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="7"/><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/></svg>',
+    defused: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 2 20 6v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>',
+    detonated: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1l2.4 6.2L21 5l-3.6 5.6L23 13l-6.3 1.4L18 21l-6-3.6L6 21l1.3-6.6L1 13l5.6-2.4L3 5l6.6 2.2z"/></svg>',
+    timeout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 2h12M6 22h12M7 2c0 6 10 6 10 10S7 16 7 22M17 2c0 6-10 6-10 10s10 4 10 10"/></svg>',
+  };
+  const REASON_TEXT = { kills: "Eliminação", defused: "Spike desarmada", detonated: "Spike detonada", timeout: "Tempo esgotado" };
+  const ARMOR = { Heavy: "50", Light: "25", Regen: "R" };
+  const COST = { Classic: 0, Shorty: 150, Frenzy: 450, Ghost: 500, Sheriff: 800, Stinger: 1100, Spectre: 1600, Bucky: 850, Judge: 1850, Bulldog: 2050, Guardian: 2250, Phantom: 2900, Vandal: 2900, Marshal: 950, Outlaw: 2400, Operator: 4700, Ares: 1600, Odin: 3200, Heavy: 1000, Light: 400, Regen: 650 };
+  const DURATION = { shopping: 30, combat: 100, spike: 45 };
+  const money = (n) => Math.round(n || 0).toLocaleString("pt-BR");
+  const fmtTime = (s) => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+
+  // ---------- Imagens oficiais (valorant-api.com, API comunitária com os arquivos do jogo) ----------
+  const ASSETS = { agents: {}, weapons: {}, shields: {}, ready: false };
+  async function loadAssets() {
+    if (!USE_IMAGES) return;
+    try {
+      const get = (u) => fetch(u).then((r) => (r.ok ? r.json() : Promise.reject(r.status)));
+      const [ag, wp, gr] = await Promise.all([
+        get("https://valorant-api.com/v1/agents?isPlayableCharacter=true"),
+        get("https://valorant-api.com/v1/weapons"),
+        get("https://valorant-api.com/v1/gear"),
+      ]);
+      (ag.data || []).forEach((a) => {
+        const abil = {};
+        (a.abilities || []).forEach((x) => { if (x.slot && x.displayIcon) abil[x.slot.toLowerCase()] = x.displayIcon; });
+        const entry = { icon: a.displayIcon, portrait: a.displayIcon, abil };
+        if (a.developerName) ASSETS.agents[a.developerName.toLowerCase()] = entry;
+        if (a.displayName) ASSETS.agents[a.displayName.toLowerCase()] = entry;
+      });
+      (wp.data || []).forEach((w) => { ASSETS.weapons[w.displayName.toLowerCase()] = w.killStreamIcon || w.displayIcon; });
+      (gr.data || []).forEach((g) => {
+        const n = (g.displayName || "").toLowerCase();
+        if (n.includes("heavy")) ASSETS.shields.Heavy = g.displayIcon;
+        else if (n.includes("light")) ASSETS.shields.Light = g.displayIcon;
+        else if (n.includes("regen")) ASSETS.shields.Regen = g.displayIcon;
+      });
+      ASSETS.ready = true;
+    } catch (e) {
+      ASSETS.ready = false; // sem internet ou API fora do ar: o overlay usa ícones próprios
+    }
+  }
+  // ---------- Pasta local de recursos (prioridade sobre a internet) ----------
+  // Estrutura esperada: Agentes/<Nome>/<Nome>.png e C/Q/E/X.png, Armas/<Arma>.png, Escudos/*.png,
+  // Logos/logo1.png e logo2.png, Sponsors/Sponsor1.png..., Maps/<Mapa>.png, spike.png, Tungsten-Bold.ttf
+  const LOCAL = { base: null, sponsors: [] };
+  const FOLDER = { "KAY/O": "Kayo" };
+  const MAP_NAMES = { Triad: "Haven", Bonsai: "Split", Duality: "Bind", Port: "Icebox", Foxtrot: "Breeze", Canyon: "Fracture", Pitt: "Pearl", Jam: "Lotus", Juliett: "Sunset", Infinity: "Abyss", Rook: "Corrode", Ascent: "Ascent" };
+  const mapName = (m) => MAP_NAMES[m] || m || "";
+  const probe = (src, ms = 2500) => new Promise((ok) => {
+    const im = new Image(); const t = setTimeout(() => ok(false), ms);
+    im.onload = () => { clearTimeout(t); ok(true); }; im.onerror = () => { clearTimeout(t); ok(false); };
+    im.src = src;
+  });
+  async function loadLocal() {
+    if (!USE_IMAGES) return;
+    const given = params.get("assets");
+    const candidates = given ? [given.endsWith("/") ? given : given + "/"] : ["Resources/", "./"];
+    for (const base of candidates) {
+      if (await probe(base + "Agentes/Jett/Jett.png")) { LOCAL.base = base; break; }
+    }
+    if (!LOCAL.base) return;
+    try {
+      const f = new FontFace("Tungsten", `url("${LOCAL.base}Tungsten-Bold.ttf")`);
+      document.fonts.add(await f.load());
+      stage.classList.add("tungsten");
+    } catch (e) { /* fonte ausente: segue com a fonte padrão */ }
+    for (let i = 1; i <= 12; i++) {
+      const src = `${LOCAL.base}Sponsors/Sponsor${i}.png`;
+      if (await probe(src, 1500)) LOCAL.sponsors.push(src); else break;
+    }
+    startSponsors();
+  }
+  function localAgent(internal) {
+    const n = agentName(internal); if (!n) return null;
+    const f = FOLDER[n] || n, b = `${LOCAL.base}Agentes/${f}/`;
+    return { portrait: `${b}${f}.png`, abil: { grenade: b + "C.png", ability1: b + "Q.png", ability2: b + "E.png", ultimate: b + "X.png" } };
+  }
+  const LOCAL_SHIELD = { Heavy: "Escudo50.png", Light: "Escudo100.png", Regen: "EscudoReg.png" };
+
+  const agentAsset = (internal) => (LOCAL.base ? localAgent(internal) : null) || ASSETS.agents[String(internal || "").toLowerCase()] || ASSETS.agents[agentName(internal).toLowerCase()] || null;
+  const weaponAsset = (w) => (LOCAL.base && w ? `${LOCAL.base}Armas/${w}.png` : null) || ASSETS.weapons[String(w || "").toLowerCase()] || null;
+  const shieldAsset = (a) => (LOCAL.base && LOCAL_SHIELD[a] ? `${LOCAL.base}Escudos/${LOCAL_SHIELD[a]}` : null) || ASSETS.shields[a] || null;
+  const imagesReady = () => !!LOCAL.base || ASSETS.ready;
+
+  // ---------- Página ----------
+  const app = document.getElementById("app");
+  if (MODE === "preview") {
+    app.innerHTML = `
+      <main class="page">
+        <div>
+          <h1>HUD Looking Pro</h1>
+          <p class="lede">Prévia da versão pro com uma partida simulada. No combate aparecem os cartões nas laterais; na compra, o painel de economia com o histórico de rodadas.</p>
+        </div>
+        <div class="frame"><div class="scene"></div><div class="viewport" id="viewport"></div></div>
+        <div class="controls" role="toolbar" aria-label="Controles da simulação">
+          <div class="group">
+            <button class="btn" id="btn-play" aria-pressed="false">Pausar</button>
+            <button class="btn" id="btn-speed" aria-pressed="false">Velocidade 3×</button>
+          </div>
+          <span class="sep" aria-hidden="true"></span>
+          <div class="group">
+            <button class="btn" data-jump="shopping">Ir para a compra</button>
+            <button class="btn" data-jump="combat">Ir para o combate</button>
+            <button class="btn" data-jump="plant">Plantar a spike</button>
+            <button class="btn" data-jump="end">Encerrar a rodada</button>
+          </div>
+        </div>
+        <p class="note" id="img-note"></p>
+        <section class="howto">
+          <h2>Como usar no OBS</h2>
+          <p>Fonte <em>Navegador</em> de 1920 × 1080 apontando para este arquivo:</p>
+          <pre><code>pro.html?server=http://localhost:5200&amp;groupCode=SEUCODIGO</code></pre>
+          <p>Use <code>pro.html?demo</code> para testar sem partida rodando. As imagens do jogo vêm de uma pasta <code>Resources</code> ao lado do arquivo ou, sem ela, da internet; para desligar, acrescente <code>&amp;images=0</code>.</p>
+        </section>
+      </main>`;
+  } else {
+    document.body.classList.add("live");
+    app.innerHTML = `<div class="viewport" id="viewport"></div>`;
+  }
+
+  const viewport = document.getElementById("viewport");
+  viewport.innerHTML = `
+    <div class="stage" id="stage">
+      <div class="info" id="info"><span><span class="k">Evento</span><span id="ev"></span></span><span><span class="k">Mapa</span><span id="map"></span></span></div>
+      <img class="event-logo" id="event-logo" alt="" hidden>
+      <div class="sponsor" id="sponsor" hidden><img id="sponsor-img" alt=""></div>
+      <div class="bug">
+        <div class="plate l" id="pl-l"><span class="side" id="side-l"></span><span class="name" id="name-l"></span><img class="logo" id="logo-l" alt="" hidden></div>
+        <div class="score" id="sc-l"><span id="score-l">0</span><div class="pips" id="pips-l"></div></div>
+        <div class="clock" id="clock"><span class="spike-icon">${SPIKE}</span><span class="round" id="round">Rodada 1</span><span class="time" id="time">0:30</span><i class="bar" id="bar"></i></div>
+        <div class="score" id="sc-r"><span id="score-r">0</span><div class="pips" id="pips-r"></div></div>
+        <div class="plate r" id="pl-r"><img class="logo" id="logo-r" alt="" hidden><span class="name" id="name-r"></span><span class="side" id="side-r"></span></div>
+      </div>
+      <div class="banner" id="banner"><div class="big" id="b-big"></div><div class="small" id="b-small"></div></div>
+      <div class="side-cards l" id="cards-l"></div>
+      <div class="side-cards r" id="cards-r"></div>
+      <div class="econ" id="econ">
+        <div class="econ-head">
+          <div class="tplate l" id="tp-l"><img class="logo" id="tlogo-l" alt="" hidden><div><div class="tn" id="tn-l"></div><div class="val">Equipamento <b id="eq-l"></b></div></div></div>
+          <div class="mid">
+            <div class="mini"><i class="art" id="map-art"></i><div class="row" id="mini-l"><span></span><span></span></div><div class="row" id="mini-r"><span></span><span></span></div><div class="to"><span>Pausas</span><span><b id="to-l"></b> <b id="to-r"></b></span></div></div>
+            <div class="hist" id="hist"></div>
+          </div>
+          <div class="tplate r" id="tp-r"><img class="logo" id="tlogo-r" alt="" hidden><div><div class="tn" id="tn-r"></div><div class="val">Equipamento <b id="eq-r"></b></div></div></div>
+        </div>
+        <div class="econ-body"><div class="erows l" id="er-l"></div><div class="erows r" id="er-r"></div></div>
+      </div>
+      <div class="status-pill" id="status" hidden></div>
+    </div>`;
+
+  const $ = (id) => document.getElementById(id);
+  const stage = $("stage");
+  const fit = () => stage.style.setProperty("--s", String((viewport.clientWidth || innerWidth) / 1920));
+  new ResizeObserver(fit).observe(viewport);
+  fit();
+
+  const setText = (n, t) => { if (n.textContent !== t) n.textContent = t; };
+  const setHTML = (n, h, key) => { if (n._k !== key) { n._k = key; n.innerHTML = h; } };
+  const setImg = (img, src) => { if (src) { if (img.getAttribute("src") !== src) img.src = src; img.hidden = false; } else img.hidden = true; };
+
+  // Retrato: imagem oficial ou ícone da função
+  function faceHTML(internal) {
+    const a = agentAsset(internal), n = agentName(internal);
+    if (a && a.portrait) return `<img src="${a.portrait}" alt="${n}" loading="eager">`;
+    return `<div class="ph">${GLYPH[roleOf(n)]}<span>${n}</span></div>`;
+  }
+  function abilsHTML(internal, ab) {
+    const a = agentAsset(internal);
+    return [["grenade", "C"], ["ability1", "Q"], ["ability2", "E"]].map(([slot, key]) => {
+      const n = (ab && ab[slot]) || 0;
+      const icon = a && a.abil[slot] ? `<img class="ic" src="${a.abil[slot]}" alt="${key}">` : `<span class="lt">${key}</span>`;
+      return `<div class="ab${n ? "" : " empty"}">${icon}<span class="dots">${"<i></i>".repeat(Math.min(n, 3))}</span></div>`;
+    }).join("");
+  }
+  function ultHTML(internal, cur, max, ready) {
+    const a = agentAsset(internal);
+    const C = 2 * Math.PI * 12, frac = max ? Math.min(1, cur / max) : 0;
+    const ic = a && a.abil.ultimate ? `<img class="uic" src="${a.abil.ultimate}" alt="">` : "";
+    return `<svg viewBox="0 0 30 30"><circle class="track" cx="15" cy="15" r="12" fill="none" stroke-width="3"/><circle class="fill" cx="15" cy="15" r="12" fill="none" stroke-width="3" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - (ready ? 1 : frac))}"/></svg>${ic}`;
+  }
+  function weaponHTML(w) {
+    const src = weaponAsset(w);
+    if (src) return `<img class="weap" src="${src}" alt="${w}">`;
+    return `<span class="wtxt">${w === "Knife" ? "Faca" : w || ""}</span>`;
+  }
+
+  // Cartões de combate
+  function buildCards(el) {
+    const out = [];
+    for (let i = 0; i < 5; i++) {
+      const c = document.createElement("div");
+      c.className = "pc";
+      c.innerHTML = `
+        <div class="face" data-k="face"></div>
+        <div class="pbody">
+          <div class="prow"><span class="pname" data-k="name"></span><span class="kda" data-k="kda"></span></div>
+          <div class="prow"><span class="shield-b" data-k="sh"></span><span class="hpn" data-k="hpn"></span><span class="hpbar" data-k="hpb"><i></i></span></div>
+          <div class="prow kit"><span class="ult" data-k="ult"></span><span class="abils" data-k="ab"></span><span data-k="wp"></span></div>
+        </div>`;
+      const k = { el: c };
+      c.querySelectorAll("[data-k]").forEach((n) => (k[n.dataset.k] = n));
+      el.appendChild(c);
+      out.push(k);
+    }
+    return out;
+  }
+  // Linhas do painel de economia
+  function buildRows(el) {
+    const out = [];
+    for (let i = 0; i < 5; i++) {
+      const r = document.createElement("div");
+      r.className = "er";
+      r.innerHTML = `<span class="spent" data-k="spent"></span><span class="cr" data-k="cr"></span><span class="abils" data-k="ab"></span><span class="ult" data-k="ult"></span><span class="shield-s" data-k="sh"></span><span class="weap-cell" data-k="wp"></span><span class="face-s" data-k="face"></span><span class="nm" data-k="name"></span><span class="kd" data-k="kd"></span>`;
+      const k = { el: r };
+      r.querySelectorAll("[data-k]").forEach((n) => (k[n.dataset.k] = n));
+      el.appendChild(r);
+      out.push(k);
+    }
+    return out;
+  }
+  const cards = [buildCards($("cards-l")), buildCards($("cards-r"))];
+  const rows = [buildRows($("er-l")), buildRows($("er-r"))];
+
+  const clock = { phase: "", at: 0, spikeAt: null };
+  let lastRound = -1;
+
+  function render(d, now) {
+    if (!d || !Array.isArray(d.teams) || d.teams.length < 2) return;
+    const imgKey = LOCAL.base ? "loc" : ASSETS.ready ? "img" : "no"; // força redesenho quando as imagens chegam
+    const phase = d.roundPhase || "shopping";
+    if (phase !== clock.phase || d.roundNumber !== lastRound) { clock.phase = phase; clock.at = now; lastRound = d.roundNumber; }
+    const planted = phase === "combat" && !!(d.spikeState && d.spikeState.planted && !d.spikeState.defused && !d.spikeState.detonated);
+    if (planted && clock.spikeAt == null) clock.spikeAt = now;
+    if (!planted) clock.spikeAt = null;
+
+    let rem = 0, tot = 1;
+    if (planted) { tot = DURATION.spike; rem = tot - (now - clock.spikeAt); }
+    else if (phase === "shopping") { tot = DURATION.shopping; rem = tot - (now - clock.at); }
+    else if (phase === "combat") { tot = DURATION.combat; rem = tot - (now - clock.at); }
+    const timed = phase === "shopping" || phase === "combat";
+    setText($("time"), timed ? fmtTime(rem) : "0:00");
+    setText($("round"), planted ? "Spike plantada" : "Rodada " + (d.roundNumber || 1));
+    $("clock").classList.toggle("spike", planted);
+    $("bar").style.transform = `scaleX(${timed ? Math.max(0, Math.min(1, rem / tot)) : 0})`;
+    stage.classList.toggle("buy", phase === "shopping");
+
+    const tools = d.tools || {};
+    setText($("ev"), (tools.tournamentInfo && tools.tournamentInfo.name) || "Partida");
+    setText($("map"), mapName(d.map));
+    const art = $("map-art"), artSrc = LOCAL.base && d.map ? `url("${LOCAL.base}Maps/${mapName(d.map)}.png")` : "none";
+    if (art._k !== artSrc) { art._k = artSrc; art.style.backgroundImage = artSrc; }
+    setImg($("event-logo"), MODE === "live" && tools.tournamentInfo && tools.tournamentInfo.logoUrl);
+
+    const [L, R] = d.teams;
+    const sideVar = (t) => (t.isAttacking ? "var(--atk)" : "var(--def)");
+    const tri = (t) => t.teamTricode || (t.teamName || "").slice(0, 3).toUpperCase();
+    const series = tools.seriesInfo;
+    const toc = tools.timeoutCounter;
+
+    [[L, "l", 0], [R, "r", 1]].forEach(([t, s, i]) => {
+      const side = sideVar(t);
+      ["pl-", "sc-", "tp-", "cards-", "er-", "mini-"].forEach((p) => $(p + s).style.setProperty("--side", side));
+      setText($("name-" + s), tri(t));
+      setText($("side-" + s), t.isAttacking ? "Ataque" : "Defesa");
+      setText($("score-" + s), String(t.roundsWon ?? 0));
+      const logo = MODE === "live" && t.teamUrl ? t.teamUrl : LOCAL.base ? `${LOCAL.base}Logos/logo${i + 1}.png` : "";
+      setImg($("logo-" + s), logo); setImg($("tlogo-" + s), logo);
+      const need = series && series.needed > 1 ? series.needed : 0, won = series ? (i ? series.wonRight : series.wonLeft) : 0;
+      setHTML($("pips-" + s), Array.from({ length: need }, (_, n) => `<i class="${n < won ? "won" : ""}"></i>`).join(""), need + ":" + won);
+      setText($("tn-" + s), t.teamName || tri(t));
+      const eq = (t.players || []).reduce((a, p) => a + (p.isAlive || phase === "shopping" ? (COST[p.highestWeapon] || 0) + (COST[p.armorName] || 0) : 0), 0);
+      setText($("eq-" + s), "¤ " + money(eq));
+      const mini = $("mini-" + s).children; setText(mini[0], tri(t)); setText(mini[1], String(t.roundsWon ?? 0));
+      if (toc) setHTML($("to-" + s), Array.from({ length: toc.max || 0 }, (_, n) => `<i class="${n < (i ? toc.right : toc.left) ? "on" : ""}"></i>`).join(""), [toc.max, toc.left, toc.right].join());
+      renderCards(cards[i], t, phase, imgKey);
+      renderRows(rows[i], t, imgKey);
+    });
+
+    renderHistory(d, L, R, sideVar);
+
+    // Faixa central
+    const b = $("banner"), ts = d.timeoutState || {};
+    let big = "", small = "", side = "var(--violet)";
+    if (ts.techPause) { big = "Pausa técnica"; small = "A partida volta em instantes"; }
+    else if (ts.leftTeam || ts.rightTeam) { const t = ts.leftTeam ? L : R; big = "Pausa tática " + tri(t); small = ts.timeRemaining ? "Volta em " + fmtTime(ts.timeRemaining) : ""; side = sideVar(t); }
+    else if (phase === "end" || phase === "game_end") {
+      const w = d.attackersWon ? (L.isAttacking ? L : R) : (L.isAttacking ? R : L);
+      big = tri(w) + (phase === "game_end" ? " vence o mapa" : " vence a rodada");
+      const rec = (w.roundRecord || []).find((r) => r.round === d.roundNumber && REASON_TEXT[r.type]);
+      small = rec ? REASON_TEXT[rec.type] : "";
+      side = sideVar(w);
+    }
+    const key = big + small;
+    if (b._k !== key) { b._k = key; b.classList.remove("on"); if (big) { void b.offsetWidth; b.classList.add("on"); } setText($("b-big"), big); setText($("b-small"), small); }
+    b.style.setProperty("--side", side);
+  }
+
+  function renderCards(list, team, phase, imgKey) {
+    const ps = (team.players || []).slice(0, 5);
+    list.forEach((k, i) => {
+      const p = ps[i];
+      k.el.hidden = !p; if (!p) return;
+      k.el.classList.toggle("dead", !p.isAlive);
+      k.el.classList.toggle("observed", !!p.isObserved);
+      setHTML(k.face, faceHTML(p.agentInternal), imgKey + p.agentInternal);
+      setText(k.name, p.name || p.fullName || "");
+      setText(k.kda, `${p.kills ?? 0}/${p.deaths ?? 0}/${p.assists ?? 0}`);
+      const armor = ARMOR[p.armorName];
+      k.sh.classList.toggle("none", !armor || !p.isAlive); setText(k.sh, armor || "");
+      const hasHp = !p.auxiliaryAvailable || p.auxiliaryAvailable.health !== false;
+      const hp = p.isAlive ? (hasHp ? p.health ?? 100 : 100) : 0;
+      setText(k.hpn, p.isAlive ? String(hp) : "—");
+      k.hpb.classList.toggle("low", hp > 0 && hp <= 30);
+      k.hpb.firstChild.style.transform = `scaleX(${hp / 100})`;
+      const ab = p.abilities || {};
+      setHTML(k.ab, abilsHTML(p.agentInternal, ab), imgKey + [p.agentInternal, ab.grenade, ab.ability1, ab.ability2].join());
+      k.ult.classList.toggle("ready", !!p.ultReady);
+      setHTML(k.ult, ultHTML(p.agentInternal, p.currUltPoints || 0, p.maxUltPoints || 0, p.ultReady), imgKey + [p.agentInternal, p.currUltPoints, p.maxUltPoints, p.ultReady].join());
+      setHTML(k.wp, p.isAlive ? weaponHTML(p.highestWeapon) : "", imgKey + p.isAlive + p.highestWeapon);
+    });
+  }
+
+  function renderRows(list, team, imgKey) {
+    const ps = (team.players || []).slice(0, 5);
+    list.forEach((k, i) => {
+      const p = ps[i];
+      k.el.hidden = !p; if (!p) return;
+      setText(k.spent, p.moneySpent > 0 ? "-" + money(p.moneySpent) : "");
+      setHTML(k.cr, (LOCAL.base ? `<img class="cv" src="${LOCAL.base}Escudos/CV.png" alt="">` : CREDIT) + `<span>${money(p.money)}</span>`, imgKey + p.money);
+      const ab = p.abilities || {};
+      setHTML(k.ab, abilsHTML(p.agentInternal, ab), imgKey + [p.agentInternal, ab.grenade, ab.ability1, ab.ability2].join());
+      k.ult.classList.toggle("ready", !!p.ultReady);
+      setHTML(k.ult, ultHTML(p.agentInternal, p.currUltPoints || 0, p.maxUltPoints || 0, p.ultReady), imgKey + [p.agentInternal, p.currUltPoints, p.maxUltPoints, p.ultReady].join());
+      const armor = ARMOR[p.armorName];
+      const shSrc = shieldAsset(p.armorName);
+      setHTML(k.sh, armor ? (shSrc ? `<img src="${shSrc}" alt="${armor}">` : `<span class="shield-b">${armor}</span>`) : "", imgKey + p.armorName);
+      setHTML(k.wp, weaponHTML(p.highestWeapon), imgKey + p.highestWeapon);
+      setHTML(k.face, faceHTML(p.agentInternal), imgKey + p.agentInternal);
+      setText(k.name, p.name || p.fullName || "");
+      setText(k.kd, `${p.kills ?? 0}/${p.deaths ?? 0}/${p.assists ?? 0}`);
+    });
+  }
+
+  // Histórico: uma coluna por rodada; a célula do vencedor acende com o motivo
+  function renderHistory(d, L, R, sideVar) {
+    const total = Math.max(24, d.roundNumber || 1);
+    const start = Math.max(1, total - 23);
+    const recL = {}, recR = {};
+    (L.roundRecord || []).forEach((r) => (recL[r.round] = r));
+    (R.roundRecord || []).forEach((r) => (recR[r.round] = r));
+    const key = [start, d.roundNumber, (L.roundRecord || []).length, (R.roundRecord || []).length, L.isAttacking].join();
+    const hist = $("hist");
+    if (hist._k === key) return;
+    hist._k = key;
+    hist.style.setProperty("--l", sideVar(L));
+    let html = "";
+    for (let n = start; n < start + 24; n++) {
+      const cell = (rec, team) => {
+        const win = rec && REASON_ICON[rec.type];
+        const half = n === (d.switchRound || 13) ? " half" : "";
+        const now = n === d.roundNumber && !win ? " now" : "";
+        const side = rec ? (rec.wasAttack ? "var(--atk)" : "var(--def)") : "transparent";
+        return win
+          ? `<div class="hc win${half}" style="--side:${side}">${REASON_ICON[rec.type]}</div>`
+          : `<div class="hc${half}${now}">${String(n).padStart(2, "0")}</div>`;
+      };
+      html += cell(recL[n], L) + cell(recR[n], R);
+    }
+    hist.innerHTML = html;
+  }
+
+  // ---------- Partida real ----------
+  // Logos que não existirem somem em vez de mostrar imagem quebrada
+  stage.addEventListener("error", (e) => { if (e.target.tagName === "IMG" && e.target.classList.contains("logo")) e.target.hidden = true; }, true);
+  function startSponsors() {
+    if (!LOCAL.sponsors.length) return;
+    const box = $("sponsor"), img = $("sponsor-img");
+    let n = 0;
+    box.hidden = false; img.src = LOCAL.sponsors[0];
+    if (LOCAL.sponsors.length > 1) setInterval(() => {
+      n = (n + 1) % LOCAL.sponsors.length;
+      img.style.opacity = "0";
+      setTimeout(() => { img.src = LOCAL.sponsors[n]; img.style.opacity = "1"; }, 400);
+    }, 6000);
+  }
+  loadLocal().then(() => {
+    if (LOCAL.base) document.querySelector(".spike-icon").innerHTML = `<img src="${LOCAL.base}spike.png" alt="">`;
+  });
+  loadAssets();
+  if (MODE === "live") {
+    const status = $("status");
+    const show = (m) => { if (DEBUG) { status.hidden = !m; status.textContent = m || ""; } };
+    if (typeof io === "undefined") { show("Não consegui carregar o socket.io. Verifique a internet do PC do OBS."); return; }
+    let data = null;
+    const socket = io(SERVER, { reconnection: true });
+    const logon = () => socket.emit("logon", JSON.stringify({ groupCode }));
+    show("Conectando a " + SERVER + "…");
+    socket.on("connect", logon);
+    socket.on("logon_success", () => show(""));
+    socket.on("connect_error", () => show("Sem conexão com " + SERVER));
+    socket.on("match_data", (raw) => { try { data = typeof raw === "string" ? JSON.parse(raw) : raw; } catch (e) { /* pacote inválido */ } });
+    setInterval(() => { if (data) render(data, performance.now() / 1000); }, 100);
+    return;
+  }
+
+  // ---------- Partida simulada ----------
+  const ROSTERS = [
+    { teamName: "Jangada Esports", teamTricode: "JGD", players: [["kaiaque", "Jett"], ["mareh", "Omen"], ["Tucunaré", "Sova"], ["vento sul", "Killjoy"], ["cajuzin", "Breach"]] },
+    { teamName: "Caatinga Club", teamTricode: "CTG", players: [["xique", "Raze"], ["mandacaru", "Viper"], ["lampião", "Fade"], ["seriema", "Cypher"], ["aboio", "Astra"]] },
+  ];
+  const internalOf = (n) => Object.keys(AGENTS).find((k) => AGENTS[k] === n) || n;
+  const ULT = { Jett: 8, Omen: 7, Sova: 8, Killjoy: 9, Breach: 8, Raze: 8, Viper: 9, Fade: 8, Cypher: 6, Astra: 7 };
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+
+  function newMatch() {
+    return {
+      groupCode: "DEMO", roundNumber: 1, roundPhase: "shopping", map: "Ascent", attackersWon: false, switchRound: 13, firstOtRound: 25,
+      spikeState: { planted: false, defused: false, detonated: false },
+      timeoutState: { techPause: false, leftTeam: false, rightTeam: false, timeRemaining: 0 },
+      tools: { seriesInfo: { needed: 2, wonLeft: 1, wonRight: 0, mapInfo: [] }, tournamentInfo: { name: "Copa Litoral", logoUrl: "", backdropUrl: "" }, timeoutCounter: { max: 2, left: 2, right: 1 } },
+      teams: ROSTERS.map((t, ti) => ({
+        teamName: t.teamName, teamTricode: t.teamTricode, teamUrl: "", spentThisRound: 0, isAttacking: ti === 0, roundsWon: 0, roundRecord: [],
+        players: t.players.map(([name, agent], pi) => ({
+          name, fullName: name, playerId: ti * 5 + pi, isAlive: true, agentInternal: internalOf(agent), armorName: "None", money: 800, moneySpent: 0,
+          highestWeapon: "Classic", currUltPoints: 0, maxUltPoints: ULT[agent] || 7, ultReady: false, hasSpike: false,
+          auxiliaryAvailable: { health: true, abilities: true, scoreboard: true },
+          kills: 0, deaths: 0, assists: 0, killsThisRound: 0, deathsThisRound: 0, killedPlayerNames: [], health: 100, isObserved: false,
+          abilities: { grenade: 1, ability1: 2, ability2: 1 },
+        })),
+      })),
+    };
+  }
+  const sim = { d: newMatch(), t: 0, speed: 3, paused: false, at: 0, nextEvent: 0, plantAt: 0, nextObs: 0, plan: [] };
+
+  function startShopping() {
+    const d = sim.d;
+    d.roundPhase = "shopping"; sim.at = sim.t; sim.plan = [];
+    d.spikeState = { planted: false, defused: false, detonated: false };
+    d.teams.forEach((t) => {
+      t.spentThisRound = 0;
+      t.players.forEach((p) => {
+        p.isAlive = true; p.health = 100; p.killsThisRound = 0; p.deathsThisRound = 0; p.moneySpent = 0; p.isObserved = false;
+        p.abilities = { grenade: 1, ability1: 2, ability2: 1 };
+        if (d.roundNumber === 1 || d.roundNumber === d.switchRound) { p.money = 800; p.highestWeapon = "Classic"; p.armorName = "None"; }
+        let weapon = p.highestWeapon, armor = p.armorName;
+        const keep = p.highestWeapon !== "Classic";
+        if (!keep || p.money >= 3900) {
+          if (p.money >= 5700 && Math.random() < 0.15) { weapon = "Operator"; armor = "Heavy"; }
+          else if (p.money >= 3900) { weapon = pick(["Vandal", "Phantom"]); armor = "Heavy"; }
+          else if (p.money >= 2400) { weapon = pick(["Spectre", "Bulldog", "Marshal"]); armor = "Light"; }
+          else if (p.money >= 1300) { weapon = pick(["Sheriff", "Ghost", "Stinger"]); armor = "Light"; }
+        }
+        if (armor === "None" && p.money >= 400) armor = "Light";
+        let cost = (weapon !== p.highestWeapon ? COST[weapon] || 0 : 0) + (armor !== p.armorName ? COST[armor] || 0 : 0) + 200;
+        cost = Math.min(cost, p.money);
+        sim.plan.push({ p, t, cost, weapon, armor, at: rnd(2, 16) });
+      });
+    });
+  }
+  const buy = (b) => { if (b.done) return; b.done = true; b.p.money -= b.cost; b.p.moneySpent += b.cost; b.t.spentThisRound += b.cost; b.p.highestWeapon = b.weapon; b.p.armorName = b.armor; };
+  function startCombat() {
+    sim.plan.forEach(buy); sim.plan = [];
+    sim.d.roundPhase = "combat"; sim.at = sim.t; sim.nextEvent = sim.t + rnd(8, 16); sim.plantAt = sim.t + rnd(38, 72); sim.nextObs = sim.t;
+  }
+  function endRound(attWon, reason) {
+    const d = sim.d;
+    if (d.roundPhase === "end") return;
+    d.roundPhase = "end"; sim.at = sim.t; d.attackersWon = attWon;
+    d.teams.forEach((t) => {
+      const won = t.isAttacking === attWon;
+      if (won) t.roundsWon++;
+      t.roundRecord.push({ type: won ? reason : "lost", wasAttack: t.isAttacking, round: d.roundNumber });
+      t.players.forEach((p) => {
+        p.money = Math.min(9000, p.money + (won ? 3000 : 1900) + p.killsThisRound * 200);
+        if (!p.isAlive) { p.highestWeapon = "Classic"; p.armorName = "None"; }
+        p.isObserved = false;
+      });
+    });
+  }
+  function nextRound() {
+    const d = sim.d;
+    if (d.teams.some((t) => t.roundsWon >= 13)) { sim.d = newMatch(); startShopping(); return; }
+    d.roundNumber++;
+    if (d.roundNumber === d.switchRound) d.teams.forEach((t) => (t.isAttacking = !t.isAttacking));
+    startShopping();
+  }
+  function plant() {
+    const d = sim.d, att = d.teams.find((t) => t.isAttacking);
+    if (d.roundPhase !== "combat" || d.spikeState.planted || !att.players.some((p) => p.isAlive)) return;
+    d.spikeState.planted = true; sim.plantAt = sim.t;
+  }
+  function fight() {
+    const [A, B] = sim.d.teams;
+    const alive = (t) => t.players.filter((p) => p.isAlive);
+    if (!alive(A).length || !alive(B).length) return;
+    const st = Math.random() < 0.5 ? A : B, tt = st === A ? B : A;
+    const s = pick(alive(st)), v = pick(alive(tt));
+    if (Math.random() < 0.4) { const k = pick(["grenade", "ability1", "ability2"]); s.abilities[k] = Math.max(0, s.abilities[k] - 1); }
+    v.health = Math.max(0, v.health - (Math.random() < 0.55 ? 999 : Math.round(rnd(20, 80))));
+    if (v.health === 0) {
+      v.isAlive = false; v.deaths++; v.deathsThisRound++;
+      s.kills++; s.killsThisRound++;
+      const helper = alive(st).find((p) => p !== s);
+      if (helper && Math.random() < 0.4) helper.assists++;
+      s.currUltPoints = Math.min(s.maxUltPoints, s.currUltPoints + 1); s.ultReady = s.currUltPoints >= s.maxUltPoints;
+      if (v.isObserved) { v.isObserved = false; sim.nextObs = sim.t; }
+    }
+  }
+  function step(dt) {
+    const d = sim.d;
+    sim.t += dt;
+    const el = sim.t - sim.at;
+    if (d.roundPhase === "shopping") {
+      sim.plan.forEach((b) => { if (el >= b.at) buy(b); });
+      if (el >= DURATION.shopping) startCombat();
+    } else if (d.roundPhase === "combat") {
+      const att = d.teams.find((t) => t.isAttacking), def = d.teams.find((t) => !t.isAttacking);
+      const aA = att.players.some((p) => p.isAlive), dA = def.players.some((p) => p.isAlive);
+      if (sim.t >= sim.nextObs) {
+        const c = d.teams.flatMap((t) => t.players.filter((p) => p.isAlive));
+        d.teams.forEach((t) => t.players.forEach((p) => (p.isObserved = false)));
+        if (c.length) pick(c).isObserved = true;
+        sim.nextObs = sim.t + rnd(6, 11);
+      }
+      if (sim.t >= sim.nextEvent) { fight(); sim.nextEvent = sim.t + rnd(3, 9); }
+      if (!d.spikeState.planted && sim.t >= sim.plantAt && aA) plant();
+      if (d.spikeState.planted) {
+        if (sim.t - sim.plantAt >= DURATION.spike) { d.spikeState.detonated = true; endRound(true, "detonated"); }
+        else if (!aA && dA && sim.t - sim.plantAt > 8) { d.spikeState.defused = true; endRound(false, "defused"); }
+        else if (!dA) endRound(true, "kills");
+      } else if (!aA) endRound(false, "kills");
+      else if (!dA) endRound(true, "kills");
+      else if (el >= DURATION.combat) endRound(false, "timeout");
+    } else if (d.roundPhase === "end" && el >= 7) nextRound();
+  }
+
+  // Começa no meio de uma partida para a prévia já mostrar histórico e economia
+  function warmup() {
+    startShopping();
+    sim.speed = 1;
+    for (let i = 0; i < 9 * 200 && sim.d.roundNumber < 10; i++) step(0.5);
+    sim.speed = 3;
+  }
+  warmup();
+
+  let last = performance.now();
+  function frame(ts) {
+    const dt = Math.min(0.25, (ts - last) / 1000); last = ts;
+    if (!sim.paused) step(dt * sim.speed);
+    render(sim.d, sim.t);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  if (MODE === "preview") {
+    const note = $("img-note");
+    const updNote = () => setText(note, LOCAL.base
+      ? "Imagens carregadas da pasta de recursos do seu PC (" + LOCAL.base + ")."
+      : ASSETS.ready
+      ? "Imagens oficiais do jogo carregadas da internet."
+      : "Esta prévia mostra ícones próprios no lugar das imagens do jogo, porque a página publicada não pode carregar imagens de outros sites. Aberto no navegador ou no OBS, o arquivo puxa os retratos, habilidades, armas e escudos oficiais.");
+    updNote(); setTimeout(updNote, 4000);
+    const pb = $("btn-play"), sb = $("btn-speed");
+    pb.addEventListener("click", () => { sim.paused = !sim.paused; pb.textContent = sim.paused ? "Continuar" : "Pausar"; pb.setAttribute("aria-pressed", String(sim.paused)); });
+    sb.addEventListener("click", () => { sim.speed = sim.speed === 3 ? 1 : 3; sb.textContent = sim.speed === 3 ? "Velocidade 3×" : "Velocidade 1×"; sb.setAttribute("aria-pressed", String(sim.speed === 1)); });
+    document.querySelectorAll("[data-jump]").forEach((b) => b.addEventListener("click", () => {
+      const j = b.dataset.jump, d = sim.d;
+      if (j === "shopping") { if (d.roundPhase !== "shopping") nextRound(); }
+      else if (j === "combat") { if (d.roundPhase === "end") nextRound(); if (d.roundPhase === "shopping") startCombat(); }
+      else if (j === "plant") { if (d.roundPhase === "end") nextRound(); if (d.roundPhase === "shopping") startCombat(); plant(); }
+      else if (j === "end") {
+        if (d.roundPhase === "shopping") startCombat();
+        if (d.roundPhase !== "combat") return;
+        const attWins = d.spikeState.planted ? true : Math.random() < 0.5;
+        d.teams.filter((t) => t.isAttacking !== attWins).forEach((t) => t.players.forEach((p) => { p.isAlive = false; p.health = 0; }));
+        endRound(attWins, "kills");
+      }
+    }));
+  }
+})();
+</script>
+</body>
+</html>

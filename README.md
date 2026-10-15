@@ -32,6 +32,10 @@ index.html?server=http://localhost:5200&groupCode=SEUCODIGO
 
 Aberto sem parâmetros, o arquivo mostra a página de prévia com controles da simulação.
 
+### Versão pro (`overlay/pro.html`) — recomendada
+
+Mesma lógica e mesmos parâmetros da variante cyber, com visual de transmissão moderna: blocos sólidos na cor do time, cortes inclinados, números condensados e retratos que saem da moldura. Também lê a pasta `Resources` descrita abaixo.
+
 ### Variante cyber (`overlay/cyber.html`)
 
 Mesmos parâmetros do `index.html`. No combate mostra cartões nas laterais com retrato, vida, escudo, K/D/A, habilidades, ultimate e arma; na fase de compra troca para um painel de economia com créditos, gastos, equipamento e o histórico de rodadas.
