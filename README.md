@@ -32,7 +32,14 @@ index.html?server=http://localhost:5200&groupCode=SEUCODIGO
 
 Aberto sem parâmetros, o arquivo mostra a página de prévia com controles da simulação.
 
-### Versão pro (`overlay/pro.html`) — recomendada
+### Versão broadcast (`overlay/broadcast.html`) — recomendada
+
+Layout de transmissão com placas na cor de cada time, cartões compactos no combate, painel de economia com histórico de rodadas na compra e cartão animado de vitória de rodada (com o destaque da rodada).
+
+**Cores:** edite o bloco `CORES` no começo do script, ou passe pela URL:
+`&left=C8323F&right=14A98A` (cor dos times, sem `#`), `&hl=F5C043` (spike e ultimate pronta) e `&colors=side` para colorir por lado (ataque e defesa) em vez de por time. Na prévia há seletores de cor para testar.
+
+### Versão pro (`overlay/pro.html`)
 
 Mesma lógica e mesmos parâmetros da variante cyber, com visual de transmissão moderna: blocos sólidos na cor do time, cortes inclinados, números condensados e retratos que saem da moldura. Também lê a pasta `Resources` descrita abaixo.
 
