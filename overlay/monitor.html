@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Monitor ao vivo</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<script src="config.js"></script>
+<script src="socket.io.min.js"></script>
+<script>window.io || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"><\/script>');</script>
 <style>
 /* Monitor ao vivo do Spectra: mostra a HUD e todos os dados que chegam pelo match_data.
    Abre no navegador ou como "Dock de navegador personalizado" no OBS. */
@@ -135,9 +137,11 @@ pre.raw { max-height: 520px; overflow: auto; padding: 10px 12px; font: 11.5px/1.
   const $ = (id) => document.getElementById(id);
   const params = new URLSearchParams(location.search);
   const store = { get: (k) => { try { return localStorage.getItem("mon." + k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem("mon." + k, v); } catch (e) { /* sem armazenamento */ } } };
-  $("srv").value = params.get("server") || store.get("srv") || "http://localhost:5200";
-  $("code").value = params.get("groupCode") || store.get("code") || "";
-  $("res").value = params.get("assets") || store.get("res") || "Resources/";
+  // ordem: endereço (?server=…) > config.js > o que foi digitado da última vez > padrão
+  const CFG = window.HUD_CONFIG || {};
+  $("srv").value = params.get("server") || CFG.servidor || store.get("srv") || "http://localhost:5200";
+  $("code").value = params.get("groupCode") || CFG.codigo || store.get("code") || "";
+  $("res").value = params.get("assets") || CFG.recursos || store.get("res") || "Resources/";
 
   // ---------- traduções ----------
   const AGENTS = { AggroBot: "Gekko", BountyHunter: "Fade", Breach: "Breach", Cable: "Deadlock", Cashew: "Tejo", Clay: "Raze", Deadeye: "Chamber", Grenadier: "KAY/O", Guide: "Skye", Gumshoe: "Cypher", Hunter: "Sova", Iris: "Miks", Killjoy: "Killjoy", Mage: "Harbor", Nox: "Vyse", Pandemic: "Viper", Pine: "Veto", Phoenix: "Phoenix", Rift: "Astra", Sarge: "Brimstone", Sequoia: "Iso", Smonk: "Clove", Sprinter: "Neon", Stealth: "Yoru", Terra: "Waylay", Thorne: "Sage", Vampire: "Reyna", Wraith: "Omen", Wushu: "Jett" };
@@ -347,7 +351,7 @@ pre.raw { max-height: 520px; overflow: auto; padding: 10px 12px; font: 11.5px/1.
   $("pause").addEventListener("click", (e) => { rawPaused = !rawPaused; e.currentTarget.setAttribute("aria-pressed", String(rawPaused)); e.currentTarget.textContent = rawPaused ? "Continuar" : "Pausar"; });
   $("copy").addEventListener("click", async (e) => { const b = e.currentTarget; try { await navigator.clipboard.writeText(JSON.stringify(data, null, 2)); b.textContent = "Copiado"; } catch (err) { b.textContent = "Não deu"; } setTimeout(() => (b.textContent = "Copiar"), 1500); });
 
-  if (params.get("groupCode")) connect();
+  if ($("code").value.trim()) connect(); // conecta sozinho quando já tem código
 })();
 </script>
 </body>

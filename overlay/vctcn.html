@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HUD VCT CN</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<script src="config.js"></script>
+<script src="socket.io.min.js"></script>
+<script>window.io || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"><\/script>');</script>
 <style>
 /* =====================================================================
    HUD VCT CN — overlay 1920×1080 para OBS (Spectra Server: logon + match_data)
@@ -41,7 +43,7 @@
   --brand-a: #c3263f;
   --brand-b: #1c060b;
   /* fontes: a pasta Resources traz Foundry Gridnik e Tungsten; os outros nomes são reserva */
-  --f-num: "HUDGridnik", "Chakra Petch", "Rajdhani", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  --f-num: "HUDGridnik", "Segoe UI", "Chakra Petch", "Rajdhani", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
   --f-cond: "HUDTungsten", "Oswald", "Bebas Neue", "Arial Narrow", sans-serif;
   --f-cjk: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "Noto Sans SC", "HUDGridnik", sans-serif;
   /* tempos */
@@ -336,9 +338,21 @@ img { display: block; }
     camera: true,              // moldura da câmera do jogador observado
     trocaPublicidade: 8,       // segundos entre a faixa publicitária e o painel de estatísticas na compra
     trocaPatrocinio: 6,        // segundos entre as artes do bloco do evento
-    armasParaDireita: true,    // as imagens de Armas/ apontam o cano para a direita? (o time da direita é espelhado)
+    armasParaDireita: false,   // as imagens de Armas/ apontam o cano para a direita? (false: apontam para a esquerda, como na pasta Resources)
     duracao: { compra: 30, combate: 100, spike: 45 },
   };
+  // config.js (mesma pasta) sobrescreve os valores acima sem precisar editar este arquivo
+  if (window.HUD_CONFIG) {
+    const C = window.HUD_CONFIG;
+    if (C.servidor) CONFIG.servidor = C.servidor;
+    if (C.codigo) CONFIG.codigo = C.codigo;
+    if (C.recursos) CONFIG.recursos = C.recursos;
+    if (C.fase) CONFIG.fase = C.fase;
+    if (typeof C.camera === "boolean") CONFIG.camera = C.camera;
+    if (typeof C.armasParaDireita === "boolean") CONFIG.armasParaDireita = C.armasParaDireita;
+  }
+  // no vídeo as armas do time da esquerda apontam para a direita (para o centro) e as do time da direita para a esquerda
+  const FLIP_SIDE = CONFIG.armasParaDireita ? "r" : "l";
   // =====================================================================
 
   // textos da HUD (todos em português)
@@ -358,7 +372,7 @@ img { display: block; }
   const params = new URLSearchParams(location.search);
   const groupCode = (params.get("groupCode") || CONFIG.codigo || "").toUpperCase();
   const SERVER = params.get("server") || CONFIG.servidor || "http://localhost:5200";
-  const MODE = groupCode ? "live" : "demo";
+  const MODE = groupCode && !params.has("demo") ? "live" : "demo"; // ?demo força a prévia simulada
   const DEBUG = params.has("debug");
   const CLEAN = params.has("clean");
   let BASE = params.get("assets") || CONFIG.recursos;
@@ -498,7 +512,7 @@ img { display: block; }
         <div class="hpn" data-k="hpn"></div><div class="hpb"><i data-k="hpb"></i></div>
         <div class="ult" data-k="ult"></div>
         <div class="abs3" data-k="ab"></div>
-        <div class="wp${side === "r" ? " flip" : ""}" data-k="wp"></div>
+        <div class="wp${side === FLIP_SIDE ? " flip" : ""}" data-k="wp"></div>
         <div class="dinf"><div class="dn" data-k="dn"></div><div class="dk" data-k="dk"></div><div class="dc" data-k="dc"></div></div>
         <div class="eye">${EYE_SVG}</div>
         <div class="spikec" data-k="spk"></div>`;
@@ -525,7 +539,7 @@ img { display: block; }
       if (side === "l") {
         h += `<div class="c money" style="left:14px;width:${C.money[1] - 14}px"><span class="mw" data-k="mw" style="transform-origin:0 50%"><span class="sp" data-k="sp"></span><span class="cvw" data-k="cv"></span><span class="cr" data-k="cr"></span></span></div>`;
         h += `<div class="c" style="left:${C.abil[0] - 1}px;width:${C.abil[1] - C.abil[0]}px;gap:5px"><span class="abl" data-k="ab"></span><span class="ults" data-k="ult"></span></div>`;
-        h += `<div class="c wcell" data-k="wc" style="left:${C.wp[0]}px;width:${C.wp[1] - C.wp[0]}px"></div>`;
+        h += `<div class="c wcell${FLIP_SIDE === "l" ? " flip" : ""}" data-k="wc" style="left:${C.wp[0]}px;width:${C.wp[1] - C.wp[0]}px"></div>`;
         h += `<div class="face" data-k="face" style="left:${C.face}px"></div>`;
         h += `<div class="c" style="left:${C.name}px;width:150px"><span class="nm" data-k="nm"></span></div>`;
         h += `<div class="c" style="left:${C.kda[0]}px;width:${C.kda[1] - C.kda[0]}px;justify-content:flex-end"><span class="kd" data-k="kd"></span></div>`;
@@ -533,7 +547,7 @@ img { display: block; }
         h += `<div class="c" style="left:${C.kda[0]}px;width:${C.kda[1] - C.kda[0]}px"><span class="kd" data-k="kd"></span></div>`;
         h += `<div class="c" style="left:${C.name[0]}px;width:${C.name[1] - C.name[0]}px;justify-content:flex-end"><span class="nm" data-k="nm" style="text-align:right"></span></div>`;
         h += `<div class="face" data-k="face" style="left:${C.face}px"></div>`;
-        h += `<div class="c wcell flip" data-k="wc" style="left:${C.wp[0]}px;width:${C.wp[1] - C.wp[0]}px"></div>`;
+        h += `<div class="c wcell${FLIP_SIDE === "r" ? " flip" : ""}" data-k="wc" style="left:${C.wp[0]}px;width:${C.wp[1] - C.wp[0]}px"></div>`;
         h += `<div class="c" style="left:${C.abil[0] + 17}px;width:${C.abil[1] - C.abil[0] - 17}px;gap:6px"><span class="ults" data-k="ult"></span><span class="abl" data-k="ab"></span></div>`;
         h += `<div class="c money" style="left:${C.money[0]}px;width:${C.money[1] - C.money[0] - 8}px;justify-content:flex-end"><span class="mw" data-k="mw" style="transform-origin:100% 50%"><span class="cr" data-k="cr"></span><span class="cvw" data-k="cv"></span><span class="sp" data-k="sp" style="text-align:left;min-width:66px"></span></span></div>`;
       }
@@ -804,7 +818,7 @@ img { display: block; }
   // ---------- fontes e imagens fixas da pasta Resources ----------
   async function loadResources() {
     const fonts = [["HUDGridnik", "FoundryGridnik-Regular.otf", "400"], ["HUDGridnik", "FoundryGridnik-Bold.otf", "700"], ["HUDGridnik", "FoundryGridnik-ExtraBold.otf", "800"], ["HUDTungsten", "Tungsten-Bold.ttf", "400"]];
-    await Promise.all(fonts.map(async ([fam, file, w]) => { try { const f = new FontFace(fam, `url("${A(file)}")`, { weight: w }); document.fonts.add(await f.load()); } catch (e) { if (DEBUG) console.warn("fonte não carregou:", file); } }));
+    await Promise.all(fonts.map(async ([fam, file, w]) => { try { const f = new FontFace(fam, `url("${A(file)}")`, { weight: w, unicodeRange: "U+0020-007E, U+00B7, U+2013-2014, U+2022" }); document.fonts.add(await f.load()); } catch (e) { if (DEBUG) console.warn("fonte não carregou:", file); } }));
     if (await probe(A("spike.png"), 1500)) {
       stage.style.setProperty("--spike-mask", `url("${A("spike.png")}")`);
       $("spk").innerHTML = "<i></i>";
