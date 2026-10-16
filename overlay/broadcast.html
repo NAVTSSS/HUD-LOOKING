@@ -6,7 +6,7 @@
 <title>HUD Looking Broadcast</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600&family=Barlow:wght@700;800&family=Barlow+Semi+Condensed:wght@500;600;700;800&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 <style>
 /* Layout de transmissão: faixa de informações no topo com placar central (placas na cor de cada time),
@@ -26,6 +26,7 @@
   --chrome-bg: #06080e;
   --num: "Tungsten", "Teko", "Bahnschrift Condensed", "Arial Narrow", sans-serif;
   --ui: "Barlow Semi Condensed", "Bahnschrift", "Segoe UI", sans-serif;
+  --sbn: "Barlow", "Bahnschrift", "Segoe UI", sans-serif;
   color-scheme: dark;
 }
 html, body { background: var(--chrome-bg); color: var(--fg); font-family: var(--ui); }
@@ -89,13 +90,17 @@ body.live .viewport { position: fixed; }
 .sbp .edge { position: absolute; inset: 0; background: color-mix(in srgb, var(--tc) 45%, #fff); }
 .sbp.l .edge { clip-path: polygon(262px 0, 272px 0, 318px 48px, 307px 48px); }
 .sbp.r .edge { clip-path: polygon(46px 0, 56px 0, 11px 48px, 0 48px); }
-.sbp .who { position: absolute; top: 0; height: 48px; display: flex; align-items: center; gap: 12px; }
-.sbp.l .who { right: 104px; flex-direction: row; }
-.sbp.r .who { left: 104px; flex-direction: row-reverse; }
-.sbp .logo { width: 34px; height: 34px; object-fit: contain; }
-.sbp .tri { font: 600 36px/1 var(--num); letter-spacing: 0.04em; color: #fff; padding-top: 4px; white-space: nowrap; }
-.sbp .sc { position: absolute; top: 0; width: 70px; height: 48px; display: grid; place-items: center; overflow: hidden;
-  font: 600 50px/1 var(--num); color: #fff; padding-top: 5px; }
+/* logo fixo perto da ponta, nome logo depois, número perto do centro; tudo centralizado na faixa de 48 px */
+.sbp .who { position: absolute; left: 0; top: 0; width: 318px; height: 48px; }
+.sbp .logo { position: absolute; top: 4px; width: 44px; height: 40px; object-fit: contain; }
+.sbp.l .logo { left: 72px; }
+.sbp.r .logo { left: 202px; }
+.sbp .tri { position: absolute; top: 0; width: 84px; height: 48px; display: flex; align-items: center;
+  font: 800 30px/1 var(--ui); letter-spacing: 0.03em; color: #fff; white-space: nowrap; overflow: hidden; }
+.sbp.l .tri { left: 130px; justify-content: flex-start; }
+.sbp.r .tri { left: 104px; justify-content: flex-end; }
+.sbp .sc { position: absolute; top: 0; width: 70px; height: 48px; display: flex; align-items: center; justify-content: center; overflow: hidden;
+  font: 800 44px/1 var(--sbn); color: #fff; }
 .sbp.l .sc { left: 220px; }
 .sbp.r .sc { left: 28px; }
 .sc .shine { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.5) 50%, transparent 65%); transform: translateX(-120%); }
@@ -112,9 +117,9 @@ body.live .viewport { position: fixed; }
 
 .clock { position: absolute; top: 0; left: 829px; width: 262px; height: 78px; display: grid; justify-items: center; align-content: start;
   background: rgba(14, 19, 27, 0.96); clip-path: polygon(0 0, 262px 0, 185px 78px, 77px 78px); }
-.clock .round { margin-top: 9px; font: 600 13px var(--ui); color: var(--muted); letter-spacing: 0.06em; }
-.clock .time { margin-top: 1px; font: 600 42px/1 var(--num); letter-spacing: 0.04em; color: var(--fg); }
-.clock .bar { position: absolute; left: 101px; width: 60px; top: 71px; height: 3px; background: var(--fg); transform-origin: center; transition: transform 0.25s linear; }
+.clock .round { margin-top: 8px; font: 600 13px/1 var(--ui); color: var(--muted); letter-spacing: 0.06em; }
+.clock .time { margin-top: 6px; font: 800 38px/1 var(--sbn); letter-spacing: 0.02em; color: var(--fg); }
+.clock .bar { position: absolute; left: 101px; width: 60px; top: 68px; height: 3px; background: var(--fg); transform-origin: center; transition: transform 0.25s linear; }
 .spike-icon { display: none; width: 44px; height: 40px; margin-top: 3px; color: var(--hl); }
 .spike-icon svg { width: 44px; height: 40px; }
 .spike-icon.masked { background: var(--hl); -webkit-mask: var(--mask) center / contain no-repeat; mask: var(--mask) center / contain no-repeat; }
