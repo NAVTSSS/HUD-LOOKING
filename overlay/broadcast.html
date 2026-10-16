@@ -307,64 +307,111 @@ body.live .viewport { position: fixed; }
 .cards.r .weap { transform: scaleX(-1); }
 .wtxt { font: 600 13px var(--ui); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
 
-/* ---------- Compra: painel de economia ---------- */
-.econ { position: absolute; left: 24px; right: 24px; bottom: 16px; display: grid; gap: 3px; opacity: 0; transform: translateY(30px); transition: opacity 0.35s, transform 0.35s; pointer-events: none; }
+/* ---------- Compra: painel de economia (composição da referência, medidas do palco 1920x1080) ----------
+   1872 de largura. Cabeçalho: placa do time 403 (113 de altura, sobe 13 acima do resto) | pausas 93 |
+   placar 157 | 12 colunas de rodadas (2 linhas de 50) | rodada atual 54 | pausas 93 | placa 403.
+   Linhas de 66: créditos 190 | habilidades + ultimate 180 | escudo e armas 224 | retrato 64 | nome e K/D/A.
+   Lado direito espelhado. */
+.econ { position: absolute; left: 24px; right: 24px; bottom: 18px; display: grid; gap: 12px; opacity: 0; transform: translateY(30px); transition: opacity 0.35s, transform 0.35s; pointer-events: none;
+  --e-sep: #26323d; --e-cell: #0a1118; --e-dim: #6d88a8; }
 .stage.buy .econ { opacity: 1; transform: none; }
-.econ-head { display: grid; grid-template-columns: 430px 1fr 430px; height: 92px; gap: 3px; }
-.plate { position: relative; display: flex; align-items: center; gap: 18px; padding: 0 28px; overflow: hidden; }
-.plate.l { background: linear-gradient(90deg, color-mix(in srgb, var(--tc) 85%, #000), color-mix(in srgb, var(--tc) 40%, var(--base))); justify-content: flex-end; text-align: right; }
-.plate.r { background: linear-gradient(270deg, color-mix(in srgb, var(--tc) 85%, #000), color-mix(in srgb, var(--tc) 40%, var(--base))); }
-.plate .wm { position: absolute; top: 50%; width: 190px; height: 190px; margin-top: -95px; object-fit: contain; opacity: 0.16; }
-.plate.l .wm { left: -30px; }
-.plate.r .wm { right: -30px; }
-.plate > div { position: relative; min-width: 0; }
-.plate .tn { font: 600 56px/0.9 var(--num); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 4px; }
-.plate .val { font: 600 17px var(--ui); color: rgba(255, 255, 255, 0.8); }
-.plate .val b { color: #fff; font-weight: 700; }
-.mid { display: grid; grid-template-columns: 110px 150px 1fr 110px; gap: 3px; }
-.to { display: grid; align-content: center; justify-items: center; gap: 6px; background: var(--base); font: 600 15px var(--ui); color: var(--muted); }
-.to b { display: flex; gap: 4px; }
-.to b i { width: 20px; height: 5px; transform: skewX(-20deg); background: rgba(243, 245, 249, 0.16); }
+.econ-head { display: grid; grid-template-columns: 403px minmax(0, 1fr) 403px; height: 113px; gap: 3px; align-items: end; }
+.plate { position: relative; height: 113px; display: flex; align-items: center; padding: 6px 26px 0; overflow: hidden;
+  background-color: var(--tc); }
+.plate.l { justify-content: flex-end; text-align: right;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.16) 1px, transparent 1.4px), linear-gradient(90deg, color-mix(in srgb, var(--tc) 70%, #000) 0%, var(--tc) 60%, color-mix(in srgb, var(--tc) 88%, #fff) 100%);
+  background-size: 5px 5px, auto; }
+.plate.r { justify-content: flex-start;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.16) 1px, transparent 1.4px), linear-gradient(270deg, color-mix(in srgb, var(--tc) 70%, #000) 0%, var(--tc) 60%, color-mix(in srgb, var(--tc) 88%, #fff) 100%);
+  background-size: 5px 5px, auto; }
+.plate .wm { position: absolute; top: 50%; width: 250px; height: 170px; margin-top: -85px; object-fit: contain; opacity: 0.2; filter: grayscale(1) brightness(1.6); }
+.plate.l .wm { left: -20px; object-position: left center; }
+.plate.r .wm { right: -20px; object-position: right center; }
+.plate > div { position: relative; min-width: 0; max-width: 355px; }
+.plate .tn { font: 800 38px/1.1 var(--sbn); color: #fff; letter-spacing: 0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plate .val { margin-top: 6px; font: 700 18px/1 var(--sbn); color: rgba(255, 255, 255, 0.92); white-space: nowrap; }
+.plate .val b { font-weight: 800; color: #fff; }
+.mid { display: grid; grid-template-columns: 93px 157px minmax(0, 1fr) 54px 93px; gap: 3px; height: 100px; }
+.to { display: grid; align-content: center; justify-items: center; gap: 12px; background: var(--e-cell); font: 600 16px/1 var(--ui); color: var(--fg); }
+.to b { display: flex; gap: 6px; }
+.to b i { width: 30px; height: 5px; background: rgba(243, 245, 249, 0.2); }
 .to b i.on { background: var(--tc); }
-.mini { position: relative; overflow: hidden; display: grid; align-content: center; padding: 0 16px; background: var(--base); font: 600 32px/1.05 var(--num); }
-.mini .art { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.22; }
+.mini { position: relative; overflow: hidden; display: grid; align-content: center; gap: 6px; padding: 0 20px; background: var(--e-cell); font: 800 30px/1 var(--sbn); }
+.mini .art { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.16; }
 .mini > :not(.art) { position: relative; }
-.mini .mr { display: flex; justify-content: space-between; }
-.mini .mr span:last-child { color: var(--tc); }
-.hist { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); grid-template-rows: 1fr 1fr; gap: 3px; padding: 7px; background: var(--base); }
-.hc { display: grid; place-items: center; font: 600 22px var(--num); color: rgba(243, 245, 249, 0.32); background: rgba(243, 245, 249, 0.04); padding-top: 2px; }
-.hc.won { background: var(--tc); color: #fff; }
-.hc.won svg { width: 18px; height: 18px; color: #fff; }
-.hc.now { color: var(--fg); box-shadow: inset 0 0 0 2px var(--fg); }
-.hc.half { margin-left: 10px; }
-.econ-body { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
-.erows { display: grid; gap: 2px; }
-.er { display: grid; grid-template-columns: 74px 92px 112px 34px 34px 112px 48px minmax(0, 1fr) 88px; align-items: center; gap: 10px; height: 52px; padding: 0 16px; background: var(--base); position: relative; }
-.er:nth-child(even) { background: var(--base-2); }
+.mini .mr { display: flex; justify-content: center; gap: 12px; color: var(--tc); }
+.mini .mr span:first-child { min-width: 64px; text-align: right; }
+.mini .mr span:last-child { min-width: 38px; }
+.hist { display: flex; background: var(--e-cell); min-width: 0; overflow: hidden; }
+.hcol { flex: 1; display: grid; grid-template-rows: 50px 50px; min-width: 0; }
+.hc { display: grid; place-items: center; font: 800 25px/1 var(--sbn); color: #fff; }
+.hc.won { background: color-mix(in srgb, var(--tc) 72%, #0b1015); }
+.hc.won svg { width: 24px; height: 24px; color: rgba(255, 255, 255, 0.92); }
+.hc.fut { color: rgba(243, 245, 249, 0.22); }
+.hc.cur { color: rgba(243, 245, 249, 0.6); }
+.hsep { flex: 0 0 34px; position: relative; }
+.hsep i, .now i { position: absolute; left: 50%; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; }
+.hsep i:first-child { top: 38px; margin-left: -11px; border-top: 9px solid #e9edf2; }
+.hsep i:last-child { top: 53px; margin-left: -3px; border-bottom: 9px solid #e9edf2; }
+.now { position: relative; display: grid; place-items: center; background: var(--e-cell); font: 800 30px/1 var(--sbn); color: #fff; }
+.now i:first-child { top: 14px; margin-left: -6px; border-left-width: 6px; border-right-width: 6px; border-top: 7px solid rgba(243, 245, 249, 0.45); }
+.now i:last-child { bottom: 14px; margin-left: -6px; border-left-width: 6px; border-right-width: 6px; border-bottom: 7px solid rgba(243, 245, 249, 0.45); }
+
+.econ-body { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.erows { display: grid; gap: 2px; background: var(--e-sep); padding: 2px 0; }
+.er { position: relative; display: grid; grid-template-columns: 190px 180px 224px 64px minmax(0, 1fr); height: 66px; }
 .erows.r .er { direction: rtl; }
-.erows.r .er > * { direction: ltr; }
-.er::after { content: ""; position: absolute; top: 0; bottom: 0; width: 4px; background: var(--tc); }
+.er > * { direction: ltr; }
+.er::after { content: ""; position: absolute; top: 0; bottom: 0; width: 5px; background: var(--tc); z-index: 2; }
 .erows.l .er::after { left: 0; }
 .erows.r .er::after { right: 0; }
-.er .spent { font: 600 25px/1 var(--num); color: var(--loss); text-align: right; padding-top: 3px; }
-.er .cr { font: 600 27px/1 var(--num); display: flex; align-items: center; gap: 6px; justify-content: flex-end; padding-top: 3px; }
-.erows.r .er .spent { text-align: left; }
-.erows.r .er .cr { justify-content: flex-start; }
-.cr svg, .cv { width: 14px; height: 14px; object-fit: contain; color: var(--hl); margin-top: -3px; }
-.er .abils { justify-content: center; }
-.er .wc { display: flex; justify-content: center; }
-.er .shc { display: flex; justify-content: center; }
-.er .shc img { height: 24px; width: auto; filter: brightness(0) invert(1); }
-.er .fs { position: relative; width: 48px; height: 52px; overflow: hidden; align-self: end; background: linear-gradient(0deg, color-mix(in srgb, var(--tc) 65%, #000), transparent); }
-.er .fs img { width: 48px; height: 52px; object-fit: cover; object-position: center top; }
+.er .seg { display: flex; align-items: center; min-width: 0; overflow: hidden; height: 66px; }
+.erows.l .er .seg { border-right: 2px solid var(--e-sep); }
+.erows.r .er .seg { border-left: 2px solid var(--e-sep); flex-direction: row-reverse; }
+.er .cs { background: #18222b; gap: 4px; padding: 0 10px 0 16px; }
+.erows.r .er .cs { padding: 0 16px 0 10px; }
+.er .spent { font: 700 23px/1 var(--sbn); color: var(--e-dim); white-space: nowrap; letter-spacing: -0.01em; }
+.er .cr { font: 800 25px/1 var(--sbn); color: #fff; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.erows.r .er .cr { flex-direction: row-reverse; }
+.cr svg, .cv { width: 16px; height: 16px; object-fit: contain; color: #fff; }
+.er .as { background: #151f28; gap: 12px; padding: 0 10px 0 14px; }
+.erows.r .er .as { padding: 0 14px 0 10px; }
+.er .abils { gap: 10px; }
+.erows.r .er .abils { flex-direction: row-reverse; }
+.er .ab { grid-template-rows: 20px 5px; row-gap: 6px; width: 26px; height: 31px; }
+.er .ab .ic { width: 20px; height: 20px; }
+.er .ab .lt { width: 20px; height: 20px; }
+.er .dots { gap: 3px; height: 5px; }
+.er .dots i { width: 5px; height: 5px; }
+.er .ws { background: #121b24; gap: 12px; padding: 0 8px 0 14px; }
+.erows.r .er .ws { padding: 0 14px 0 8px; }
+.er .shc { flex: 0 0 28px; display: flex; justify-content: center; }
+.er .shc img { height: 26px; width: auto; filter: brightness(0) invert(1); }
+.er .w2 { flex: 0 0 52px; display: flex; justify-content: center; }
+.er .w1 { flex: 0 0 94px; display: flex; justify-content: center; }
+.er .w2 .weap { height: 22px; max-width: 52px; }
+.er .w1 .weap { height: 26px; max-width: 94px; }
+.erows.r .er .weap { transform: scaleX(-1); }
+.er .fs { position: relative; width: 64px; height: 66px; overflow: hidden; background: linear-gradient(0deg, color-mix(in srgb, var(--tc) 40%, #0a1118), #1a2530); }
+.er .fs img { width: 64px; height: 66px; object-fit: cover; object-position: center 10%; }
 .erows.r .er .fs img { transform: scaleX(-1); }
 .er .fs .ph span { display: none; }
-.er .fs .ph svg { width: 22px; height: 22px; }
-.er .nm { font: 600 29px/1 var(--num); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; padding-top: 3px; }
-.erows.r .er .nm { text-align: right; }
-.er .kd { font: 600 17px var(--ui); text-align: right; }
-.erows.r .er .kd { text-align: left; }
-.erows.r .er .weap { transform: scaleX(-1); }
+.er .fs .ph svg { width: 24px; height: 24px; }
+.er .ns { background: #08111a; gap: 12px; padding: 0 22px 0 20px; justify-content: space-between; border: 0 !important; }
+.erows.r .er .ns { padding: 0 20px 0 22px; }
+.er .nm { font: 700 21px/1 var(--sbn); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.er .kd { font: 800 25px/1 var(--sbn); color: #fff; white-space: nowrap; flex: none; letter-spacing: 0.01em; }
+.er .kd i { font-style: normal; color: #3e5d7c; margin: 0 2px; }
+
+/* ultimate com anel em segmentos (um por ponto) */
+.ultr { position: relative; flex: none; width: 40px; height: 40px; border-radius: 50%; background: #0a1016; }
+.ultr svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.ultr .sg { stroke: rgba(243, 245, 249, 0.18); }
+.ultr .sg.on { stroke: var(--tc); }
+.ultr .uic { position: absolute; inset: 11px; width: 18px; height: 18px; object-fit: contain; filter: brightness(0) invert(1); }
+.ultr.ready { background: var(--hl); box-shadow: 0 0 0 2px var(--hl), 0 0 12px color-mix(in srgb, var(--hl) 60%, transparent); }
+.ultr.ready .sg { stroke: #0a1016; }
+.ultr.ready .uic { filter: brightness(0); }
 
 .status-pill { position: absolute; left: 24px; top: 50px; padding: 8px 14px; background: var(--base); font: 600 17px var(--ui); color: var(--hl); }
 
@@ -614,6 +661,7 @@ body.live .viewport { position: fixed; }
             <div class="to" id="to-l"><span>Pausas</span><b id="tob-l"></b></div>
             <div class="mini"><i class="art" id="map-art"></i><div class="mr" id="mini-l"><span></span><span></span></div><div class="mr" id="mini-r"><span></span><span></span></div></div>
             <div class="hist" id="hist"></div>
+            <div class="now"><i></i><b id="now-r"></b><i></i></div>
             <div class="to" id="to-r"><span>Pausas</span><b id="tob-r"></b></div>
           </div>
           <div class="plate r" id="pl-r"><img class="wm" id="wm-r" alt="" hidden><div><div class="tn" id="tn-r"></div><div class="val">Valor do equipamento <b id="eq-r"></b></div></div></div>
@@ -661,6 +709,15 @@ body.live .viewport { position: fixed; }
     const ic = a && a.abil.ultimate ? `<img class="uic" src="${a.abil.ultimate}" alt="">` : "";
     return `<svg viewBox="0 0 30 30"><circle class="track" cx="15" cy="15" r="12.5" fill="none" stroke-width="3"/><circle class="fill" cx="15" cy="15" r="12.5" fill="none" stroke-width="3" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - (ready ? 1 : frac))}"/></svg>${ic}`;
   }
+  // anel da ultimate dividido em um segmento por ponto
+  function ultRingHTML(internal, cur, max, ready) {
+    const a = agentAsset(internal), n = Math.max(1, max || 1), r = 17, C = 2 * Math.PI * r, gap = n > 1 ? 3.2 : 0, seg = C / n - gap;
+    let arcs = "";
+    for (let i = 0; i < n; i++) arcs += `<circle class="sg${ready || i < cur ? " on" : ""}" cx="20" cy="20" r="${r}" fill="none" stroke-width="3" stroke-dasharray="${seg.toFixed(2)} ${(C - seg).toFixed(2)}" stroke-dashoffset="${(-i * C / n - gap / 2).toFixed(2)}"/>`;
+    const ic = a && a.abil.ultimate ? `<img class="uic" src="${a.abil.ultimate}" alt="">` : "";
+    return `<svg viewBox="0 0 40 40">${arcs}</svg>${ic}`;
+  }
+  const PISTOLS = new Set(["Classic", "Shorty", "Frenzy", "Ghost", "Sheriff", "Bandit", "Knife"]);
   function weaponHTML(w) {
     const src = weaponAsset(w);
     if (src) return `<img class="weap" src="${src}" alt="${w}">`;
@@ -694,7 +751,11 @@ body.live .viewport { position: fixed; }
     for (let i = 0; i < 5; i++) {
       const r = document.createElement("div");
       r.className = "er";
-      r.innerHTML = `<span class="spent" data-k="spent"></span><span class="cr" data-k="cr"></span><span class="abils" data-k="ab"></span><span class="ult" data-k="ult"></span><span class="shc" data-k="sh"></span><span class="wc" data-k="wp"></span><span class="fs" data-k="face"></span><span class="nm" data-k="name"></span><span class="kd" data-k="kd"></span>`;
+      r.innerHTML = `<span class="seg cs"><span class="spent" data-k="spent"></span><span class="cr" data-k="cr"></span></span>`
+        + `<span class="seg as"><span class="abils" data-k="ab"></span><span class="ultr" data-k="ult"></span></span>`
+        + `<span class="seg ws"><span class="shc" data-k="sh"></span><span class="w2" data-k="w2"></span><span class="w1" data-k="w1"></span></span>`
+        + `<span class="fs" data-k="face"></span>`
+        + `<span class="seg ns"><span class="nm" data-k="name"></span><span class="kd" data-k="kd"></span></span>`;
       const k = { el: r };
       r.querySelectorAll("[data-k]").forEach((n) => (k[n.dataset.k] = n));
       el.appendChild(r);
@@ -907,35 +968,45 @@ body.live .viewport { position: fixed; }
       const abKnown = !p.auxiliaryAvailable || p.auxiliaryAvailable.abilities !== false;
       setHTML(k.ab, abilsHTML(p.agentInternal, ab, abKnown), imgKey + abKnown + [p.agentInternal, ab.grenade, ab.ability1, ab.ability2].join());
       k.ult.classList.toggle("ready", !!p.ultReady);
-      setHTML(k.ult, ultHTML(p.agentInternal, p.currUltPoints || 0, p.maxUltPoints || 0, p.ultReady), imgKey + [p.agentInternal, p.currUltPoints, p.maxUltPoints, p.ultReady].join());
+      setHTML(k.ult, ultRingHTML(p.agentInternal, p.currUltPoints || 0, p.maxUltPoints || 0, p.ultReady), imgKey + [p.agentInternal, p.currUltPoints, p.maxUltPoints, p.ultReady].join());
       const armor = ARMOR[p.armorName], shSrc = shieldAsset(p.armorName);
       setHTML(k.sh, armor ? (shSrc ? `<img src="${shSrc}" alt="${armor}">` : `<span class="sh">${armor}</span>`) : "", imgKey + p.armorName);
-      setHTML(k.wp, weaponHTML(p.highestWeapon), imgKey + p.highestWeapon);
+      // uma arma só vem do capturador: pistola (e faca) no espaço da secundária, o resto no da principal
+      const w = p.highestWeapon, side = !w || PISTOLS.has(w) ? "w2" : "w1";
+      setHTML(k.w2, side === "w2" ? weaponHTML(w) : "", imgKey + "w2" + side + w);
+      setHTML(k.w1, side === "w1" ? weaponHTML(w) : "", imgKey + "w1" + side + w);
       setHTML(k.face, faceHTML(p.agentInternal), imgKey + p.agentInternal);
       setText(k.name, p.name || p.fullName || "");
-      setText(k.kd, `${p.kills ?? 0}/${p.deaths ?? 0}/${p.assists ?? 0}`);
+      setHTML(k.kd, `${p.kills ?? 0}<i>/</i>${p.deaths ?? 0}<i>/</i>${p.assists ?? 0}`, [p.kills, p.deaths, p.assists].join());
     });
   }
+  // Histórico: as últimas 12 rodadas (ou 1 a 12 no começo), uma coluna por rodada, linha de cima = time da
+  // esquerda. Quem venceu mostra o ícone do motivo na cor do time; a outra linha mostra o número.
   function renderHistory(d, L, R) {
-    const total = Math.max(24, d.roundNumber || 1), start = Math.max(1, total - 23);
+    const cur = d.roundNumber || 1, sw = d.switchRound || 13, start = Math.max(1, cur - 12);
     const recL = {}, recR = {};
     (L.roundRecord || []).forEach((r) => (recL[r.round] = r));
     (R.roundRecord || []).forEach((r) => (recR[r.round] = r));
-    const key = [start, d.roundNumber, (L.roundRecord || []).length, (R.roundRecord || []).length, CORES.esquerda, CORES.direita, CORES.porLado, L.isAttacking].join();
+    setText($("now-r"), String(cur).padStart(2, "0"));
+    const key = [start, cur, sw, (L.roundRecord || []).length, (R.roundRecord || []).length, CORES.esquerda, CORES.direita, CORES.porLado, L.isAttacking].join();
     const hist = $("hist");
     if (hist._k === key) return;
     hist._k = key;
     let html = "";
-    for (let n = start; n < start + 24; n++) {
-      const cell = (rec, ti, team) => {
-        const half = n === (d.switchRound || 13) ? " half" : "";
-        if (rec && REASON_ICON[rec.type]) {
-          const c = CORES.porLado ? (rec.wasAttack ? CORES.ataque : CORES.defesa) : colorOf(ti, team);
-          return `<div class="hc won${half}" style="--tc:${c}">${REASON_ICON[rec.type]}</div>`;
+    for (let n = start; n < start + 12; n++) {
+      if (n === sw && n !== start) html += '<div class="hsep"><i></i><i></i></div>';
+      const recs = [recL[n], recR[n]], teams = [L, R];
+      const won = recs[0] && REASON_ICON[recs[0].type] ? 0 : recs[1] && REASON_ICON[recs[1].type] ? 1 : -1;
+      const nn = String(n).padStart(2, "0");
+      const cell = (ti) => {
+        if (won === ti) {
+          const rec = recs[ti], c = CORES.porLado ? (rec.wasAttack ? CORES.ataque : CORES.defesa) : colorOf(ti, teams[ti]);
+          return `<div class="hc won" style="--tc:${c}">${REASON_ICON[rec.type]}</div>`;
         }
-        return `<div class="hc${half}${n === d.roundNumber ? " now" : ""}">${String(n).padStart(2, "0")}</div>`;
+        if (won >= 0) return `<div class="hc">${nn}</div>`;
+        return ti ? '<div class="hc fut"></div>' : `<div class="hc fut${n === cur ? " cur" : ""}">${nn}</div>`;
       };
-      html += cell(recL[n], 0, L) + cell(recR[n], 1, R);
+      html += `<div class="hcol">${cell(0)}${cell(1)}</div>`;
     }
     hist.innerHTML = html;
   }
