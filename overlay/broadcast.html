@@ -120,14 +120,13 @@ body.live .viewport { position: fixed; }
 .clock .round { margin-top: 8px; font: 600 13px/1 var(--ui); color: var(--muted); letter-spacing: 0.06em; }
 .clock .time { margin-top: 6px; font: 800 38px/1 var(--sbn); letter-spacing: 0.02em; color: var(--fg); }
 .clock .bar { position: absolute; left: 101px; width: 60px; top: 68px; height: 3px; background: var(--fg); transform-origin: center; transition: transform 0.25s linear; }
-.spike-icon { display: none; width: 44px; height: 40px; margin-top: 3px; color: var(--hl); }
-.spike-icon svg { width: 44px; height: 40px; }
-.spike-icon.masked { background: var(--hl); -webkit-mask: var(--mask) center / contain no-repeat; mask: var(--mask) center / contain no-repeat; }
-.clock.spike .round { color: var(--hl); }
-.clock.spike .time { display: none; }
-.clock.spike .spike-icon { display: block; animation: pulse 0.9s ease-in-out infinite; }
-.clock.spike .bar { background: var(--hl); }
-@keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.82); opacity: 0.7; } }
+/* spike plantada: some o tempo e a barra, fica o rótulo da rodada e o ícone da spike em vermelho */
+.spike-icon { display: none; width: 52px; height: 46px; margin-top: 5px; color: var(--spike); }
+.spike-icon svg { width: 52px; height: 46px; }
+.spike-icon.masked { width: 56px; height: 50px; margin-top: 3px; background: var(--spike); -webkit-mask: var(--mask) center / contain no-repeat; mask: var(--mask) center / contain no-repeat; }
+.clock.spike .time, .clock.spike .bar { display: none; }
+.clock.spike .spike-icon { display: block; animation: spikeglow 1s ease-in-out infinite; }
+@keyframes spikeglow { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 0 transparent); } 50% { opacity: 0.78; filter: drop-shadow(0 0 6px var(--spike)); } }
 
 /* Aviso de pausa */
 .pause { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); padding: 8px 24px 6px; background: rgba(11, 16, 25, 0.92); border-bottom: 3px solid var(--tc, var(--hl)); font: 600 34px/1 var(--num); letter-spacing: 0.03em; text-align: center; }
@@ -440,7 +439,8 @@ body.live .viewport { position: fixed; }
     porLado: false,       // true: usa as cores de ataque/defesa em vez da cor de cada time
     ataque: "#e8394d",
     defesa: "#19c39c",
-    destaque: "#f5c043",  // spike plantada e ultimate pronta
+    destaque: "#f5c043",  // ultimate pronta
+    spike: "#e8424f",     // ícone da spike plantada
     evento: "#7a1a2c",    // bloco do evento no canto superior direito
     fundo: "#0b1019",     // fundo dos painéis
   };
@@ -465,12 +465,14 @@ body.live .viewport { position: fixed; }
   if (hex("attack")) CORES.ataque = hex("attack");
   if (hex("defense")) CORES.defesa = hex("defense");
   if (hex("hl")) CORES.destaque = hex("hl");
+  if (hex("spike")) CORES.spike = hex("spike");
   if (params.get("colors") === "side") CORES.porLado = true;
   const root = document.documentElement;
   function applyColors() {
     root.style.setProperty("--team-l", CORES.esquerda);
     root.style.setProperty("--team-r", CORES.direita);
     root.style.setProperty("--hl", CORES.destaque);
+    root.style.setProperty("--spike", CORES.spike);
     root.style.setProperty("--base", CORES.fundo);
     root.style.setProperty("--evento", CORES.evento);
   }
@@ -503,7 +505,7 @@ body.live .viewport { position: fixed; }
     other: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" transform="rotate(45 12 12)"/></svg>',
   };
   const CREDIT = '<svg viewBox="0 0 14 14" fill="currentColor"><path d="M7 0 14 7 7 14 0 7z"/><path d="M7 4 10 7 7 10 4 7z" fill="#0b1019"/></svg>';
-  const SPIKE = '<svg viewBox="0 0 44 40" fill="currentColor"><path d="M2 2h40L22 38z" opacity=".95"/><path d="M22 10l6 3.5v7L22 24l-6-3.5v-7z" fill="#0e131b"/></svg>';
+  const SPIKE = '<svg viewBox="0 0 100 92"><path d="M10 9h80L50 83z" fill="currentColor" stroke="currentColor" stroke-width="14" stroke-linejoin="round"/><g stroke="#0e131b" stroke-width="3.5"><path d="M50 2v18M33 49 14 60M67 49l19 11"/></g><circle cx="50" cy="38" r="22" fill="#0e131b"/><circle cx="50" cy="38" r="15" fill="currentColor"/><path d="m50 29 8 4.5v9L50 47l-8-4.5v-9z" fill="#0e131b"/><path d="m50 34 3.5 2v4L50 42l-3.5-2v-4z" fill="currentColor"/><g fill="#0e131b"><path d="m25 13 6 10H19zM75 13l6 10H69zM50 64l6 10H44z"/></g></svg>';
   const EYE = '<svg class="eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>';
   const REASON_ICON = {
     kills: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="12" cy="12" r="7"/><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/></svg>',
@@ -787,7 +789,7 @@ body.live .viewport { position: fixed; }
     else if (phase === "combat") { tot = DURATION.combat; rem = tot - (now - clock.at); }
     const timed = phase === "shopping" || phase === "combat";
     setText($("time"), timed ? fmtTime(rem) : "0:00");
-    setText($("round"), planted ? "Spike plantada" : "Rodada " + (d.roundNumber || 1));
+    setText($("round"), "Rodada " + (d.roundNumber || 1));
     $("clock").classList.toggle("spike", planted);
     $("bar").style.transform = `scaleX(${timed ? Math.max(0, Math.min(1, rem / tot)) : 0})`;
     stage.classList.toggle("buy", phase === "shopping");

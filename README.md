@@ -39,7 +39,7 @@ Layout de transmissão com placas na cor de cada time, cartões compactos no com
 **Vitória de rodada:** o cartão desce do placar e muda conforme a rodada: **ace** (um jogador com 5 abates), **clutch 1vN** (o time venceu depois de ficar com um único jogador vivo), **rodada perfeita** (venceu sem perder ninguém) ou vitória normal com o motivo e o destaque da rodada. A detecção usa os dados que o capturador já envia.
 
 **Cores:** edite o bloco `CORES` no começo do script, ou passe pela URL:
-`&left=C8323F&right=14A98A` (cor dos times, sem `#`), `&hl=F5C043` (spike e ultimate pronta) e `&colors=side` para colorir por lado (ataque e defesa) em vez de por time. Na prévia há seletores de cor para testar.
+`&left=C8323F&right=14A98A` (cor dos times, sem `#`), `&hl=F5C043` (ultimate pronta), `&spike=E8424F` (ícone da spike plantada) e `&colors=side` para colorir por lado (ataque e defesa) em vez de por time. Na prévia há seletores de cor para testar.
 
 ### Partida de teste (`tools/partida-teste.js`)
 
