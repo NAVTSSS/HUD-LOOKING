@@ -137,11 +137,11 @@ body.live .viewport { position: fixed; }
    Logo do time no topo, sobre a borda; painel translúcido na cor do time com circuito; fios finos
    com triângulos nos cantos; faixa escura "LADO ▷ TIME" embaixo; faixa extra para ace, clutch, rodada
    perfeita ou destaque. A moldura é desenhada pelo script (buildWinFrame) para a largura certa. */
-.rw { --e: color-mix(in srgb, var(--tc) 60%, #fff); position: absolute; top: 96px; left: 50%; width: 520px; height: 212px; margin-left: -260px; pointer-events: none; }
+.rw { --e: color-mix(in srgb, var(--tc) 60%, #fff); position: absolute; top: 92px; left: 50%; width: 520px; height: 210px; margin-left: -260px; pointer-events: none; }
 .rw.ace { --e: var(--hl); }
 .rw-frame { position: absolute; left: 0; top: 0; overflow: visible; }
-.rw-frame .fl { transform-box: view-box; transform-origin: 50% 94px; }
-.rw-frame .f-out { fill: color-mix(in srgb, var(--tc) 34%, #0a0e0c); fill-opacity: 0.84; }
+.rw-frame .fl { transform-box: view-box; transform-origin: 50% 104px; }
+.rw-frame .f-out { fill: color-mix(in srgb, var(--tc) 34%, #0a0e0c); fill-opacity: 0.72; }
 .rw-frame .f-in { fill: url(#rwg); }
 .rw-frame .g0 { stop-color: color-mix(in srgb, var(--tc) 46%, #0b0f0d); stop-opacity: 0.92; }
 .rw-frame .g1 { stop-color: color-mix(in srgb, var(--tc) 26%, #070a09); stop-opacity: 0.92; }
@@ -151,20 +151,20 @@ body.live .viewport { position: fixed; }
 .rw-frame .cp { fill: none; stroke: color-mix(in srgb, var(--tc) 60%, #fff); stroke-width: 1.1; stroke-opacity: 0.22; }
 .rw-frame .cd { fill: color-mix(in srgb, var(--tc) 60%, #fff); fill-opacity: 0.35; }
 .rw-frame .sq { fill: var(--e); fill-opacity: 0.18; animation: blink 1.8s steps(2, jump-none) infinite; animation-delay: var(--d); }
-.rw-sweep { position: absolute; left: 0; top: 0; width: 100%; height: 132px; background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.16) 50%, transparent 60%); transform: translateX(-100%); }
-.rw-badge { position: absolute; top: 0; left: 50%; width: 60px; height: 60px; margin-left: -30px; z-index: 4; display: grid; place-items: center; }
+.rw-sweep { position: absolute; left: 0; top: 0; width: 100%; height: 136px; background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.16) 50%, transparent 60%); transform: translateX(-100%); }
+.rw-badge { position: absolute; top: -6px; left: 50%; width: 84px; height: 84px; margin-left: -42px; z-index: 4; display: grid; place-items: center; }
 .rw-badge::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--tc) 55%, transparent), transparent 70%); filter: blur(6px); }
-.rw-logo { position: relative; width: 60px; height: 60px; display: grid; place-items: center; }
-.rw-logo img { width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 8px color-mix(in srgb, var(--tc) 70%, transparent)); }
-.rw-logo span { display: grid; place-items: center; width: 54px; height: 48px; font: 800 18px/1 var(--sbn); color: #fff; background: color-mix(in srgb, var(--tc) 70%, #000);
+.rw-logo { position: relative; width: 84px; height: 84px; display: grid; place-items: center; }
+.rw-logo img { width: 84px; height: 76px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 8px color-mix(in srgb, var(--tc) 70%, transparent)); }
+.rw-logo span { display: grid; place-items: center; width: 70px; height: 62px; font: 800 22px/1 var(--sbn); color: #fff; background: color-mix(in srgb, var(--tc) 70%, #000);
   clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
-.rw-word { position: absolute; top: 63px; left: 50%; height: 52px; z-index: 5; translate: -50% 0; }
+.rw-word { position: absolute; top: 76px; left: 50%; height: 52px; z-index: 5; translate: -50% 0; }
 .rw-word b { position: absolute; inset: 0; display: grid; place-items: center; font: 800 62px/1 var(--sbn); letter-spacing: 0.02em; color: #fff; white-space: nowrap; }
 .rw-word .wm-main { position: relative; inset: auto; height: 52px; text-shadow: 0 3px 0 rgba(0, 0, 0, 0.3); filter: drop-shadow(0 0 12px color-mix(in srgb, var(--tc) 55%, transparent)); }
 .rw-word .wr { color: color-mix(in srgb, var(--tc) 75%, #fff); opacity: 0; }
 .rw-word .wc { color: #6ff2ff; opacity: 0; }
 .rw-word.masked b { color: transparent; font-size: 0; text-shadow: none; -webkit-mask: var(--wm) center / contain no-repeat; mask: var(--wm) center / contain no-repeat; background: #fff; }
-.rw-word.masked { top: 68px; }
+.rw-word.masked { top: 81px; }
 .rw-word.masked .wm-main { width: var(--ww); height: 44px; margin-top: 4px; }
 .rw-word.masked .wr { background: color-mix(in srgb, var(--tc) 75%, #fff); }
 .rw-word.masked .wc { background: #6ff2ff; }
@@ -172,28 +172,28 @@ body.live .viewport { position: fixed; }
 .rw-streak.s1 { top: 12px; left: -30px; right: 30%; }
 .rw-streak.s2 { top: 27px; height: 4px; left: 20%; right: -40px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--tc) 85%, #000) 30%, color-mix(in srgb, var(--tc) 60%, #fff) 70%, transparent); opacity: 0.7; }
 .rw-streak.s3 { top: 40px; left: 8%; right: 12%; }
-.rw-agent { position: absolute; top: 4px; right: -62px; width: 150px; height: 128px; z-index: 3; object-fit: cover; object-position: center 10%;
+.rw-agent { position: absolute; top: 8px; right: -60px; width: 150px; height: 128px; z-index: 3; object-fit: cover; object-position: center 10%;
   filter: drop-shadow(0 0 12px color-mix(in srgb, var(--tc) 70%, transparent));
   -webkit-mask-image: linear-gradient(0deg, transparent 0, #000 32%); mask-image: linear-gradient(0deg, transparent 0, #000 32%); }
-.rw-side { position: absolute; top: 128px; left: 30px; right: 30px; height: 38px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 18px; padding: 0 24px; white-space: nowrap;
+.rw-side { position: absolute; top: 136px; left: 36px; right: 36px; height: 38px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 22px; padding: 0 24px; white-space: nowrap;
   background: linear-gradient(90deg, rgba(4, 6, 8, 0.72), rgba(4, 6, 8, 0.95) 22%, rgba(4, 6, 8, 0.95) 78%, rgba(4, 6, 8, 0.72));
-  font: 800 19px/1 var(--sbn); letter-spacing: 0.06em; text-transform: uppercase; color: #fff; }
+  font: 800 19px/1 var(--sbn); letter-spacing: 0.1em; text-transform: uppercase; color: #fff; }
 .rw-side .arr { flex: none; width: 22px; height: 16px; color: var(--e); filter: drop-shadow(0 0 5px var(--e)); }
 .rw-side .tm { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.rw-strap { position: absolute; top: 172px; left: 50%; height: 34px; display: flex; align-items: center; gap: 12px; padding: 0 22px; z-index: 5; translate: -50% 0; white-space: nowrap;
-  background: color-mix(in srgb, var(--tc) 28%, rgba(4, 6, 8, 0.94)); font: 600 17px/1 var(--ui); color: var(--fg);
+.rw-strap { position: absolute; top: 174px; left: 50%; min-width: 46%; height: 30px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 22px; z-index: 5; translate: -50% 0; white-space: nowrap; box-shadow: inset 0 1px 0 color-mix(in srgb, var(--e) 70%, transparent);
+  background: color-mix(in srgb, var(--tc) 22%, rgba(4, 6, 8, 0.94)); font: 600 16px/1 var(--ui); color: var(--fg);
   clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 12px 100%); }
 .rw.nostrap .rw-strap { display: none; }
 .rw-strap b { font-weight: 700; color: #fff; }
 .rw-strap i:not(.mk) { font-style: normal; opacity: 0.45; margin: 0 4px; }
-.rw-tag { padding: 5px 9px 4px; background: var(--tc); font: 800 17px/1 var(--sbn); letter-spacing: 0.04em; color: #fff; }
+.rw-tag { padding: 4px 8px 3px; background: var(--tc); font: 800 15px/1 var(--sbn); letter-spacing: 0.04em; color: #fff; }
 .rw.ace .rw-tag { background: var(--hl); color: #0b1015; }
 .rw-tag:empty { display: none; }
 .rw-marks { display: flex; gap: 4px; }
 .rw-marks:empty { display: none; }
-.rw-marks i { width: 22px; height: 22px; display: grid; place-items: center; background: var(--e); color: #0b1015; }
-.rw-marks i svg { width: 14px; height: 14px; }
-.rw-line { position: absolute; top: 93px; left: -30px; right: -30px; height: 2px; z-index: 6; opacity: 0;
+.rw-marks i { width: 19px; height: 19px; display: grid; place-items: center; background: var(--e); color: #0b1015; }
+.rw-marks i svg { width: 12px; height: 12px; }
+.rw-line { position: absolute; top: 103px; left: -30px; right: -30px; height: 2px; z-index: 6; opacity: 0;
   background: linear-gradient(90deg, transparent, #fff 30%, #fff 70%, transparent); box-shadow: 0 0 14px var(--e), 0 0 4px #fff; }
 .flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 55%, color-mix(in srgb, var(--tc) 60%, transparent) 100%); }
 
@@ -239,7 +239,7 @@ body.live .viewport { position: fixed; }
 @keyframes agentIn { from { opacity: 0; transform: translateX(40px) scale(0.92); } to { opacity: 1; transform: none; } }
 @keyframes sideIn { from { opacity: 0; clip-path: inset(0 50% 0 50%); } to { opacity: 1; clip-path: inset(0 0 0 0); } }
 @keyframes nudge { 0%, 100% { transform: none; } 50% { transform: translateX(4px); } }
-@keyframes strapIn { from { opacity: 0; transform: translateY(-12px) scaleY(0.4); } to { opacity: 1; transform: none; } }
+@keyframes strapIn { from { opacity: 0; transform: translateY(-30px); clip-path: inset(100% 0 0 0); } to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); } }
 @keyframes outGlitch { 0% { opacity: 1; transform: none; } 50% { opacity: 0.6; transform: translateX(8px) skewX(-12deg); } 100% { opacity: 0; transform: translateX(-12px); } }
 @keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 @keyframes stamp { 0% { opacity: 0; transform: scale(2.1); } 60% { opacity: 1; transform: scale(0.94); } 100% { opacity: 1; transform: scale(1); } }
@@ -551,31 +551,32 @@ body.live .viewport { position: fixed; }
   // Moldura do "ROUND WIN" desenhada para a largura W (o painel acompanha o texto).
   // Externo: y 30 a 132 com cantos de 16 e laterais que fecham 34. Interno: recuo de 48, de y 50 a 132.
   function winFrameSVG(W) {
-    const y0 = 30, y1 = 132, a = 48, f = (n) => Math.round(n * 10) / 10;
-    const outer = `16,${y0} ${W - 16},${y0} ${W},${y0 + 16} ${W - 34},${y1} 34,${y1} 0,${y0 + 16}`;
-    const inner = `${a + 14},50 ${W - a - 14},50 ${W - a},64 ${W - a - 8},${y1} ${a + 8},${y1} ${a},64`;
+    const y0 = 36, y1 = 136, yi = 56, a = 48, f = (n) => Math.round(n * 10) / 10;
+    const outer = `18,${y0} ${W - 18},${y0} ${W},${y0 + 18} ${W - 30},${y1} 30,${y1} 0,${y0 + 18}`;
+    const inner = `${a + 14},${yi} ${W - a - 14},${yi} ${W - a},${yi + 14} ${W - a - 8},${y1} ${a + 8},${y1} ${a},${yi + 14}`;
     // circuito: trilhas em ângulo reto saindo das laterais, terminais e quadradinhos que piscam (sempre o mesmo desenho)
     let x = 7, circ = "";
     const rnd = () => ((x = (x * 16807) % 2147483647) / 2147483647);
     for (let n = 0; n < 12; n++) {
-      const left = n % 2 === 0, sx = left ? 0 : W, dir = left ? 1 : -1, y = 40 + rnd() * 86;
-      const h1 = (24 + rnd() * W * 0.14) * dir, ey = Math.max(36, Math.min(128, y + (rnd() < 0.5 ? -1 : 1) * (8 + rnd() * 22)));
+      const left = n % 2 === 0, sx = left ? 0 : W, dir = left ? 1 : -1, y = y0 + 10 + rnd() * 86;
+      const h1 = (24 + rnd() * W * 0.14) * dir, ey = Math.max(y0 + 6, Math.min(y1 - 4, y + (rnd() < 0.5 ? -1 : 1) * (8 + rnd() * 22)));
       const mx = sx + h1 + Math.abs(ey - y) * dir, ex = mx + (12 + rnd() * W * 0.1) * dir;
       circ += `<path class="cp" d="M${f(sx)} ${f(y)}H${f(sx + h1)}L${f(mx)} ${f(ey)}H${f(ex)}"/><circle class="cd" cx="${f(ex)}" cy="${f(ey)}" r="2.2"/>`;
     }
     for (let n = 0; n < 18; n++) {
-      const side = rnd() < 0.5, rx = side ? 10 + rnd() * W * 0.24 : W - 16 - rnd() * W * 0.24, ry = 38 + rnd() * 86;
+      const side = rnd() < 0.5, rx = side ? 10 + rnd() * W * 0.24 : W - 16 - rnd() * W * 0.24, ry = y0 + 8 + rnd() * 86;
       circ += `<rect class="sq" x="${f(rx)}" y="${f(ry)}" width="5" height="5" style="--d:${(rnd() * 1.8).toFixed(2)}s"/>`;
     }
-    const wing = (m) => { const X = (v) => f(m ? W - v : v); return `M${X(34)} ${y1}L${X(0)} ${y0 + 16}L${X(16)} ${y0}H${X(a + 40)}`; };
-    const link = (m) => { const X = (v) => f(m ? W - v : v); return `M${X(30)} ${y0 + 20}L${X(a)} 66`; };
-    const tri = (m) => { const X = (v) => f(m ? W - v : v); return `M${X(28)} ${y0 + 5}L${X(33)} ${y0 + 14}L${X(23)} ${y0 + 14}Z`; };
+    // asa: borda externa que desce até a base da faixa de baixo; ligação do triângulo até o canto do painel interno
+    const wing = (m) => { const X = (v) => f(m ? W - v : v); return `M${X(a + 44)} ${y0}H${X(18)}L${X(0)} ${y0 + 18}L${X(30)} ${y1}L${X(40)} ${y1 + 40}`; };
+    const link = (m) => { const X = (v) => f(m ? W - v : v); return `M${X(30)} ${y0 + 22}L${X(a)} ${yi + 16}`; };
+    const tri = (m) => { const X = (v) => f(m ? W - v : v); return `M${X(28)} ${y0 + 6}L${X(33)} ${y0 + 15}L${X(23)} ${y0 + 15}Z`; };
     return `<defs><linearGradient id="rwg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="g0"/><stop offset="1" class="g1"/></linearGradient>
       <clipPath id="rwclip"><polygon points="${outer}"/></clipPath></defs>
       <g class="fl"><polygon class="f-out" points="${outer}"/><polygon class="f-in" points="${inner}"/><g clip-path="url(#rwclip)">${circ}</g></g>
       <path class="ln dr" pathLength="1" d="${wing(0)}"/><path class="ln dr" pathLength="1" d="${wing(1)}"/>
       <path class="ln dr" pathLength="1" d="${link(0)}"/><path class="ln dr" pathLength="1" d="${link(1)}"/>
-      <polyline class="ln hi dr" pathLength="1" points="${a + 8},${y1} ${a},64 ${a + 14},50 ${W - a - 14},50 ${W - a},64 ${W - a - 8},${y1}"/>
+      <polyline class="ln hi dr" pathLength="1" points="${a + 8},${y1} ${a},${yi + 14} ${a + 14},${yi} ${W - a - 14},${yi} ${W - a},${yi + 14} ${W - a - 8},${y1}"/>
       <path class="tri" d="${tri(0)}${tri(1)}"/>`;
   }
   // mede o texto (ou a arte ROUND WIN.png) e a faixa do time, e ajusta a largura do painel
@@ -587,9 +588,9 @@ body.live .viewport { position: fixed; }
     const W = Math.round(Math.max(ww + 152, sideW + 60, 440));
     box.style.width = W + "px"; box.style.marginLeft = -W / 2 + "px";
     const fr = $("rw-frame");
-    fr.setAttribute("width", W); fr.setAttribute("height", 212); fr.setAttribute("viewBox", `0 0 ${W} 212`);
+    fr.setAttribute("width", W); fr.setAttribute("height", 210); fr.setAttribute("viewBox", `0 0 ${W} 210`);
     if (fr._w !== W) { fr._w = W; fr.innerHTML = winFrameSVG(W); }
-    $("rw-sweep").style.clipPath = `polygon(62px 50px, ${W - 62}px 50px, ${W - 48}px 64px, ${W - 56}px 132px, 56px 132px, 48px 64px)`;
+    $("rw-sweep").style.clipPath = `polygon(62px 56px, ${W - 62}px 56px, ${W - 48}px 70px, ${W - 56}px 136px, 56px 136px, 48px 70px)`;
   }
   const EYE = '<svg class="eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>';
   const REASON_ICON = {
