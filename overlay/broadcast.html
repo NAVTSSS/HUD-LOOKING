@@ -204,53 +204,90 @@ body.live .viewport { position: fixed; }
 @keyframes flash { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes fadeOut { to { opacity: 0; } }
 
-/* ---------- Combate: cartões compactos ---------- */
-.cards { position: absolute; bottom: 22px; width: 318px; display: grid; gap: 8px; transition: opacity 0.3s, transform 0.3s; }
-.cards.l { left: 16px; }
-.cards.r { right: 16px; }
+/* ---------- Combate: cartões dos jogadores (composição da referência, medidas do palco 1920x1080) ----------
+   Cartão 300x88: retrato 66x58 no canto externo (sobe 8px acima do corpo), corpo escuro com canto chanfrado,
+   linha 1 nome + K/D/A, linha 2 escudo + vida + barra grossa, faixa inferior de 32px na cor do time com
+   a ultimate embaixo do retrato, habilidades com cargas e a arma. Lado direito espelhado. */
+.cards { position: absolute; bottom: 22px; width: 300px; display: grid; gap: 11px; transition: opacity 0.3s, transform 0.3s; }
+.cards.l { left: 24px; }
+.cards.r { right: 24px; }
 .stage.buy .cards { opacity: 0; transform: translateY(30px); }
-.pc { position: relative; height: 82px; display: grid; grid-template-columns: 76px 1fr; background: linear-gradient(90deg, color-mix(in srgb, var(--tc) 16%, var(--base)), var(--base) 55%); transition: transform 0.25s; }
-.cards.r .pc { grid-template-columns: 1fr 76px; background: linear-gradient(270deg, color-mix(in srgb, var(--tc) 16%, var(--base)), var(--base) 55%); }
-.cards.r .pc .face { order: 2; }
-.pc::before { content: ""; position: absolute; top: 0; bottom: 0; width: 4px; background: var(--tc); z-index: 2; }
-.cards.l .pc::before { left: 0; }
-.cards.r .pc::before { right: 0; }
-.cards.l .pc.observed { transform: translateX(10px); }
-.cards.r .pc.observed { transform: translateX(-10px); }
-.pc.observed { box-shadow: 0 0 0 2px var(--tc); }
-.face { position: relative; background: linear-gradient(0deg, color-mix(in srgb, var(--tc) 60%, #000), color-mix(in srgb, var(--tc) 15%, transparent)); }
-.face img { position: absolute; left: 0; bottom: 0; width: 76px; height: 82px; object-fit: cover; object-position: center top; }
-.cards.r .face img { transform: scaleX(-1); }
+.pc { position: relative; height: 88px; }
+.pc > .bg { position: absolute; left: 0; right: 0; top: 8px; bottom: 0; background: rgba(17, 21, 28, 0.9); transition: background 0.2s; }
+.cards.l .pc > .bg { clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%); }
+.cards.r .pc > .bg { clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px); }
+.pc.observed > .bg { background: rgba(30, 35, 45, 0.95); }
+.pc > .band { position: absolute; left: 0; right: 0; top: 56px; bottom: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 58%, #05080c) 0%, color-mix(in srgb, var(--tc) 24%, #080b10) 100%); }
+.pc > .band::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--tc); opacity: 0.9; }
+.pc > .band::after { content: ""; position: absolute; inset: 0; opacity: 0.12;
+  background: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.6) 0 1px, transparent 1px 7px); }
+.cards.l .pc > .band { clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+.cards.r .pc > .band { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%); }
+
+.pc .face { position: absolute; top: 0; width: 66px; height: 58px; overflow: hidden;
+  background: linear-gradient(0deg, color-mix(in srgb, var(--tc) 45%, #0b0f14), color-mix(in srgb, var(--tc) 12%, #11151c)); }
+.cards.l .pc .face { left: 0; clip-path: polygon(0 0, 54px 0, 66px 12px, 66px 100%, 0 100%); }
+.cards.r .pc .face { right: 0; clip-path: polygon(0 12px, 12px 0, 100% 0, 100% 100%, 0 100%); }
+.pc .face img { position: absolute; left: 0; top: 0; width: 66px; height: 58px; object-fit: cover; object-position: center 12%; }
+.cards.r .pc .face img { transform: scaleX(-1); }
 .ph { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 2px; font: 600 18px var(--num); color: #fff; }
-.ph svg { width: 28px; height: 28px; color: #fff; }
-.face .ph { align-content: start; padding-top: 14px; }
-.face .ph span { display: none; }
-.kit-l { display: flex; align-items: center; gap: 7px; flex: none; }
-.cards.r .kit-l { flex-direction: row-reverse; }
-.pc .ult { width: 24px; height: 24px; }
-.pc .ult .uic { inset: 5px; width: 14px; height: 14px; }
-.pc.dead .face { background: #1a1f2a; }
+.ph svg { width: 26px; height: 26px; color: #fff; }
+.pc .face .ph span { display: none; }
+
+.pc .ultz { position: absolute; top: 57px; width: 66px; height: 31px; display: grid; place-items: center; }
+.cards.l .pc .ultz { left: 0; }
+.cards.r .pc .ultz { right: 0; }
+.pc .ult { width: 28px; height: 28px; background: #0a0d12; box-shadow: 0 0 0 2px rgba(10, 13, 18, 0.9); }
+.pc .ult .uic { inset: 7px; width: 14px; height: 14px; }
+
+.pc .body { position: absolute; top: 8px; height: 48px; display: grid; grid-template-rows: 22px 20px; align-content: center; row-gap: 3px; min-width: 0; overflow: hidden; }
+.cards.l .pc .body { left: 76px; right: 12px; }
+.cards.r .pc .body { left: 12px; right: 76px; }
+.pc .row { display: flex; align-items: center; gap: 6px; min-width: 0; height: 100%; overflow: hidden; }
+.cards.r .pc .row { flex-direction: row-reverse; }
+.pc .pname { font: 700 18px/22px var(--ui); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+.cards.r .pc .pname { text-align: right; }
+.pc .kda { font: 700 16px/22px var(--sbn); color: var(--fg); white-space: nowrap; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+.pc .sh { display: inline-grid; place-items: center; min-width: 22px; height: 18px; padding: 0 5px; border-radius: 9px; background: #06080b;
+  font: 700 12px/1 var(--sbn); color: var(--fg); clip-path: none; flex: none; }
+.pc .sh.none { visibility: hidden; }
+.pc .hpn { font: 800 21px/20px var(--sbn); color: #fff; min-width: 38px; letter-spacing: 0.01em; font-variant-numeric: tabular-nums; flex: none; }
+.cards.r .pc .hpn { text-align: right; }
+.pc .hpbar { flex: 1; height: 8px; background: rgba(243, 245, 249, 0.1); position: relative; overflow: hidden; }
+.pc .hpbar i { position: absolute; inset: 0; background: var(--tc); transform-origin: left; transition: transform 0.25s; }
+.cards.r .pc .hpbar i { transform-origin: right; }
+.pc .hpbar.low i { background: var(--loss); }
+
+.pc .kit { position: absolute; top: 58px; bottom: 0; display: flex; align-items: center; gap: 22px; min-width: 0; overflow: hidden; }
+.cards.l .pc .kit { left: 76px; right: 12px; }
+.cards.r .pc .kit { left: 12px; right: 76px; flex-direction: row-reverse; }
+.pc .abils { display: flex; gap: 14px; align-items: center; flex: none; }
+.cards.r .pc .abils { flex-direction: row-reverse; }
+.pc .ab { display: grid; grid-template-rows: 17px 5px; justify-items: center; row-gap: 3px; width: 22px; height: 25px; overflow: hidden; }
+.pc .ab .ic { width: 17px; height: 17px; }
+.pc .ab .lt { width: 17px; height: 17px; font-size: 11px; }
+.pc .dots i { width: 5px; height: 5px; }
+.pc .kit > [data-k="wp"] { flex: none; display: flex; align-items: center; max-width: 82px; height: 22px; overflow: hidden; }
+.pc .weap { height: 19px; max-width: 80px; }
+
+.pc > .eye { position: absolute; top: 20px; width: 18px; height: 18px; color: #fff; display: none; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)); }
+.cards.l .pc > .eye { left: calc(100% + 8px); }
+.cards.r .pc > .eye { right: calc(100% + 8px); }
+.pc.observed > .eye { display: block; }
+
 .pc.dead .face img { filter: grayscale(1) brightness(0.45); }
-.pc.dead .body { opacity: 0.4; }
-.body { display: grid; grid-template-rows: 24px 20px 24px; align-content: center; row-gap: 3px; padding: 0 12px 0 14px; min-width: 0; overflow: hidden; }
-.cards.r .body { padding: 0 14px 0 12px; }
-.row { display: flex; align-items: center; gap: 8px; min-width: 0; height: 100%; overflow: hidden; }
-.cards.r .row { flex-direction: row-reverse; }
-.pname { font: 600 25px/24px var(--num); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; padding-top: 3px; }
-.cards.r .pname { text-align: right; }
+.pc.dead .face { background: #1a1f2a; }
+.pc.dead > .band { filter: grayscale(0.85) brightness(0.6); }
+.pc.dead .body, .pc.dead .kit { opacity: 0.45; }
+.pc.dead .ultz { opacity: 0.6; }
+
+/* peças compartilhadas com o painel de economia */
+.kit-l { display: flex; align-items: center; gap: 7px; flex: none; }
 .kda { font: 600 15px var(--ui); color: var(--fg); white-space: nowrap; display: flex; align-items: center; gap: 5px; }
 .eye { width: 15px; height: 15px; color: var(--tc); display: none; }
-.pc.observed .eye { display: block; }
 .sh { display: inline-grid; place-items: center; min-width: 24px; height: 18px; padding: 0 3px; font: 700 12px var(--ui); color: var(--base); background: var(--fg); clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%); }
 .sh.none { visibility: hidden; }
-.hpn { font: 600 26px/20px var(--num); min-width: 34px; padding-top: 3px; }
-.cards.r .hpn { text-align: right; }
-.hpbar { flex: 1; height: 5px; background: rgba(243, 245, 249, 0.12); position: relative; overflow: hidden; }
-.hpbar i { position: absolute; inset: 0; background: var(--tc); transform-origin: left; transition: transform 0.25s; }
-.cards.r .hpbar i { transform-origin: right; }
-.hpbar.low i { background: var(--loss); }
-.kit { justify-content: space-between; align-items: center; }
-.kit > [data-k="wp"] { flex: none; display: flex; align-items: center; max-width: 92px; height: 22px; overflow: hidden; }
 .abils { display: flex; gap: 6px; align-items: center; flex: none; }
 .ab { display: grid; grid-template-rows: 18px 4px; justify-items: center; row-gap: 2px; width: 22px; height: 24px; overflow: hidden; }
 .ab .ic { width: 18px; height: 18px; object-fit: contain; filter: brightness(0) invert(1); }
@@ -636,12 +673,15 @@ body.live .viewport { position: fixed; }
       const c = document.createElement("div");
       c.className = "pc";
       c.innerHTML = `
-        <div class="face"><span data-k="face"></span></div>
+        <i class="bg"></i><i class="band"></i>
+        <div class="face" data-k="face"></div>
+        <span class="ultz"><span class="ult" data-k="ult"></span></span>
         <div class="body">
-          <div class="row"><span class="pname" data-k="name"></span><span class="kda">${EYE}<span data-k="kda"></span></span></div>
+          <div class="row"><span class="pname" data-k="name"></span><span class="kda" data-k="kda"></span></div>
           <div class="row"><span class="sh" data-k="sh"></span><span class="hpn" data-k="hpn"></span><span class="hpbar" data-k="hpb"><i></i></span></div>
-          <div class="row kit"><span class="kit-l"><span class="ult" data-k="ult"></span><span class="abils" data-k="ab"></span></span><span data-k="wp"></span></div>
-        </div>`;
+        </div>
+        <div class="kit"><span class="abils" data-k="ab"></span><span data-k="wp"></span></div>
+        ${EYE}`;
       const k = { el: c };
       c.querySelectorAll("[data-k]").forEach((n) => (k[n.dataset.k] = n));
       el.appendChild(c);
@@ -842,7 +882,7 @@ body.live .viewport { position: fixed; }
       setText(k.name, p.name || p.fullName || "");
       setText(k.kda, `${p.kills ?? 0}/${p.deaths ?? 0}/${p.assists ?? 0}`);
       const armor = ARMOR[p.armorName];
-      k.sh.classList.toggle("none", !armor || !p.isAlive); setText(k.sh, armor || "");
+      k.sh.classList.toggle("none", !p.isAlive); setText(k.sh, armor || "0");
       const hasHp = !p.auxiliaryAvailable || p.auxiliaryAvailable.health !== false;
       const hp = p.isAlive ? (hasHp ? p.health ?? 100 : 100) : 0;
       setText(k.hpn, p.isAlive ? String(hp) : "");
