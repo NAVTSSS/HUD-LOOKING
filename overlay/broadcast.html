@@ -132,105 +132,118 @@ body.live .viewport { position: fixed; }
 .pause { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); padding: 8px 24px 6px; background: rgba(11, 16, 25, 0.92); border-bottom: 3px solid var(--tc, var(--hl)); font: 600 34px/1 var(--num); letter-spacing: 0.03em; text-align: center; }
 .pause small { display: block; font: 600 14px var(--ui); color: var(--muted); margin-top: 3px; }
 
-/* ---------- Vitória de rodada: cartão no estilo do VCT CN, abaixo do placar ----------
-   Aba "Rodada N" em cima, corpo escuro com fios na cor do time em cima e embaixo, nome do time
-   no centro com o lado e o motivo, emblema redondo com a logo à direita e faixa extra para
-   ace, clutch, rodada perfeita ou destaque. O cartão abre a partir de uma linha no centro. */
-.rw { --e: color-mix(in srgb, var(--tc) 70%, #fff); position: absolute; top: 96px; left: 50%; width: 560px; height: 190px; margin-left: -280px; pointer-events: none; }
+/* ---------- Vitória de rodada: "ROUND WIN" (medidas do palco 1920x1080) ----------
+   Painel de 760x132 abaixo do placar com moldura angulada, circuito na cor do time ao fundo,
+   emblema do time no topo, "ROUND WIN" grande com glitch e riscos de luz, agente do destaque saindo
+   pela direita, faixa "LADO ▶ TIME" e uma faixa extra para ace, clutch, rodada perfeita ou destaque. */
+.rw { --e: color-mix(in srgb, var(--tc) 65%, #fff); position: absolute; top: 98px; left: 50%; width: 760px; height: 250px; margin-left: -380px; pointer-events: none; }
 .rw.ace { --e: var(--hl); }
-.rw-tab { position: absolute; top: 0; left: 64px; width: 300px; height: 32px; z-index: 0; display: grid; place-items: center; padding-bottom: 6px;
-  font: 800 15px/1 var(--sbn); letter-spacing: 0.1em; text-transform: uppercase; color: #fff;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 92%, #fff) 0%, color-mix(in srgb, var(--tc) 70%, #000) 100%);
-  clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 100%, 0 100%); }
-.rw-body { position: absolute; top: 24px; left: 0; right: 0; height: 104px; z-index: 1; display: flex; align-items: center; overflow: hidden;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--tc) 24%, #06090b) 0%, color-mix(in srgb, var(--tc) 12%, #06090b) 62%, #04070a 100%);
-  clip-path: polygon(0 16px, 16px 0, calc(100% - 24px) 0, 100% 24px, 100% calc(100% - 24px), calc(100% - 24px) 100%, 16px 100%, 0 calc(100% - 16px)); }
-.rw-scan { position: absolute; inset: 0;
-  background: radial-gradient(circle at 86% 50%, color-mix(in srgb, var(--tc) 38%, transparent) 0, transparent 46%),
-    linear-gradient(115deg, transparent 0 18%, rgba(255, 255, 255, 0.05) 18% 30%, transparent 30%),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px); }
-.rw-wm { position: absolute; left: 18px; bottom: -10px; font: 800 70px/1 var(--sbn); letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.035); white-space: nowrap; }
-.rw-main { position: relative; flex: 1; min-width: 0; display: grid; justify-items: center; gap: 8px; padding: 0 10px 0 30px; text-align: center; }
-.rw.has-agent .rw-main { padding-left: 72px; }
-.rw-title { max-width: 100%; font: 800 40px/1.05 var(--sbn); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  text-shadow: 0 0 16px color-mix(in srgb, var(--tc) 75%, transparent); }
-.rw-sub { max-width: 100%; font: 600 18px/1 var(--ui); color: rgba(255, 255, 255, 0.9); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rw-sub i, #rw-strap i { font-style: normal; opacity: 0.45; margin: 0 6px; }
-.rw-disc { position: relative; flex: none; width: 150px; height: 104px; display: grid; place-items: center; }
-.rw-ring { position: absolute; width: 84px; height: 84px; border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--tc) 45%, #03080a) 0 56%, var(--e) 57% 61%, color-mix(in srgb, var(--tc) 35%, #000) 62% 100%);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tc) 55%, #000), 0 0 26px color-mix(in srgb, var(--tc) 75%, transparent), inset 0 0 16px color-mix(in srgb, var(--tc) 70%, transparent); }
-.rw-ring::after { content: ""; position: absolute; inset: -7px; border-radius: 50%; border: 2px dashed var(--e); opacity: 0.55; animation: spin 7s linear infinite; }
-.rw-logo { position: relative; width: 54px; height: 54px; display: grid; place-items: center; }
-.rw-logo img { width: 54px; height: 54px; object-fit: contain; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--tc) 80%, transparent)); }
-.rw-logo span { font: 800 22px/1 var(--sbn); color: #fff; }
-.rw-sweep { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.22) 50%, transparent 62%); transform: translateX(-120%); }
-.rw-edge { position: absolute; left: 16px; right: 24px; height: 2px; z-index: 2; background: var(--e); box-shadow: 0 0 10px var(--e), 0 0 2px var(--e); }
-.rw-edge.t { top: 24px; }
-.rw-edge.b { top: 126px; }
-.rw-foot { position: absolute; top: 128px; left: 44px; width: 300px; height: 8px; z-index: 0; background: color-mix(in srgb, var(--tc) 80%, #000);
-  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 8px 100%); }
-.rw-agent { position: absolute; left: -92px; top: 2px; width: 160px; height: 126px; z-index: 3; object-fit: cover; object-position: center 8%;
-  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--tc) 60%, transparent));
-  -webkit-mask-image: linear-gradient(0deg, transparent 0, #000 26%); mask-image: linear-gradient(0deg, transparent 0, #000 26%); }
-.rw-strap { position: absolute; top: 144px; left: 50%; height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 24px; z-index: 1; translate: -50% 0; white-space: nowrap;
-  background: rgba(5, 8, 11, 0.94); font: 600 18px/1 var(--ui); color: var(--fg);
-  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%); }
+.rw-panel { position: absolute; top: 34px; left: 0; width: 760px; height: 132px; z-index: 1; }
+.rw-panel svg { position: absolute; inset: 0; overflow: visible; }
+.rw-panel .fr-fill { fill: url(#rwgrad); }
+.rw-panel .fr-out { fill: none; stroke: rgba(255, 255, 255, 0.55); stroke-width: 1.5; }
+.rw-panel .fr-in { fill: none; stroke: var(--e); stroke-width: 1.2; opacity: 0.55; }
+.rw-panel .fr-tri { fill: rgba(255, 255, 255, 0.75); }
+.rw-panel .g0 { stop-color: color-mix(in srgb, var(--tc) 55%, #05080b); stop-opacity: 0.94; }
+.rw-panel .g1 { stop-color: color-mix(in srgb, var(--tc) 22%, #05080b); stop-opacity: 0.92; }
+.rw-panel .g2 { stop-color: #05080b; stop-opacity: 0.9; }
+.rw-circ { position: absolute; inset: 0; clip-path: polygon(24px 0, 736px 0, 760px 22px, 760px 96px, 722px 132px, 38px 132px, 0 96px, 0 22px); }
+.rw-circ path { fill: none; stroke: color-mix(in srgb, var(--tc) 70%, #fff); stroke-width: 1.3; opacity: 0.35; stroke-dasharray: 400; stroke-dashoffset: 0; }
+.rw-circ circle { fill: color-mix(in srgb, var(--tc) 70%, #fff); opacity: 0.5; }
+.rw-circ rect { fill: var(--e); opacity: 0.2; }
+.rw-circ .blink { animation: blink 1.8s steps(2, jump-none) infinite; animation-delay: var(--d); }
+.rw-badge { position: absolute; top: 0; left: 50%; width: 76px; height: 76px; margin-left: -38px; z-index: 4; display: grid; place-items: center; border-radius: 50%;
+  background: radial-gradient(circle, #0b1117 0 58%, color-mix(in srgb, var(--tc) 50%, #000) 60% 100%);
+  box-shadow: 0 0 0 3px var(--e), 0 0 26px 4px color-mix(in srgb, var(--tc) 80%, transparent); }
+.rw-badge::before { content: ""; position: absolute; inset: -12px; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 70%, color-mix(in srgb, var(--e) 80%, transparent) 85%, transparent 100%); z-index: -1; animation: spin 2.4s linear infinite;
+  -webkit-mask: radial-gradient(circle, transparent 0 62%, #000 63%); mask: radial-gradient(circle, transparent 0 62%, #000 63%); }
+.rw-logo { width: 50px; height: 50px; display: grid; place-items: center; }
+.rw-logo img { width: 50px; height: 50px; object-fit: contain; }
+.rw-logo span { font: 800 20px/1 var(--sbn); color: #fff; }
+.rw-word { position: absolute; top: 76px; left: 50%; width: 500px; height: 54px; margin-left: -250px; z-index: 5; }
+.rw.has-agent .rw-word { margin-left: -300px; }
+.rw-word b { position: absolute; inset: 0; display: grid; place-items: center; font: 800 62px/1 var(--sbn); letter-spacing: 0.05em; color: #fff; white-space: nowrap; }
+.rw-word .wr { color: color-mix(in srgb, var(--tc) 80%, #fff); opacity: 0; }
+.rw-word .wc { color: #6ff2ff; opacity: 0; }
+.rw-word.masked b { color: transparent; font-size: 0; -webkit-mask: var(--wm) center / contain no-repeat; mask: var(--wm) center / contain no-repeat; background: #fff; }
+.rw-word.masked .wr { background: color-mix(in srgb, var(--tc) 80%, #fff); }
+.rw-word.masked .wc { background: #6ff2ff; }
+.rw-word .wm-main { filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35)) drop-shadow(0 0 14px color-mix(in srgb, var(--tc) 70%, transparent)); }
+.rw-streak { position: absolute; left: -40px; right: -40px; height: 3px; transform-origin: left; opacity: 0.9;
+  background: linear-gradient(90deg, transparent, var(--e) 20%, #fff 50%, var(--e) 80%, transparent); }
+.rw-streak.s1 { top: 14px; height: 2px; }
+.rw-streak.s2 { top: 30px; height: 5px; left: 30px; right: -70px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--tc) 90%, #000) 25%, color-mix(in srgb, var(--tc) 70%, #fff) 60%, transparent); opacity: 0.8; }
+.rw-streak.s3 { top: 42px; height: 2px; left: -80px; right: 60px; }
+.rw-agent { position: absolute; right: -24px; top: -6px; width: 200px; height: 172px; z-index: 3; object-fit: cover; object-position: center 12%;
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--tc) 70%, transparent));
+  -webkit-mask-image: linear-gradient(0deg, transparent 0, #000 30%); mask-image: linear-gradient(0deg, transparent 0, #000 30%); }
+.rw-side { position: absolute; top: 146px; left: 50%; z-index: 5; height: 40px; display: flex; align-items: center; gap: 14px; padding: 0 30px; translate: -50% 0; white-space: nowrap;
+  background: rgba(5, 8, 11, 0.95); font: 800 19px/1 var(--sbn); letter-spacing: 0.06em; text-transform: uppercase; color: #fff;
+  clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 100%, 0 100%); }
+.rw-side .arr { width: 16px; height: 16px; color: var(--e); filter: drop-shadow(0 0 6px var(--e)); }
+.rw-side .tm { max-width: 340px; overflow: hidden; text-overflow: ellipsis; }
+.rw-strap { position: absolute; top: 192px; left: 50%; height: 36px; display: flex; align-items: center; gap: 12px; padding: 0 24px; z-index: 5; translate: -50% 0; white-space: nowrap;
+  background: color-mix(in srgb, var(--tc) 30%, rgba(5, 8, 11, 0.94)); font: 600 17px/1 var(--ui); color: var(--fg);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 14px 100%); }
 .rw.nostrap .rw-strap { display: none; }
 .rw-strap b { font-weight: 700; color: #fff; }
-.rw-tag { padding: 5px 10px 4px; background: var(--tc); font: 800 19px/1 var(--sbn); letter-spacing: 0.04em; color: #fff; }
+.rw-strap i:not(.mk) { font-style: normal; opacity: 0.45; margin: 0 4px; }
+.rw-tag { padding: 5px 10px 4px; background: var(--tc); font: 800 18px/1 var(--sbn); letter-spacing: 0.04em; color: #fff; }
 .rw.ace .rw-tag { background: var(--hl); color: #0b1015; }
 .rw-tag:empty { display: none; }
 .rw-marks { display: flex; gap: 5px; }
 .rw-marks:empty { display: none; }
-.rw-marks i { width: 26px; height: 26px; display: grid; place-items: center; background: color-mix(in srgb, var(--e) 85%, #000); color: #0b1015; }
-.rw-marks i svg { width: 16px; height: 16px; }
+.rw-marks i { width: 24px; height: 24px; display: grid; place-items: center; background: var(--e); color: #0b1015; }
+.rw-marks i svg { width: 15px; height: 15px; }
+.rw-line { position: absolute; top: 99px; left: -40px; right: -40px; height: 2px; z-index: 6; background: linear-gradient(90deg, transparent, #fff 30%, #fff 70%, transparent); box-shadow: 0 0 14px var(--e), 0 0 4px #fff; opacity: 0; }
 .flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 55%, color-mix(in srgb, var(--tc) 60%, transparent) 100%); }
 
-/* entrada: duas linhas nascem no centro, se afastam e abrem o corpo; depois aba, emblema, textos e faixa */
-.rw.on .rw-edge.t { animation: edgeT 0.5s cubic-bezier(0.3, 0.8, 0.2, 1) both; }
-.rw.on .rw-edge.b { animation: edgeB 0.5s cubic-bezier(0.3, 0.8, 0.2, 1) both; }
-.rw.on .rw-body { animation: open 0.3s cubic-bezier(0.2, 0.9, 0.2, 1) 0.2s both; }
-.rw.on .rw-tab { animation: tabIn 0.28s cubic-bezier(0.2, 0.9, 0.2, 1) 0.48s both; }
-.rw.on .rw-foot { animation: footIn 0.24s ease-out 0.5s both; }
-.rw.on .rw-disc { animation: disc 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) 0.42s both; }
-.rw.on .rw-ring { animation: glow 1.6s ease-in-out 1s infinite; }
-.rw.on .rw-title { animation: wipe 0.42s cubic-bezier(0.2, 0.9, 0.2, 1) 0.55s both; }
-.rw.on .rw-sub { animation: up 0.3s ease-out 0.78s both; }
-.rw.on .rw-wm { animation: wm 1.2s ease-out 0.5s both; }
-.rw.on .rw-sweep { animation: sweep 0.9s ease-out 0.9s 1; }
-.rw.on .rw-agent { animation: agentIn 0.45s cubic-bezier(0.2, 0.9, 0.2, 1) 0.6s both; }
-.rw.on .rw-strap { animation: strapIn 0.32s cubic-bezier(0.2, 0.9, 0.2, 1) 1s both; }
-.rw.on .rw-tag { animation: stamp 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) 1.15s both; }
-.rw.on .rw-marks i { animation: mark 0.26s ease-out calc(1.25s + var(--n) * 0.1s) both; }
-.rw.ace.on .rw-body { animation: open 0.3s cubic-bezier(0.2, 0.9, 0.2, 1) 0.2s both, shake 0.32s ease-in-out 1.15s 1; }
+/* entrada */
+.rw.on .rw-line { animation: line 0.5s ease-out both; }
+.rw.on .rw-panel { animation: open 0.32s cubic-bezier(0.2, 0.9, 0.2, 1) 0.18s both; }
+.rw.on .rw-circ path { animation: trace 1.4s ease-out 0.3s both; }
+.rw.on .rw-badge { animation: badge 0.55s cubic-bezier(0.3, 1.5, 0.5, 1) 0.42s both; }
+.rw.on .wm-main { animation: wordIn 0.42s cubic-bezier(0.2, 0.9, 0.2, 1) 0.4s both; }
+.rw.on .wr { animation: glitchR 0.5s steps(1) 0.42s forwards, glitchR 0.32s steps(1) 2.6s 1, glitchR 0.32s steps(1) 4.4s 1; }
+.rw.on .wc { animation: glitchC 0.5s steps(1) 0.46s forwards, glitchC 0.32s steps(1) 2.64s 1, glitchC 0.32s steps(1) 4.44s 1; }
+.rw.on .rw-streak { animation: streak 0.7s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+.rw.on .rw-streak.s1 { animation-delay: 0.5s; }
+.rw.on .rw-streak.s2 { animation-delay: 0.42s; }
+.rw.on .rw-streak.s3 { animation-delay: 0.58s; }
+.rw.on .rw-agent { animation: agentIn 0.5s cubic-bezier(0.2, 0.9, 0.2, 1) 0.55s both; }
+.rw.on .rw-side { animation: sideIn 0.3s cubic-bezier(0.2, 0.9, 0.2, 1) 0.75s both; }
+.rw.on .rw-side .arr { animation: nudge 0.9s ease-in-out 1.1s infinite; }
+.rw.on .rw-strap { animation: strapIn 0.3s cubic-bezier(0.2, 0.9, 0.2, 1) 1s both; }
+.rw.on .rw-tag { animation: stamp 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) 1.12s both; }
+.rw.on .rw-marks i { animation: mark 0.24s ease-out calc(1.2s + var(--n) * 0.1s) both; }
+.rw.ace.on .rw-panel { animation: open 0.32s cubic-bezier(0.2, 0.9, 0.2, 1) 0.18s both, shake 0.32s ease-in-out 1.12s 1; }
 .flash.on { animation: flash 1.5s ease-out 1; }
-/* saída: some o conteúdo, o corpo fecha de volta na linha e a linha encolhe */
-.rw.out .rw-tab, .rw.out .rw-foot, .rw.out .rw-strap, .rw.out .rw-agent, .rw.out .rw-main, .rw.out .rw-disc { animation: fadeOut 0.14s ease-in both; }
-.rw.out .rw-body { animation: close 0.22s ease-in 0.08s both; }
-.rw.out .rw-edge.t { animation: edgeT 0.36s ease-in 0.06s reverse both; }
-.rw.out .rw-edge.b { animation: edgeB 0.36s ease-in 0.06s reverse both; }
+/* saída: glitch rápido e o painel fecha na linha */
+.rw.out .rw-word, .rw.out .rw-badge, .rw.out .rw-agent, .rw.out .rw-side, .rw.out .rw-strap { animation: outGlitch 0.2s steps(2) both; }
+.rw.out .rw-panel { animation: close 0.22s ease-in 0.1s both; }
+.rw.out .rw-line { animation: lineOut 0.36s ease-in both; }
 
-@keyframes edgeT { 0% { transform: translateY(51px) scaleX(0); } 40% { transform: translateY(51px) scaleX(1); } 100% { transform: none; } }
-@keyframes edgeB { 0% { transform: translateY(-51px) scaleX(0); } 40% { transform: translateY(-51px) scaleX(1); } 100% { transform: none; } }
-@keyframes open { from { transform: scaleY(0.02); } to { transform: none; } }
-@keyframes close { to { transform: scaleY(0.02); } }
-@keyframes tabIn { from { transform: translateY(26px); } to { transform: none; } }
-@keyframes footIn { from { transform: translateY(-9px); } to { transform: none; } }
-@keyframes disc { from { opacity: 0; transform: scale(0.3) rotate(-120deg); } to { opacity: 1; transform: none; } }
-@keyframes glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
-@keyframes wipe { from { clip-path: inset(0 100% 0 0); letter-spacing: 0.12em; } to { clip-path: inset(0 0 0 0); } }
-@keyframes wm { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
-@keyframes agentIn { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: none; } }
-@keyframes strapIn { from { opacity: 0; transform: translateY(-16px) scaleY(0.4); } to { opacity: 1; transform: none; } }
+@keyframes line { 0% { opacity: 0; transform: scaleX(0); } 30% { opacity: 1; transform: scaleX(1); } 100% { opacity: 0; transform: scaleX(1) scaleY(0.5); } }
+@keyframes lineOut { 0% { opacity: 0; } 40% { opacity: 1; transform: scaleX(1); } 100% { opacity: 0; transform: scaleX(0); } }
+@keyframes open { from { transform: scaleY(0.02); opacity: 0.6; } to { transform: none; opacity: 1; } }
+@keyframes close { to { transform: scaleY(0.02); opacity: 0; } }
+@keyframes trace { from { stroke-dashoffset: 400; } to { stroke-dashoffset: 0; } }
+@keyframes blink { 0% { opacity: 0.15; } 50% { opacity: 0.9; } }
+@keyframes badge { from { opacity: 0; transform: translateY(-30px) scale(0.5); } to { opacity: 1; transform: none; } }
+@keyframes wordIn { 0% { opacity: 0; transform: translateX(-60px) skewX(-24deg); filter: blur(6px); } 60% { opacity: 1; transform: translateX(6px) skewX(4deg); filter: blur(0); } 100% { opacity: 1; transform: none; } }
+@keyframes glitchR { 0% { opacity: 0.9; clip-path: inset(0 0 62% 0); transform: translate(-9px, -2px); } 20% { clip-path: inset(48% 0 22% 0); transform: translate(7px, 1px); } 40% { clip-path: inset(18% 0 58% 0); transform: translate(-5px, 0); } 60% { clip-path: inset(70% 0 4% 0); transform: translate(10px, 2px); } 80% { clip-path: inset(30% 0 40% 0); transform: translate(-3px, 0); } 100% { opacity: 0; } }
+@keyframes glitchC { 0% { opacity: 0.85; clip-path: inset(55% 0 12% 0); transform: translate(8px, 1px); } 25% { clip-path: inset(8% 0 70% 0); transform: translate(-7px, -1px); } 50% { clip-path: inset(36% 0 36% 0); transform: translate(5px, 0); } 75% { clip-path: inset(78% 0 0 0); transform: translate(-9px, 2px); } 100% { opacity: 0; } }
+@keyframes streak { 0% { opacity: 0; transform: scaleX(0) translateX(-30px); } 40% { opacity: 1; } 100% { opacity: 0.85; transform: none; } }
+@keyframes agentIn { from { opacity: 0; transform: translateX(50px) scale(0.92); } to { opacity: 1; transform: none; } }
+@keyframes sideIn { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
+@keyframes nudge { 0%, 100% { transform: none; } 50% { transform: translateX(4px); } }
+@keyframes strapIn { from { opacity: 0; transform: translateY(-14px) scaleY(0.4); } to { opacity: 1; transform: none; } }
+@keyframes outGlitch { 0% { opacity: 1; transform: none; } 50% { opacity: 0.6; transform: translateX(8px) skewX(-12deg); } 100% { opacity: 0; transform: translateX(-12px); } }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-@keyframes sweep { to { transform: translateX(120%); } }
 @keyframes stamp { 0% { opacity: 0; transform: scale(2.1); } 60% { opacity: 1; transform: scale(0.94); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes shake { 0%, 100% { translate: 0 0; } 20% { translate: -6px 2px; } 40% { translate: 5px -2px; } 60% { translate: -3px 1px; } 80% { translate: 2px 0; } }
 @keyframes mark { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: none; } }
 @keyframes flash { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes fadeOut { to { opacity: 0; } }
 
 /* ---------- Combate: cartões dos jogadores (composição da referência, medidas do palco 1920x1080) ----------
    Cartão 300x88: retrato 66x58 no canto externo (sobe 8px acima do corpo), corpo escuro com canto chanfrado,
@@ -533,6 +546,22 @@ body.live .viewport { position: fixed; }
   };
   const CREDIT = '<svg viewBox="0 0 14 14" fill="currentColor"><path d="M7 0 14 7 7 14 0 7z"/><path d="M7 4 10 7 7 10 4 7z" fill="#0b1019"/></svg>';
   const SPIKE = '<svg viewBox="0 0 100 92"><path d="M10 9h80L50 83z" fill="currentColor" stroke="currentColor" stroke-width="14" stroke-linejoin="round"/><g stroke="#0e131b" stroke-width="3.5"><path d="M50 2v18M33 49 14 60M67 49l19 11"/></g><circle cx="50" cy="38" r="22" fill="#0e131b"/><circle cx="50" cy="38" r="15" fill="currentColor"/><path d="m50 29 8 4.5v9L50 47l-8-4.5v-9z" fill="#0e131b"/><path d="m50 34 3.5 2v4L50 42l-3.5-2v-4z" fill="currentColor"/><g fill="#0e131b"><path d="m25 13 6 10H19zM75 13l6 10H69zM50 64l6 10H44z"/></g></svg>';
+  // circuito do fundo do "ROUND WIN": trilhas em ângulo reto com terminais e quadradinhos que piscam (sempre o mesmo desenho)
+  function circuitSVG() {
+    let x = 7, out = "";
+    const rnd = () => ((x = (x * 16807) % 2147483647) / 2147483647);
+    for (let n = 0; n < 16; n++) {
+      const left = n % 2 === 0, sx = left ? 0 : 760, y = 10 + rnd() * 112, dir = left ? 1 : -1;
+      const h1 = (40 + rnd() * 120) * dir, v = (rnd() < 0.5 ? -1 : 1) * (10 + rnd() * 30), h2 = (20 + rnd() * 80) * dir;
+      const ex = sx + h1 + h2, ey = Math.max(6, Math.min(126, y + v));
+      out += `<path d="M${sx} ${y.toFixed(0)}h${h1.toFixed(0)}L${(sx + h1 + Math.abs(ey - y) * dir).toFixed(0)} ${ey.toFixed(0)}H${ex.toFixed(0)}"/><circle cx="${ex.toFixed(0)}" cy="${ey.toFixed(0)}" r="2.4"/>`;
+    }
+    for (let n = 0; n < 22; n++) {
+      const rx = rnd() < 0.5 ? 20 + rnd() * 220 : 520 + rnd() * 220, ry = 8 + rnd() * 112;
+      out += `<rect class="blink" x="${rx.toFixed(0)}" y="${ry.toFixed(0)}" width="6" height="6" style="--d:${(rnd() * 1.8).toFixed(2)}s"/>`;
+    }
+    return out;
+  }
   const EYE = '<svg class="eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>';
   const REASON_ICON = {
     kills: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="12" cy="12" r="7"/><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/></svg>',
@@ -561,7 +590,7 @@ body.live .viewport { position: fixed; }
       (ag.data || []).forEach((a) => {
         const abil = {};
         (a.abilities || []).forEach((x) => { if (x.slot && x.displayIcon) abil[x.slot.toLowerCase()] = x.displayIcon; });
-        const entry = { portrait: a.displayIcon, abil };
+        const entry = { portrait: a.displayIcon, render: a.bustPortrait || a.fullPortrait || "", abil };
         if (a.developerName) ASSETS.agents[a.developerName.toLowerCase()] = entry;
         if (a.displayName) ASSETS.agents[a.displayName.toLowerCase()] = entry;
       });
@@ -575,7 +604,7 @@ body.live .viewport { position: fixed; }
       ASSETS.ready = true;
     } catch (e) { ASSETS.ready = false; }
   }
-  const LOCAL = { base: null, sponsors: [] };
+  const LOCAL = { base: null, sponsors: [], word: "" };
   const FOLDER = { "KAY/O": "Kayo" };
   const MAP_NAMES = { Triad: "Haven", Bonsai: "Split", Duality: "Bind", Port: "Icebox", Foxtrot: "Breeze", Canyon: "Fracture", Pitt: "Pearl", Jam: "Lotus", Juliett: "Sunset", Infinity: "Abyss", Rook: "Corrode" };
   const mapName = (m) => MAP_NAMES[m] || m || "";
@@ -591,6 +620,7 @@ body.live .viewport { position: fixed; }
     for (const base of candidates) if (await probe(base + "Agentes/Jett/Jett.png")) { LOCAL.base = base; break; }
     if (!LOCAL.base) { if (DEBUG) console.warn("Pasta Resources não encontrada ao lado do arquivo"); return; }
     try { const f = new FontFace("Tungsten", `url("${LOCAL.base}Tungsten-Bold.ttf")`); document.fonts.add(await f.load()); } catch (e) { /* sem a fonte: usa Teko */ }
+    if (await probe(LOCAL.base + "ROUND%20WIN.png", 1500)) LOCAL.word = LOCAL.base + "ROUND%20WIN.png";
     for (let i = 1; i <= 12; i++) { const src = `${LOCAL.base}Sponsors/Sponsor${i}.png`; if (await probe(src, 1500)) LOCAL.sponsors.push(src); else break; }
   }
   function localAgent(internal) {
@@ -671,17 +701,24 @@ body.live .viewport { position: fixed; }
       <div class="pause" id="pause" hidden><span id="pause-t"></span><small id="pause-s"></small></div>
       <div class="flash" id="flash"></div>
       <div class="rw" id="rw" hidden>
-        <div class="rw-tab" id="rw-kicker"></div>
-        <i class="rw-foot"></i>
-        <div class="rw-body">
-          <i class="rw-scan"></i><span class="rw-wm">ROUND WIN</span>
-          <div class="rw-main"><span class="rw-title" id="rw-title"></span><span class="rw-sub" id="rw-sub"></span></div>
-          <div class="rw-disc"><i class="rw-ring"></i><div class="rw-logo" id="rw-logo"></div></div>
-          <i class="rw-sweep"></i>
+        <div class="rw-panel">
+          <svg viewBox="0 0 760 132" width="760" height="132">
+            <defs><linearGradient id="rwgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="g0"/><stop offset=".55" class="g1"/><stop offset="1" class="g2"/></linearGradient></defs>
+            <polygon class="fr-fill" points="24,0 736,0 760,22 760,96 722,132 38,132 0,96 0,22"/>
+          </svg>
+          <svg class="rw-circ" viewBox="0 0 760 132" width="760" height="132">${circuitSVG()}</svg>
+          <svg viewBox="0 0 760 132" width="760" height="132">
+            <polygon class="fr-out" points="24,0 736,0 760,22 760,96 722,132 38,132 0,96 0,22"/>
+            <polygon class="fr-in" points="29,7 731,7 753,26 753,93 719,125 41,125 7,93 7,26"/>
+            <path class="fr-tri" d="M52 24 60 12 68 24zM692 24 700 12 708 24z"/>
+          </svg>
         </div>
-        <i class="rw-edge t"></i><i class="rw-edge b"></i>
-        <div class="rw-strap"><span class="rw-tag" id="rw-tag"></span><span id="rw-strap"></span><span class="rw-marks" id="rw-marks"></span></div>
         <img class="rw-agent" id="rw-agent" alt="" hidden>
+        <div class="rw-badge"><div class="rw-logo" id="rw-logo"></div></div>
+        <div class="rw-word" id="rw-word"><i class="rw-streak s2"></i><b class="wr"></b><b class="wc"></b><b class="wm-main"></b><i class="rw-streak s1"></i><i class="rw-streak s3"></i></div>
+        <div class="rw-side"><span id="rw-kicker"></span><svg class="arr" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M3 2.5 13 8 3 13.5z"/></svg><span class="tm" id="rw-title"></span></div>
+        <div class="rw-strap"><span class="rw-tag" id="rw-tag"></span><span id="rw-strap"></span><span class="rw-marks" id="rw-marks"></span></div>
+        <i class="rw-line"></i>
       </div>
       <div class="cards l" id="cards-l"></div>
       <div class="cards r" id="cards-r"></div>
@@ -934,33 +971,41 @@ body.live .viewport { position: fixed; }
     box.style.setProperty("--tc", colorOf(wi, w));
     $("flash").style.setProperty("--tc", kind === "ace" ? CORES.destaque : colorOf(wi, w));
     $("rw-logo").innerHTML = logo ? `<img src="${logo}" alt="">` : `<span>${tri(w)}</span>`;
-    // cartão: aba com a rodada, nome do time, lado e motivo; faixa de baixo para o destaque da rodada
+    // "ROUND WIN" (ou "MAP WIN" no fim do mapa), faixa "LADO ▶ TIME" e faixa extra com o destaque da rodada
     const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
     const sep = "<i>·</i>";
-    let kicker = "Rodada " + d.roundNumber, sub = esc(side) + (reason ? sep + esc(reason) : ""), tag = "", strap = "", marks = "";
-    if (phase === "game_end") { kicker = "Fim do mapa"; sub = `Vence o mapa${sep}${L.roundsWon ?? 0} a ${R.roundsWon ?? 0}`; }
+    const word = phase === "game_end" ? "MAP WIN" : "ROUND WIN";
+    const wEl = $("rw-word"), useMask = !!LOCAL.word && word === "ROUND WIN";
+    wEl.classList.toggle("masked", useMask);
+    if (useMask) wEl.style.setProperty("--wm", `url("${LOCAL.word}")`);
+    wEl.querySelectorAll("b").forEach((n) => setText(n, word));
+    let tag = "", strap = "", marks = "";
+    const kills = star ? star.killsThisRound || 0 : 0;
+    if (phase === "game_end") strap = `<b>${L.roundsWon ?? 0}</b> a <b>${R.roundsWon ?? 0}</b>${sep}${esc(mapName(d.map))}`;
     else if (kind === "ace") {
       tag = "ACE"; strap = `<b>${esc(star.name)}</b>`;
-      marks = Array.from({ length: 5 }, (_, n) => `<i style="--n:${n}">${MARK.kill}</i>`).join("");
+      marks = Array.from({ length: 5 }, (_, n) => `<i class="mk" style="--n:${n}">${MARK.kill}</i>`).join("");
     } else if (kind === "clutch") {
-      tag = "1v" + cl.vs; strap = `Clutch de <b>${esc(star.name)}</b>`;
+      tag = "1v" + cl.vs; strap = `Clutch de <b>${esc(star.name)}</b>${reason ? sep + esc(reason) : ""}`;
     } else if (kind === "flawless") {
-      strap = "Rodada perfeita";
-      marks = Array.from({ length: 5 }, (_, n) => `<i style="--n:${n}">${MARK.shield}</i>`).join("");
-    } else if (star && star.killsThisRound >= 2) {
-      strap = `Destaque <b>${esc(star.name)}</b>${sep}${star.killsThisRound} abates`;
+      strap = `Rodada perfeita${reason ? sep + esc(reason) : ""}`;
+      marks = Array.from({ length: 5 }, (_, n) => `<i class="mk" style="--n:${n}">${MARK.shield}</i>`).join("");
+    } else {
+      strap = esc(reason) + (kills >= 2 ? `${reason ? sep : ""}Destaque <b>${esc(star.name)}</b> ${kills} abates` : "");
     }
-    setText($("rw-kicker"), kicker);
+    setText($("rw-kicker"), phase === "game_end" ? "Mapa" : side);
     setText($("rw-title"), name);
-    $("rw-sub").innerHTML = sub;
     setText($("rw-tag"), tag);
     $("rw-strap").innerHTML = strap;
     $("rw-marks").innerHTML = marks;
     box.classList.toggle("nostrap", !tag && !strap && !marks);
-    const showAgent = (kind === "ace" || kind === "clutch") && star;
+    // agente do destaque: render da internet se houver, senão o retrato da pasta Resources
+    const showAgent = phase !== "game_end" && star && (kind === "ace" || kind === "clutch" || kills > 0);
+    const api = showAgent ? ASSETS.agents[String(star.agentInternal || "").toLowerCase()] || ASSETS.agents[agentName(star.agentInternal).toLowerCase()] : null;
     const a = showAgent ? agentAsset(star.agentInternal) : null;
-    box.classList.toggle("has-agent", !!(a && a.portrait));
-    setImg($("rw-agent"), a && a.portrait);
+    const agentSrc = (api && api.render) || (a && a.portrait) || "";
+    box.classList.toggle("has-agent", !!agentSrc);
+    setImg($("rw-agent"), agentSrc);
     box.hidden = false;
     void box.offsetWidth;
     box.classList.add("on");
