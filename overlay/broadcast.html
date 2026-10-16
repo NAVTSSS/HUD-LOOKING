@@ -28,6 +28,7 @@
   color-scheme: dark;
 }
 html, body { background: var(--chrome-bg); color: var(--fg); font-family: var(--ui); }
+body.live { margin: 0; width: 100vw; height: 100vh; overflow: hidden; }
 html:has(body.live), body.live { background: transparent; }
 * { box-sizing: border-box; }
 img { display: block; }
@@ -199,9 +200,10 @@ body.live .viewport { position: fixed; }
 .ph svg { width: 28px; height: 28px; color: #fff; }
 .face .ph { align-content: start; padding-top: 14px; }
 .face .ph span { display: none; }
-.face .ult { position: absolute; bottom: 4px; width: 28px; height: 28px; z-index: 3; box-shadow: 0 0 0 2px var(--base); }
-.cards.l .face .ult { right: 4px; }
-.cards.r .face .ult { left: 4px; }
+.kit-l { display: flex; align-items: center; gap: 7px; flex: none; }
+.cards.r .kit-l { flex-direction: row-reverse; }
+.pc .ult { width: 24px; height: 24px; }
+.pc .ult .uic { inset: 5px; width: 14px; height: 14px; }
 .pc.dead .face { background: #1a1f2a; }
 .pc.dead .face img { filter: grayscale(1) brightness(0.45); }
 .pc.dead .body { opacity: 0.4; }
@@ -223,7 +225,7 @@ body.live .viewport { position: fixed; }
 .cards.r .hpbar i { transform-origin: right; }
 .hpbar.low i { background: var(--loss); }
 .kit { justify-content: space-between; align-items: center; }
-.kit > [data-k="wp"] { flex: none; display: flex; align-items: center; max-width: 104px; height: 22px; overflow: hidden; }
+.kit > [data-k="wp"] { flex: none; display: flex; align-items: center; max-width: 92px; height: 22px; overflow: hidden; }
 .abils { display: flex; gap: 6px; align-items: center; flex: none; }
 .ab { display: grid; grid-template-rows: 18px 4px; justify-items: center; row-gap: 2px; width: 22px; height: 24px; overflow: hidden; }
 .ab .ic { width: 18px; height: 18px; object-fit: contain; filter: brightness(0) invert(1); }
@@ -239,7 +241,7 @@ body.live .viewport { position: fixed; }
 .ult.ready { background: var(--hl); }
 .ult.ready .fill { stroke: var(--hl); }
 .ult.ready .uic { filter: brightness(0); }
-.weap { height: 20px; max-width: 92px; object-fit: contain; filter: brightness(0) invert(1); }
+.weap { height: 20px; max-width: 88px; object-fit: contain; filter: brightness(0) invert(1); }
 .cards.r .weap { transform: scaleX(-1); }
 .wtxt { font: 600 13px var(--ui); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
 
@@ -552,7 +554,14 @@ body.live .viewport { position: fixed; }
 
   const $ = (id) => document.getElementById(id);
   const stage = $("stage");
-  const fit = () => stage.style.setProperty("--s", String((viewport.clientWidth || innerWidth) / 1920));
+  // encaixa o palco de 1920x1080 no espaço disponível (largura e altura) e centraliza
+  const fit = () => {
+    const w = viewport.clientWidth || innerWidth, h = viewport.clientHeight || innerHeight;
+    const sc = Math.min(w / 1920, h / 1080);
+    stage.style.setProperty("--s", String(sc));
+    stage.style.left = Math.round((w - 1920 * sc) / 2) + "px";
+    stage.style.top = Math.round((h - 1080 * sc) / 2) + "px";
+  };
   new ResizeObserver(fit).observe(viewport);
   fit();
   stage.addEventListener("error", (e) => { if (e.target.tagName === "IMG" && (e.target.classList.contains("logo") || e.target.classList.contains("wm") || e.target.id === "win-mvp")) e.target.hidden = true; }, true);
@@ -593,11 +602,11 @@ body.live .viewport { position: fixed; }
       const c = document.createElement("div");
       c.className = "pc";
       c.innerHTML = `
-        <div class="face"><span data-k="face"></span><span class="ult" data-k="ult"></span></div>
+        <div class="face"><span data-k="face"></span></div>
         <div class="body">
           <div class="row"><span class="pname" data-k="name"></span><span class="kda">${EYE}<span data-k="kda"></span></span></div>
           <div class="row"><span class="sh" data-k="sh"></span><span class="hpn" data-k="hpn"></span><span class="hpbar" data-k="hpb"><i></i></span></div>
-          <div class="row kit"><span class="abils" data-k="ab"></span><span data-k="wp"></span></div>
+          <div class="row kit"><span class="kit-l"><span class="ult" data-k="ult"></span><span class="abils" data-k="ab"></span></span><span data-k="wp"></span></div>
         </div>`;
       const k = { el: c };
       c.querySelectorAll("[data-k]").forEach((n) => (k[n.dataset.k] = n));
