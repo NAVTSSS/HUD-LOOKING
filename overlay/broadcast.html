@@ -22,6 +22,7 @@
   --fg: #f3f5f9;
   --muted: #8892a6;
   --loss: #ff6b6b;
+  --evento: #7a1a2c;
   --chrome-bg: #06080e;
   --num: "Tungsten", "Teko", "Bahnschrift Condensed", "Arial Narrow", sans-serif;
   --ui: "Barlow Semi Condensed", "Bahnschrift", "Segoe UI", sans-serif;
@@ -62,55 +63,74 @@ img { display: block; }
 body.live .viewport { position: fixed; }
 .stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform: scale(var(--s, 1)); transform-origin: 0 0; font-family: var(--ui); color: var(--fg); font-variant-numeric: tabular-nums; }
 
-/* Selo de informações (canto superior esquerdo) e patrocinador (canto direito) */
-.info { position: absolute; top: 12px; left: 16px; height: 30px; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: rgba(11, 16, 25, 0.84); font: 600 15px var(--ui); white-space: nowrap; }
-.info .dim { color: var(--muted); }
-.info i { width: 1px; height: 14px; background: rgba(243, 245, 249, 0.2); }
-.corner { position: absolute; top: 0; right: 0; width: 212px; height: 62px; display: grid; place-items: center; background: rgba(11, 16, 25, 0.9); clip-path: polygon(16px 0, 100% 0, 100% 100%, 0 100%); }
-.corner::after { content: ""; position: absolute; left: 16px; right: 0; bottom: 0; height: 3px; background: linear-gradient(90deg, var(--team-l), var(--team-r)); }
-.corner img { max-width: 150px; max-height: 40px; object-fit: contain; transition: opacity 0.4s; }
+/* ---------- Placar: composição da referência (medidas em px do palco 1920x1080) ----------
+   Faixa superior de largura total (33), bloco do evento no canto (322x88), placas de 318 com
+   ponta externa a 45°, parte do nome até 62 e parte do número até 48 (degrau), fio claro na diagonal
+   interna, bloco central em trapézio invertido (262 no topo, 108 na base, 78 de altura). */
+.topbar { position: absolute; top: 0; left: 0; right: 0; height: 33px; display: flex; align-items: center; justify-content: space-between; padding: 0 346px 0 24px; background: rgba(8, 13, 20, 0.92); font: 600 15px var(--ui); white-space: nowrap; }
+.topbar .grp { display: flex; gap: 34px; max-width: 520px; overflow: hidden; }
+.topbar .k { color: var(--muted); font-weight: 500; margin-right: 8px; }
+.topbar .stage-name { color: var(--fg); max-width: 520px; overflow: hidden; text-overflow: ellipsis; }
+.corner { position: absolute; top: 0; right: 0; width: 322px; height: 88px; display: grid; place-items: center; z-index: 2;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--evento) 100%, #fff 8%) 0%, var(--evento) 45%, color-mix(in srgb, var(--evento) 45%, #000) 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 22px 100%); }
+.corner img { max-width: 230px; max-height: 58px; object-fit: contain; transition: opacity 0.4s; }
 
-/* Placar: placa escura, cor concentrada no bloco do número e num fio inferior */
-.bug { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: 296px 74px 148px 74px 296px; height: 56px; z-index: 3; }
-.tp { position: relative; display: flex; align-items: center; gap: 12px; padding: 0 18px; }
-.tp.l { justify-content: flex-end; background: linear-gradient(90deg, rgba(11, 16, 25, 0.86) 0%, rgba(11, 16, 25, 0.92) 45%, color-mix(in srgb, var(--tc) 32%, var(--base)) 100%); clip-path: polygon(0 0, 100% 0, 100% 100%, 22px 100%); }
-.tp.r { justify-content: flex-start; background: linear-gradient(270deg, rgba(11, 16, 25, 0.86) 0%, rgba(11, 16, 25, 0.92) 45%, color-mix(in srgb, var(--tc) 32%, var(--base)) 100%); clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 100%, 0 100%); }
-.tp::after { content: ""; position: absolute; bottom: 0; height: 3px; background: var(--tc); }
-.tp.l::after { left: 22px; right: 0; }
-.tp.r::after { left: 0; right: 22px; }
-.tp .logo { width: 32px; height: 32px; object-fit: contain; }
-.tp .tri { font: 600 36px/1 var(--num); letter-spacing: 0.05em; padding-top: 4px; }
-.sc { position: relative; overflow: hidden; display: grid; place-items: center; background: var(--tc); color: #fff; font: 600 50px/1 var(--num); padding-top: 5px; }
-.sc .shine { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.45) 50%, transparent 65%); transform: translateX(-120%); }
+.sb { position: absolute; top: 0; left: 0; width: 1920px; height: 90px; z-index: 3; pointer-events: none; }
+.sbp { position: absolute; top: 0; width: 318px; height: 62px; }
+.sbp.l { left: 557px; }
+.sbp.r { left: 1045px; }
+.sbp .fill { position: absolute; inset: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 100%, #fff 10%) 0%, var(--tc) 55%, color-mix(in srgb, var(--tc) 80%, #000) 100%); }
+.sbp .fill::after { content: ""; position: absolute; inset: 0; opacity: 0.18;
+  background: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.5) 0 2px, transparent 2px 9px); }
+.sbp.l .fill { clip-path: polygon(0 0, 272px 0, 318px 48px, 232px 48px, 218px 62px, 63px 62px); }
+.sbp.r .fill { clip-path: polygon(46px 0, 318px 0, 255px 62px, 100px 62px, 86px 48px, 0 48px); }
+.sbp .edge { position: absolute; inset: 0; background: color-mix(in srgb, var(--tc) 45%, #fff); }
+.sbp.l .edge { clip-path: polygon(262px 0, 272px 0, 318px 48px, 307px 48px); }
+.sbp.r .edge { clip-path: polygon(46px 0, 56px 0, 11px 48px, 0 48px); }
+.sbp .who { position: absolute; top: 0; height: 48px; display: flex; align-items: center; gap: 12px; }
+.sbp.l .who { right: 104px; flex-direction: row; }
+.sbp.r .who { left: 104px; flex-direction: row-reverse; }
+.sbp .logo { width: 34px; height: 34px; object-fit: contain; }
+.sbp .tri { font: 600 36px/1 var(--num); letter-spacing: 0.04em; color: #fff; padding-top: 4px; white-space: nowrap; }
+.sbp .sc { position: absolute; top: 0; width: 70px; height: 48px; display: grid; place-items: center; overflow: hidden;
+  font: 600 50px/1 var(--num); color: #fff; padding-top: 5px; }
+.sbp.l .sc { left: 220px; }
+.sbp.r .sc { left: 28px; }
+.sc .shine { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.5) 50%, transparent 65%); transform: translateX(-120%); }
 .sc.scored .shine { animation: shine 0.8s ease-out 1; }
 @keyframes shine { to { transform: translateX(120%); } }
-.clock { position: relative; display: grid; place-items: center; align-content: center; background: rgba(7, 10, 16, 0.95); }
-.clock .round { font: 600 12px var(--ui); color: var(--muted); letter-spacing: 0.04em; }
-.clock .time { font: 600 40px/0.85 var(--num); letter-spacing: 0.04em; padding-top: 2px; }
-.clock .bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--fg); transform-origin: center; transition: transform 0.25s linear; }
-.clock.spike { background: var(--hl); }
-.clock.spike .time, .clock.spike .round { color: var(--base); }
-.clock.spike .bar { background: var(--base); }
-.spike-icon { position: absolute; left: 8px; top: 50%; width: 18px; height: 18px; margin-top: -9px; opacity: 0; }
-.spike-icon svg, .spike-icon img { width: 18px; height: 18px; }
-.spike-icon img { filter: brightness(0); }
-.clock.spike .spike-icon { opacity: 1; animation: pulse 0.9s ease-in-out infinite; }
-@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.75); } }
-.under { position: absolute; top: 56px; display: flex; align-items: center; gap: 8px; height: 18px; padding: 0 10px; background: rgba(11, 16, 25, 0.86); font: 600 12px var(--ui); color: var(--muted); }
-.under.l { right: calc(50% + 74px); flex-direction: row-reverse; clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%); padding-left: 16px; }
-.under.r { left: calc(50% + 74px); clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%); padding-right: 16px; }
-.under .side { color: var(--tc); }
-.under .pips { display: flex; gap: 3px; }
-.under .pips i { width: 12px; height: 4px; transform: skewX(-20deg); background: rgba(243, 245, 249, 0.18); }
-.under .pips i.won { background: var(--tc); }
+.pips-row { position: absolute; top: 52px; height: 10px; display: flex; align-items: center; gap: 10px; }
+.pips-row.l { left: 811px; }
+.pips-row.r { right: 811px; flex-direction: row-reverse; }
+.pips-row .side { font: 600 11px var(--ui); color: var(--fg); opacity: 0.75; letter-spacing: 0.04em; }
+.pips-row .pips { display: flex; gap: 6px; }
+.pips-row .pips i { width: 22px; height: 8px; transform: skewX(-40deg); border: 1.5px solid rgba(243, 245, 249, 0.85); }
+.pips-row.r .pips i { transform: skewX(40deg); }
+.pips-row .pips i.won { background: #fff; border-color: #fff; }
+
+.clock { position: absolute; top: 0; left: 829px; width: 262px; height: 78px; display: grid; justify-items: center; align-content: start;
+  background: rgba(14, 19, 27, 0.96); clip-path: polygon(0 0, 262px 0, 185px 78px, 77px 78px); }
+.clock .round { margin-top: 9px; font: 600 13px var(--ui); color: var(--muted); letter-spacing: 0.06em; }
+.clock .time { margin-top: 1px; font: 600 42px/1 var(--num); letter-spacing: 0.04em; color: var(--fg); }
+.clock .bar { position: absolute; left: 101px; width: 60px; top: 71px; height: 3px; background: var(--fg); transform-origin: center; transition: transform 0.25s linear; }
+.spike-icon { display: none; width: 44px; height: 40px; margin-top: 3px; color: var(--hl); }
+.spike-icon svg { width: 44px; height: 40px; }
+.spike-icon.masked { background: var(--hl); -webkit-mask: var(--mask) center / contain no-repeat; mask: var(--mask) center / contain no-repeat; }
+.clock.spike .round { color: var(--hl); }
+.clock.spike .time { display: none; }
+.clock.spike .spike-icon { display: block; animation: pulse 0.9s ease-in-out infinite; }
+.clock.spike .bar { background: var(--hl); }
+@keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.82); opacity: 0.7; } }
 
 /* Aviso de pausa */
-.pause { position: absolute; top: 88px; left: 50%; transform: translateX(-50%); padding: 8px 24px 6px; background: rgba(11, 16, 25, 0.92); border-bottom: 3px solid var(--tc, var(--hl)); font: 600 34px/1 var(--num); letter-spacing: 0.03em; text-align: center; }
+.pause { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); padding: 8px 24px 6px; background: rgba(11, 16, 25, 0.92); border-bottom: 3px solid var(--tc, var(--hl)); font: 600 34px/1 var(--num); letter-spacing: 0.03em; text-align: center; }
 .pause small { display: block; font: 600 14px var(--ui); color: var(--muted); margin-top: 3px; }
 
 /* ---------- Vitória de rodada: desce do placar ----------
    Variações: normal, clutch, ace e perfeita (sem baixas). */
-.rw { --w: 660px; --h: 96px; position: absolute; top: 80px; left: 50%; width: var(--w); height: var(--h); margin-left: calc(var(--w) / -2); pointer-events: none; }
+.rw { --w: 660px; --h: 96px; position: absolute; top: 92px; left: 50%; width: var(--w); height: var(--h); margin-left: calc(var(--w) / -2); pointer-events: none; }
 .rw.clutch { --w: 820px; --h: 124px; }
 .rw.ace { --w: 860px; --h: 126px; }
 .rw.flawless { --w: 700px; --h: 108px; }
@@ -332,6 +352,7 @@ body.live .viewport { position: fixed; }
     ataque: "#e8394d",
     defesa: "#19c39c",
     destaque: "#f5c043",  // spike plantada e ultimate pronta
+    evento: "#7a1a2c",    // bloco do evento no canto superior direito
     fundo: "#0b1019",     // fundo dos painéis
   };
   // Para usar no OBS com "Arquivo local" marcado (sem parâmetros na URL), preencha aqui:
@@ -362,6 +383,7 @@ body.live .viewport { position: fixed; }
     root.style.setProperty("--team-r", CORES.direita);
     root.style.setProperty("--hl", CORES.destaque);
     root.style.setProperty("--base", CORES.fundo);
+    root.style.setProperty("--evento", CORES.evento);
   }
   applyColors();
   const colorOf = (i, t) => (CORES.porLado ? (t.isAttacking ? CORES.ataque : CORES.defesa) : i === 0 ? CORES.esquerda : CORES.direita);
@@ -392,7 +414,7 @@ body.live .viewport { position: fixed; }
     other: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" transform="rotate(45 12 12)"/></svg>',
   };
   const CREDIT = '<svg viewBox="0 0 14 14" fill="currentColor"><path d="M7 0 14 7 7 14 0 7z"/><path d="M7 4 10 7 7 10 4 7z" fill="#0b1019"/></svg>';
-  const SPIKE = '<svg viewBox="0 0 22 22" fill="#0b1019"><path d="M11 1 19 6v10l-8 5-8-5V6z"/></svg>';
+  const SPIKE = '<svg viewBox="0 0 44 40" fill="currentColor"><path d="M2 2h40L22 38z" opacity=".95"/><path d="M22 10l6 3.5v7L22 24l-6-3.5v-7z" fill="#0e131b"/></svg>';
   const EYE = '<svg class="eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>';
   const REASON_ICON = {
     kills: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="12" cy="12" r="7"/><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/></svg>',
@@ -510,17 +532,24 @@ body.live .viewport { position: fixed; }
   const viewport = document.getElementById("viewport");
   viewport.innerHTML = `
     <div class="stage" id="stage">
-      <div class="info"><span id="ev"></span><i></i><span id="map"></span><span class="dim" id="series"></span></div>
-      <div class="corner" id="corner"><img id="corner-img" alt="" hidden></div>
-      <div class="bug">
-        <div class="tp l" id="tp-l"><img class="logo" id="logo-l" alt="" hidden><span class="tri" id="tri-l"></span></div>
-        <div class="sc l" id="sc-l"><i class="shine"></i><span id="score-l">0</span></div>
-        <div class="clock" id="clock"><span class="spike-icon" id="spike-icon">${SPIKE}</span><span class="round" id="round">Rodada 1</span><span class="time" id="time">0:30</span><i class="bar" id="bar"></i></div>
-        <div class="sc r" id="sc-r"><i class="shine"></i><span id="score-r">0</span></div>
-        <div class="tp r" id="tp-r"><span class="tri" id="tri-r"></span><img class="logo" id="logo-r" alt="" hidden></div>
+      <div class="topbar">
+        <div class="grp"><span><span class="k">Mapa atual</span><span id="map"></span></span><span id="series-w"><span class="k">Série</span><span id="series"></span></span></div>
+        <span class="stage-name" id="ev"></span>
       </div>
-      <div class="under l" id="un-l"><span class="side" id="side-l"></span><span class="pips" id="pips-l"></span></div>
-      <div class="under r" id="un-r"><span class="side" id="side-r"></span><span class="pips" id="pips-r"></span></div>
+      <div class="corner" id="corner"><img id="corner-img" alt="" hidden></div>
+      <div class="sb">
+        <div class="sbp l" id="tp-l"><i class="fill"></i><i class="edge"></i>
+          <div class="who"><img class="logo" id="logo-l" alt="" hidden><span class="tri" id="tri-l"></span></div>
+          <div class="sc" id="sc-l"><i class="shine"></i><span id="score-l">0</span></div>
+        </div>
+        <div class="clock" id="clock"><span class="round" id="round">Rodada 1</span><span class="time" id="time">0:30</span><span class="spike-icon" id="spike-icon">${SPIKE}</span><i class="bar" id="bar"></i></div>
+        <div class="sbp r" id="tp-r"><i class="fill"></i><i class="edge"></i>
+          <div class="who"><img class="logo" id="logo-r" alt="" hidden><span class="tri" id="tri-r"></span></div>
+          <div class="sc" id="sc-r"><i class="shine"></i><span id="score-r">0</span></div>
+        </div>
+        <div class="pips-row l" id="un-l"><span class="pips" id="pips-l"></span><span class="side" id="side-l"></span></div>
+        <div class="pips-row r" id="un-r"><span class="pips" id="pips-r"></span><span class="side" id="side-r"></span></div>
+      </div>
       <div class="pause" id="pause" hidden><span id="pause-t"></span><small id="pause-s"></small></div>
       <div class="flash" id="flash"></div>
       <div class="rw" id="rw" hidden>
@@ -661,7 +690,8 @@ body.live .viewport { position: fixed; }
     setText($("ev"), (tools.tournamentInfo && tools.tournamentInfo.name) || "Partida");
     setText($("map"), mapName(d.map));
     const series = tools.seriesInfo;
-    setText($("series"), series && series.needed > 1 ? `MD${series.needed * 2 - 1}  ${series.wonLeft}–${series.wonRight}` : "");
+    const serTxt = series && series.needed > 1 ? `MD${series.needed * 2 - 1} (${series.wonLeft}–${series.wonRight})` : "";
+    setText($("series"), serTxt); $("series-w").hidden = !serTxt;
     const art = $("map-art"), artSrc = LOCAL.base && d.map ? `url("${LOCAL.base}Maps/${mapName(d.map)}.png")` : "none";
     if (art._k !== artSrc) { art._k = artSrc; art.style.backgroundImage = artSrc; }
 
@@ -880,7 +910,7 @@ body.live .viewport { position: fixed; }
 
   // ---------- Partida real ----------
   loadLocal().then(() => {
-    if (LOCAL.base) $("spike-icon").innerHTML = `<img src="${LOCAL.base}spike.png" alt="">`;
+    if (LOCAL.base) { const si = $("spike-icon"); si.innerHTML = ""; si.classList.add("masked"); si.style.setProperty("--mask", `url("${LOCAL.base}spike.png")`); }
     startSponsors();
   });
   loadAssets();
