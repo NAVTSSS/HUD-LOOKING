@@ -197,34 +197,37 @@ body.live .viewport { position: fixed; }
 .cards.r .face img { transform: scaleX(-1); }
 .ph { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 2px; font: 600 18px var(--num); color: #fff; }
 .ph svg { width: 28px; height: 28px; color: #fff; }
-.face .ult { position: absolute; bottom: -4px; width: 30px; height: 30px; z-index: 3; }
-.cards.l .face .ult { right: -12px; }
-.cards.r .face .ult { left: -12px; }
+.face .ph { align-content: start; padding-top: 14px; }
+.face .ph span { display: none; }
+.face .ult { position: absolute; bottom: 4px; width: 28px; height: 28px; z-index: 3; box-shadow: 0 0 0 2px var(--base); }
+.cards.l .face .ult { right: 4px; }
+.cards.r .face .ult { left: 4px; }
 .pc.dead .face { background: #1a1f2a; }
 .pc.dead .face img { filter: grayscale(1) brightness(0.45); }
 .pc.dead .body { opacity: 0.4; }
-.body { display: grid; align-content: center; gap: 5px; padding: 0 12px 0 22px; min-width: 0; }
-.cards.r .body { padding: 0 22px 0 12px; }
-.row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.body { display: grid; grid-template-rows: 24px 20px 24px; align-content: center; row-gap: 3px; padding: 0 12px 0 14px; min-width: 0; overflow: hidden; }
+.cards.r .body { padding: 0 14px 0 12px; }
+.row { display: flex; align-items: center; gap: 8px; min-width: 0; height: 100%; overflow: hidden; }
 .cards.r .row { flex-direction: row-reverse; }
-.pname { font: 600 26px/0.9 var(--num); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; padding-top: 3px; }
+.pname { font: 600 25px/24px var(--num); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; padding-top: 3px; }
 .cards.r .pname { text-align: right; }
 .kda { font: 600 15px var(--ui); color: var(--fg); white-space: nowrap; display: flex; align-items: center; gap: 5px; }
 .eye { width: 15px; height: 15px; color: var(--tc); display: none; }
 .pc.observed .eye { display: block; }
 .sh { display: inline-grid; place-items: center; min-width: 24px; height: 18px; padding: 0 3px; font: 700 12px var(--ui); color: var(--base); background: var(--fg); clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%); }
 .sh.none { visibility: hidden; }
-.hpn { font: 600 28px/0.9 var(--num); min-width: 36px; padding-top: 3px; }
+.hpn { font: 600 26px/20px var(--num); min-width: 34px; padding-top: 3px; }
 .cards.r .hpn { text-align: right; }
 .hpbar { flex: 1; height: 5px; background: rgba(243, 245, 249, 0.12); position: relative; overflow: hidden; }
 .hpbar i { position: absolute; inset: 0; background: var(--tc); transform-origin: left; transition: transform 0.25s; }
 .cards.r .hpbar i { transform-origin: right; }
 .hpbar.low i { background: var(--loss); }
-.kit { justify-content: space-between; }
-.abils { display: flex; gap: 8px; align-items: flex-end; }
-.ab { display: grid; justify-items: center; gap: 2px; width: 22px; }
-.ab .ic { width: 20px; height: 20px; object-fit: contain; filter: brightness(0) invert(1); }
-.ab .lt { width: 20px; height: 20px; display: grid; place-items: center; font: 700 12px var(--ui); color: var(--muted); background: rgba(243, 245, 249, 0.08); }
+.kit { justify-content: space-between; align-items: center; }
+.kit > [data-k="wp"] { flex: none; display: flex; align-items: center; max-width: 104px; height: 22px; overflow: hidden; }
+.abils { display: flex; gap: 6px; align-items: center; flex: none; }
+.ab { display: grid; grid-template-rows: 18px 4px; justify-items: center; row-gap: 2px; width: 22px; height: 24px; overflow: hidden; }
+.ab .ic { width: 18px; height: 18px; object-fit: contain; filter: brightness(0) invert(1); }
+.ab .lt { width: 18px; height: 18px; display: grid; place-items: center; font: 700 12px var(--ui); color: var(--muted); background: rgba(243, 245, 249, 0.08); }
 .ab.empty .ic, .ab.empty .lt { opacity: 0.25; }
 .dots { display: flex; gap: 2px; height: 4px; }
 .dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--fg); }
@@ -236,9 +239,9 @@ body.live .viewport { position: fixed; }
 .ult.ready { background: var(--hl); }
 .ult.ready .fill { stroke: var(--hl); }
 .ult.ready .uic { filter: brightness(0); }
-.weap { height: 22px; max-width: 92px; object-fit: contain; filter: brightness(0) invert(1); }
+.weap { height: 20px; max-width: 92px; object-fit: contain; filter: brightness(0) invert(1); }
 .cards.r .weap { transform: scaleX(-1); }
-.wtxt { font: 600 14px var(--ui); color: var(--muted); white-space: nowrap; }
+.wtxt { font: 600 13px var(--ui); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
 
 /* ---------- Compra: painel de economia ---------- */
 .econ { position: absolute; left: 24px; right: 24px; bottom: 16px; display: grid; gap: 3px; opacity: 0; transform: translateY(30px); transition: opacity 0.35s, transform 0.35s; pointer-events: none; }
@@ -329,12 +332,19 @@ body.live .viewport { position: fixed; }
     destaque: "#f5c043",  // spike plantada e ultimate pronta
     fundo: "#0b1019",     // fundo dos painéis
   };
+  // Para usar no OBS com "Arquivo local" marcado (sem parâmetros na URL), preencha aqui:
+  const CONEXAO = {
+    servidor: "",         // ex.: "http://localhost:5200"
+    codigo: "",           // ex.: "FINAL1" (o mesmo código digitado no capturador)
+  };
   // =====================================================================
 
   const params = new URLSearchParams(location.search);
-  const groupCode = (params.get("groupCode") || "").toUpperCase();
-  const MODE = groupCode ? "live" : params.has("demo") ? "demo" : "preview";
-  const SERVER = params.get("server") || "http://localhost:5200";
+  const groupCode = (params.get("groupCode") || CONEXAO.codigo || "").toUpperCase();
+  // dentro do OBS nunca mostra a página de prévia: sempre o palco 1920x1080 com fundo transparente
+  const IN_OBS = typeof window.obsstudio !== "undefined";
+  const MODE = groupCode ? "live" : params.has("demo") || IN_OBS ? "demo" : "preview";
+  const SERVER = params.get("server") || CONEXAO.servidor || "http://localhost:5200";
   const DEBUG = params.has("debug");
   const USE_IMAGES = params.get("images") !== "0";
   const hex = (k) => (/^[0-9a-f]{6}$/i.test(params.get(k) || "") ? "#" + params.get(k) : null);
@@ -437,7 +447,7 @@ body.live .viewport { position: fixed; }
     const given = params.get("assets");
     const candidates = given ? [given.endsWith("/") ? given : given + "/"] : ["Resources/", "./"];
     for (const base of candidates) if (await probe(base + "Agentes/Jett/Jett.png")) { LOCAL.base = base; break; }
-    if (!LOCAL.base) return;
+    if (!LOCAL.base) { if (DEBUG) console.warn("Pasta Resources não encontrada ao lado do arquivo"); return; }
     try { const f = new FontFace("Tungsten", `url("${LOCAL.base}Tungsten-Bold.ttf")`); document.fonts.add(await f.load()); } catch (e) { /* sem a fonte: usa Teko */ }
     for (let i = 1; i <= 12; i++) { const src = `${LOCAL.base}Sponsors/Sponsor${i}.png`; if (await probe(src, 1500)) LOCAL.sponsors.push(src); else break; }
   }
