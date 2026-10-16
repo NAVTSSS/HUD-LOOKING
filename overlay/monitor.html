@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitor ao vivo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+/* Monitor ao vivo do Spectra: mostra a HUD e todos os dados que chegam pelo match_data.
+   Abre no navegador ou como "Dock de navegador personalizado" no OBS. */
+:root {
+  --bg: #0b0f14; --panel: #121820; --panel-2: #18202a; --line: #25303c; --ink: #e8edf1; --mute: #8995a1;
+  --l: #38d6ae; --r: #ef4058; --ok: #3ddc84; --warn: #ffc857; --bad: #ff5d6c;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", monospace;
+  --sans: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--ink); font: 13px/1.4 var(--sans); }
+body { padding: 12px; }
+button, input, select { font: inherit; color: inherit; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+header h1 { font-size: 16px; font-weight: 700; margin-right: 6px; }
+.field { display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+.field input { background: transparent; border: 0; outline: none; width: 170px; }
+.field input.short { width: 110px; }
+.field label { color: var(--mute); font-size: 12px; }
+.btn { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.btn:hover { border-color: #3a4a5a; }
+.btn.primary { background: #1f6f5b; border-color: #2a8a71; }
+.btn[aria-pressed="true"] { background: #243242; border-color: #46617b; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: 12px; }
+.pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--mute); }
+.pill.ok i { background: var(--ok); } .pill.warn i { background: var(--warn); } .pill.bad i { background: var(--bad); }
+.stats { color: var(--mute); font: 12px var(--mono); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (max-width: 1250px) { .grid { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.card > h2 { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--mute); padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.card > h2 .sp { flex: 1; }
+.card .body { padding: 10px 12px; }
+.stack { display: grid; gap: 12px; }
+
+.preview { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; }
+.preview.checker { background: repeating-conic-gradient(#1a2028 0 25%, #11161c 0 50%) 0 0 / 24px 24px; }
+.preview.grey { background: #59646d; }
+.preview.green { background: #00b140; }
+.preview iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; }
+.preview .empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--mute); text-align: center; padding: 20px; }
+
+.kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 14px; }
+.kv div { min-width: 0; }
+.kv dt { color: var(--mute); font-size: 11px; }
+.kv dd { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kv dd.flash { animation: fl 900ms ease-out; }
+@keyframes fl { from { background: rgba(255, 200, 87, .35); } to { background: transparent; } }
+
+.team-head { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.team-head .bar { width: 4px; align-self: stretch; border-radius: 2px; }
+.team-head img { width: 28px; height: 28px; object-fit: contain; }
+.team-head b { font-size: 15px; }
+.team-head .meta { color: var(--mute); font-size: 12px; }
+.team-head .score { margin-left: auto; font: 700 22px var(--mono); }
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { padding: 4px 6px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--line); }
+th { color: var(--mute); font-weight: 600; font-size: 11px; position: sticky; top: 0; background: var(--panel); }
+td.n { text-align: right; font-family: var(--mono); }
+tr.dead td { color: #6b7782; }
+tr.obs td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+.ag { display: inline-flex; align-items: center; gap: 6px; }
+.ag img { width: 22px; height: 22px; object-fit: cover; border-radius: 3px; background: #0a0d11; }
+.hp { display: inline-block; width: 46px; height: 5px; background: #26313c; vertical-align: middle; margin-right: 6px; border-radius: 2px; overflow: hidden; }
+.hp i { display: block; height: 100%; background: var(--ok); }
+.hp.low i { background: var(--bad); }
+.tag { display: inline-block; padding: 0 5px; border-radius: 3px; font-size: 10px; font-weight: 700; }
+.tag.y { background: rgba(255, 200, 87, .18); color: var(--warn); }
+.tag.g { background: rgba(61, 220, 132, .15); color: var(--ok); }
+.tag.r { background: rgba(255, 93, 108, .15); color: var(--bad); }
+td.cell-changed { animation: fl 900ms ease-out; }
+
+.rounds { display: flex; flex-wrap: wrap; gap: 4px; }
+.rounds .rd { width: 34px; padding: 3px 0; text-align: center; border-radius: 4px; background: var(--panel-2); font: 11px var(--mono); }
+.rounds .rd small { display: block; font-size: 9px; color: var(--mute); }
+.rounds .rd.l { box-shadow: inset 0 -3px 0 var(--l); }
+.rounds .rd.r { box-shadow: inset 0 -3px 0 var(--r); }
+.rounds .rd.cur { outline: 1px solid var(--warn); }
+
+.log { max-height: 320px; overflow: auto; font: 12px/1.5 var(--mono); }
+.log div { padding: 1px 12px; border-bottom: 1px solid rgba(255, 255, 255, .03); }
+.log time { color: var(--mute); margin-right: 8px; }
+.log .k { color: var(--warn); }
+pre.raw { max-height: 520px; overflow: auto; padding: 10px 12px; font: 11.5px/1.45 var(--mono); color: #c9d4de; white-space: pre; }
+.hint { color: var(--mute); font-size: 12px; }
+.hint code { font-family: var(--mono); color: var(--ink); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Monitor ao vivo</h1>
+  <div class="field"><label for="srv">Servidor</label><input id="srv" placeholder="http://localhost:5200"></div>
+  <div class="field"><label for="code">Código</label><input id="code" class="short" placeholder="groupCode"></div>
+  <div class="field"><label for="res">Resources</label><input id="res" placeholder="Resources/"></div>
+  <button class="btn primary" id="go">Conectar</button>
+  <span class="pill" id="st"><i></i><span>Desconectado</span></span>
+  <span class="stats" id="rate"></span>
+</header>
+
+<div class="grid">
+  <div class="stack">
+    <section class="card">
+      <h2>HUD ao vivo <span class="sp"></span>
+        <button class="btn" data-bg="checker" aria-pressed="true">Xadrez</button>
+        <button class="btn" data-bg="grey" aria-pressed="false">Cinza</button>
+        <button class="btn" data-bg="green" aria-pressed="false">Verde</button>
+        <button class="btn" id="reload">Recarregar</button>
+      </h2>
+      <div class="preview checker" id="pv"><div class="empty" id="pv-empty">Digite o servidor e o código e clique em Conectar.<br>A HUD aparece aqui com os mesmos dados do OBS.</div></div>
+    </section>
+    <section class="card"><h2>Partida</h2><div class="body"><dl class="kv" id="match"></dl></div></section>
+    <section class="card"><h2>Série, torneio e ferramentas</h2><div class="body"><dl class="kv" id="tools"></dl></div></section>
+    <section class="card"><h2>Histórico de rodadas</h2><div class="body"><div class="rounds" id="rounds"></div></div></section>
+  </div>
+  <div class="stack">
+    <section class="card" id="team-0"></section>
+    <section class="card" id="team-1"></section>
+    <section class="card"><h2>Eventos <span class="sp"></span><button class="btn" id="clear">Limpar</button></h2><div class="log" id="log"></div></section>
+    <section class="card"><h2>Dados brutos (match_data) <span class="sp"></span><button class="btn" id="pause" aria-pressed="false">Pausar</button><button class="btn" id="copy">Copiar</button></h2><pre class="raw" id="raw">—</pre></section>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const store = { get: (k) => { try { return localStorage.getItem("mon." + k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem("mon." + k, v); } catch (e) { /* sem armazenamento */ } } };
+  $("srv").value = params.get("server") || store.get("srv") || "http://localhost:5200";
+  $("code").value = params.get("groupCode") || store.get("code") || "";
+  $("res").value = params.get("assets") || store.get("res") || "Resources/";
+
+  // ---------- traduções ----------
+  const AGENTS = { AggroBot: "Gekko", BountyHunter: "Fade", Breach: "Breach", Cable: "Deadlock", Cashew: "Tejo", Clay: "Raze", Deadeye: "Chamber", Grenadier: "KAY/O", Guide: "Skye", Gumshoe: "Cypher", Hunter: "Sova", Iris: "Miks", Killjoy: "Killjoy", Mage: "Harbor", Nox: "Vyse", Pandemic: "Viper", Pine: "Veto", Phoenix: "Phoenix", Rift: "Astra", Sarge: "Brimstone", Sequoia: "Iso", Smonk: "Clove", Sprinter: "Neon", Stealth: "Yoru", Terra: "Waylay", Thorne: "Sage", Vampire: "Reyna", Wraith: "Omen", Wushu: "Jett" };
+  const MAPS = { Triad: "Haven", Bonsai: "Split", Duality: "Bind", Port: "Icebox", Foxtrot: "Breeze", Canyon: "Fracture", Pitt: "Pearl", Jam: "Lotus", Juliett: "Sunset", Infinity: "Abyss", Rook: "Corrode" };
+  const PHASE = { shopping: "Compra", combat: "Combate", end: "Fim da rodada", game_end: "Fim do mapa", LOBBY: "Lobby" };
+  const REASON = { kills: "Eliminação", defused: "Desarme", detonated: "Detonação", timeout: "Tempo esgotado", lost: "Derrota" };
+  const ARMOR = { Heavy: "Pesado (50)", Light: "Leve (25)", Regen: "Regenerativo", None: "—" };
+  const agentName = (raw) => { const k = String(raw || "").replace(/_PC_C$/i, ""); return AGENTS[k] || k || "—"; };
+  const mapName = (m) => MAPS[m] || m || "—";
+  const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const yes = (v) => (v ? "sim" : "não");
+  const num = (n) => (n == null ? "—" : Number(n).toLocaleString("pt-BR"));
+  const base = () => { let b = $("res").value.trim() || "Resources/"; return b.endsWith("/") ? b : b + "/"; };
+  const portrait = (raw) => { const n = agentName(raw); const f = n === "KAY/O" ? "Kayo" : n; return base() + `Agentes/${encodeURIComponent(f)}/${encodeURIComponent(f)}.png`; };
+
+  // ---------- prévia da HUD (a própria vctcn.html com os mesmos parâmetros) ----------
+  const pv = $("pv");
+  let frame = null;
+  function mountHud() {
+    if (frame) frame.remove();
+    const q = new URLSearchParams({ server: $("srv").value.trim(), groupCode: $("code").value.trim() });
+    if ($("res").value.trim() && $("res").value.trim() !== "Resources/") q.set("assets", $("res").value.trim());
+    frame = document.createElement("iframe");
+    frame.src = "vctcn.html?" + q.toString();
+    frame.title = "HUD";
+    pv.appendChild(frame);
+    $("pv-empty").style.display = "none";
+    fitHud();
+  }
+  const fitHud = () => { if (frame) frame.style.transform = `scale(${pv.clientWidth / 1920})`; };
+  new ResizeObserver(fitHud).observe(pv);
+  document.querySelectorAll("[data-bg]").forEach((b) => b.addEventListener("click", () => {
+    pv.className = "preview " + b.dataset.bg;
+    document.querySelectorAll("[data-bg]").forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+  }));
+  $("reload").addEventListener("click", () => { if (frame) mountHud(); });
+
+  // ---------- conexão ----------
+  let socket = null, data = null, prev = null, packets = 0, lastAt = 0, rawPaused = false;
+  const status = (cls, txt) => { $("st").className = "pill " + cls; $("st").lastElementChild.textContent = txt; };
+  function connect() {
+    const srv = $("srv").value.trim(), code = $("code").value.trim().toUpperCase();
+    store.set("srv", srv); store.set("code", code); store.set("res", $("res").value.trim());
+    if (socket) { socket.close(); socket = null; }
+    data = prev = null; packets = 0;
+    if (!code) { status("warn", "Falta o código"); return; }
+    mountHud();
+    if (typeof io === "undefined") { status("bad", "socket.io não carregou (sem internet?)"); return; }
+    status("warn", "Conectando…");
+    socket = io(srv, { reconnection: true });
+    socket.on("connect", () => { status("warn", "Conectado, enviando código…"); socket.emit("logon", JSON.stringify({ groupCode: code })); });
+    socket.on("logon_success", () => { status("ok", "Recebendo · " + code); log("Código aceito pelo servidor"); });
+    socket.on("logon_failed", () => { status("bad", "Código recusado"); log("Servidor recusou o código " + code); });
+    socket.on("connect_error", () => status("bad", "Sem conexão com " + srv));
+    socket.on("disconnect", () => status("bad", "Desconectado"));
+    socket.on("match_data", (raw) => {
+      try { data = typeof raw === "string" ? JSON.parse(raw) : raw; } catch (e) { return; }
+      packets++; lastAt = performance.now();
+    });
+  }
+  $("go").addEventListener("click", connect);
+  ["srv", "code", "res"].forEach((id) => $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") connect(); }));
+
+  // pacotes por segundo e idade do último pacote
+  let lastCount = 0;
+  setInterval(() => {
+    const pps = packets - lastCount; lastCount = packets;
+    const age = lastAt ? ((performance.now() - lastAt) / 1000).toFixed(1) : "—";
+    $("rate").textContent = `${pps} pacotes/s · último há ${age}s · total ${packets}`;
+    if (socket && lastAt && performance.now() - lastAt > 5000) status("warn", "Conectado, sem dados há " + age + "s");
+  }, 1000);
+
+  // ---------- eventos (diferenças entre pacotes) ----------
+  const logEl = $("log");
+  function log(msg) {
+    const t = new Date().toLocaleTimeString("pt-BR");
+    const div = document.createElement("div");
+    div.innerHTML = `<time>${t}</time>${msg}`;
+    logEl.prepend(div);
+    while (logEl.childElementCount > 300) logEl.lastElementChild.remove();
+  }
+  $("clear").addEventListener("click", () => (logEl.innerHTML = ""));
+  function diffEvents(a, b) {
+    if (!a || !b || !b.teams) return;
+    if (a.roundPhase !== b.roundPhase || a.roundNumber !== b.roundNumber) log(`<span class="k">Rodada ${b.roundNumber}</span> · ${PHASE[b.roundPhase] || b.roundPhase}`);
+    const sa = a.spikeState || {}, sb = b.spikeState || {};
+    if (!sa.planted && sb.planted) log('<span class="k">Spike plantada</span>');
+    if (!sa.defused && sb.defused) log('<span class="k">Spike desarmada</span>');
+    if (!sa.detonated && sb.detonated) log('<span class="k">Spike detonada</span>');
+    const ta = a.timeoutState || {}, tb = b.timeoutState || {};
+    if (!ta.techPause && tb.techPause) log('<span class="k">Pausa técnica</span>');
+    if (!ta.leftTeam && tb.leftTeam) log('<span class="k">Pausa tática</span> do time da esquerda');
+    if (!ta.rightTeam && tb.rightTeam) log('<span class="k">Pausa tática</span> do time da direita');
+    b.teams.forEach((tb2, i) => {
+      const ta2 = (a.teams || [])[i]; if (!ta2) return;
+      const tn = esc(tb2.teamTricode || tb2.teamName || (i ? "Direita" : "Esquerda"));
+      if ((ta2.roundsWon ?? 0) !== (tb2.roundsWon ?? 0)) log(`<span class="k">${tn}</span> venceu a rodada (${b.teams[0].roundsWon ?? 0}–${b.teams[1].roundsWon ?? 0})`);
+      const byId = {}; (ta2.players || []).forEach((p) => (byId[p.playerId ?? p.name] = p));
+      (tb2.players || []).forEach((p) => {
+        const o = byId[p.playerId ?? p.name]; if (!o) return;
+        const n = `${tn} ${esc(p.name)}`;
+        if (o.isAlive && !p.isAlive) log(`${n} morreu`);
+        if ((p.kills ?? 0) > (o.kills ?? 0)) log(`${n} fez um abate (${p.kills}/${p.deaths}/${p.assists})`);
+        if (!o.ultReady && p.ultReady) log(`${n} está com a ultimate pronta`);
+        if (!o.isObserved && p.isObserved) log(`Observando ${n}`);
+        if (!o.hasSpike && p.hasSpike) log(`${n} pegou a spike`);
+        if (o.highestWeapon !== p.highestWeapon && p.highestWeapon) log(`${n} agora com ${esc(p.highestWeapon)}`);
+      });
+    });
+  }
+
+  // ---------- painéis ----------
+  const kvCache = {};
+  function kv(el, pairs) {
+    const html = pairs.map(([k, v], i) => `<div><dt>${esc(k)}</dt><dd data-i="${i}">${esc(v)}</dd></div>`).join("");
+    const key = el.id;
+    const old = kvCache[key];
+    if (!old || old.length !== pairs.length || old.some((o, i) => o[0] !== pairs[i][0])) { el.innerHTML = html; kvCache[key] = pairs.map((p) => [p[0], String(p[1])]); return; }
+    pairs.forEach(([, v], i) => {
+      v = String(v);
+      if (old[i][1] !== v) { old[i][1] = v; const dd = el.querySelector(`dd[data-i="${i}"]`); dd.textContent = v; dd.title = v; dd.classList.remove("flash"); void dd.offsetWidth; dd.classList.add("flash"); }
+    });
+  }
+  // campos que a tabela já mostra; o resto aparece em "Outros campos"
+  const KNOWN = new Set(["name", "fullName", "tagline", "playerId", "agentInternal", "isAlive", "health", "armorName", "highestWeapon", "money", "moneySpent", "kills", "deaths", "assists", "killsThisRound", "deathsThisRound", "currUltPoints", "maxUltPoints", "ultReady", "abilities", "hasSpike", "isObserved", "auxiliaryAvailable", "killedPlayerNames", "position", "startTeam"]);
+  function teamCard(t, i, d) {
+    const el = $("team-" + i);
+    const color = i ? "var(--r)" : "var(--l)";
+    const side = t.isAttacking ? "Ataque" : "Defesa";
+    const logo = t.teamUrl || base() + `Logos/logo${i + 1}.png`;
+    const spent = t.spentThisRound ?? (t.players || []).reduce((a, p) => a + (p.moneySpent || 0), 0);
+    let rows = "";
+    (t.players || []).forEach((p) => {
+      const hp = p.isAlive ? p.health ?? 100 : 0;
+      const ab = p.abilities || {};
+      const aux = p.auxiliaryAvailable || {};
+      const extra = Object.keys(p).filter((k) => !KNOWN.has(k)).map((k) => `${k}=${typeof p[k] === "object" ? JSON.stringify(p[k]) : p[k]}`).join(" · ");
+      rows += `<tr class="${p.isAlive ? "" : "dead"}${p.isObserved ? " obs" : ""}">
+        <td><span class="ag"><img src="${esc(portrait(p.agentInternal))}" alt="" onerror="this.style.visibility='hidden'"><span><b>${esc(p.name || p.fullName)}</b>${p.tagline ? `<span class="hint">#${esc(p.tagline)}</span>` : ""}<br><span class="hint">${esc(agentName(p.agentInternal))}</span></span></span></td>
+        <td>${p.isAlive ? '<span class="tag g">vivo</span>' : '<span class="tag r">morto</span>'}${p.isObserved ? ' <span class="tag y">observado</span>' : ""}${p.hasSpike ? ' <span class="tag y">spike</span>' : ""}</td>
+        <td class="n"><span class="hp${hp <= 30 ? " low" : ""}"><i style="width:${hp}%"></i></span>${hp}</td>
+        <td>${esc(ARMOR[p.armorName] || p.armorName || "—")}</td>
+        <td>${esc(p.highestWeapon || "—")}</td>
+        <td class="n">${num(p.money)}</td>
+        <td class="n">${num(p.moneySpent)}</td>
+        <td class="n">${p.kills ?? 0}/${p.deaths ?? 0}/${p.assists ?? 0}</td>
+        <td class="n">${p.killsThisRound ?? 0}</td>
+        <td class="n">${p.currUltPoints ?? 0}/${p.maxUltPoints ?? 0}${p.ultReady ? ' <span class="tag y">pronta</span>' : ""}</td>
+        <td class="n">${aux.abilities === false ? "—" : `${ab.grenade ?? 0} · ${ab.ability1 ?? 0} · ${ab.ability2 ?? 0}`}</td>
+        <td class="hint">${esc(extra)}</td>
+      </tr>`;
+    });
+    const html = `
+      <div class="team-head"><i class="bar" style="background:${color}"></i><img src="${esc(logo)}" alt="" onerror="this.style.visibility='hidden'">
+        <div><b>${esc(t.teamName || "—")}</b> <span class="meta">${esc(t.teamTricode || "")} · ${side} · gasto na rodada ${num(spent)}</span></div>
+        <span class="score">${t.roundsWon ?? 0}</span></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Jogador / agente</th><th>Estado</th><th>Vida</th><th>Escudo</th><th>Arma</th><th>Créditos</th><th>Gasto</th><th>K/D/A</th><th>Abates rodada</th><th>Ultimate</th><th>Cargas C · Q · E</th><th>Outros campos</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
+    if (el._k !== html) { el._k = html; el.innerHTML = html; }
+  }
+  function roundsPanel(d) {
+    const [L, R] = d.teams;
+    const rec = {};
+    (L.roundRecord || []).forEach((r) => { if (r.type && r.type !== "lost") rec[r.round] = { s: "l", r }; });
+    (R.roundRecord || []).forEach((r) => { if (r.type && r.type !== "lost") rec[r.round] = { s: "r", r }; });
+    const cur = d.roundNumber || 1, total = Math.max(24, cur);
+    let h = "";
+    for (let n = 1; n <= total; n++) {
+      const x = rec[n];
+      h += `<div class="rd${x ? " " + x.s : ""}${n === cur ? " cur" : ""}" title="${x ? esc((x.s === "l" ? L : R).teamTricode || "") + " · " + esc(REASON[x.r.type] || x.r.type) : ""}">${String(n).padStart(2, "0")}<small>${x ? esc((REASON[x.r.type] || x.r.type).slice(0, 6)) : n === cur ? "agora" : ""}</small></div>`;
+    }
+    const el = $("rounds"); if (el._k !== h) { el._k = h; el.innerHTML = h; }
+  }
+
+  function render() {
+    if (!data || !Array.isArray(data.teams)) return;
+    const d = data;
+    diffEvents(prev, d);
+    prev = JSON.parse(JSON.stringify(d));
+    const sp = d.spikeState || {}, ts = d.timeoutState || {};
+    kv($("match"), [
+      ["Mapa", mapName(d.map)], ["Rodada", d.roundNumber ?? "—"], ["Fase", PHASE[d.roundPhase] || d.roundPhase || "—"],
+      ["Troca de lado na rodada", d.switchRound ?? "—"], ["Prorrogação a partir da", d.firstOtRound ?? "—"],
+      ["Atacantes venceram a última", d.attackersWon == null ? "—" : yes(d.attackersWon)],
+      ["Spike plantada", yes(sp.planted)], ["Spike desarmada", yes(sp.defused)], ["Spike detonada", yes(sp.detonated)],
+      ["Pausa técnica", yes(ts.techPause)], ["Pausa tática (esq.)", yes(ts.leftTeam)], ["Pausa tática (dir.)", yes(ts.rightTeam)],
+      ["Tempo da pausa", ts.timeRemaining ? ts.timeRemaining + " s" : "—"], ["Código do grupo", d.groupCode || "—"],
+      ["Observado", (d.teams.flatMap((t) => t.players || []).find((p) => p.isObserved) || {}).name || "—"],
+    ]);
+    const tl = d.tools || {}, se = tl.seriesInfo || {}, to = tl.timeoutCounter || {}, ti = tl.tournamentInfo || {}, sps = tl.sponsorInfo || {}, wm = tl.watermarkInfo || {}, pc = tl.playercamsInfo || {}, rw = tl.roundWinBox || {}, sd = tl.seedingInfo || {};
+    const maps = (se.mapInfo || []).map((m) => m.type === "past" ? `${mapName(m.map)} (${m.left?.score ?? "?"}–${m.right?.score ?? "?"})` : m.type === "present" ? "atual" : m.type === "future" ? mapName(m.map) : m.type).join(" → ");
+    kv($("tools"), [
+      ["Torneio", ti.name || "—"], ["Logo do torneio", ti.logoUrl ? "sim" : "não"], ["Série (vitórias p/ vencer)", se.needed ?? "—"],
+      ["Mapas vencidos", `${se.wonLeft ?? 0} – ${se.wonRight ?? 0}`], ["Mapas da série", maps || "—"],
+      ["Pausas táticas", to.max != null ? `${to.left ?? 0} e ${to.right ?? 0} de ${to.max}` : "—"], ["Duração da pausa", tl.timeoutDuration ? tl.timeoutDuration + " s" : "—"],
+      ["Seed (esq. / dir.)", sd.left || sd.right ? `${sd.left || "—"} / ${sd.right || "—"}` : "—"],
+      ["Patrocinadores", sps.enabled ? `${(sps.sponsors || []).length} artes, ${sps.duration || "?"} s` : "desligado"],
+      ["Marca d'água", wm.customTextEnabled ? wm.customText || "(vazio)" : wm.spectraWatermark ? "Spectra" : "desligada"],
+      ["Câmeras dos jogadores", pc.enable ? "ligadas" : "desligadas"], ["Caixa de vitória", rw.type || "—"],
+    ]);
+    d.teams.slice(0, 2).forEach((t, i) => teamCard(t, i, d));
+    roundsPanel(d);
+    if (!rawPaused) { const txt = JSON.stringify(d, null, 2); const pre = $("raw"); if (pre._k !== txt) { pre._k = txt; pre.textContent = txt; } }
+  }
+  setInterval(render, 250);
+  $("pause").addEventListener("click", (e) => { rawPaused = !rawPaused; e.currentTarget.setAttribute("aria-pressed", String(rawPaused)); e.currentTarget.textContent = rawPaused ? "Continuar" : "Pausar"; });
+  $("copy").addEventListener("click", async (e) => { const b = e.currentTarget; try { await navigator.clipboard.writeText(JSON.stringify(data, null, 2)); b.textContent = "Copiado"; } catch (err) { b.textContent = "Não deu"; } setTimeout(() => (b.textContent = "Copiar"), 1500); });
+
+  if (params.get("groupCode")) connect();
+})();
+</script>
+</body>
+</html>

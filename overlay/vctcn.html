@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HUD VCT CN</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+/* =====================================================================
+   HUD VCT CN — overlay 1920×1080 para OBS (Spectra Server: logon + match_data)
+   Todas as medidas abaixo estão em pixels do palco 1920×1080, tiradas dos
+   frames do vídeo de referência. O palco inteiro é escalado junto (--s),
+   então 1600×900 e 2560×1440 mantêm as mesmas proporções.
+   ===================================================================== */
+:root {
+  /* time da esquerda (verde-petróleo) */
+  --l-main: #22715c;
+  --l-plate: #1f8a6e;
+  --l-hi: #38d6ae;      /* faixa diagonal do placar, barra de pausa, acento da tabela */
+  --l-hp: #14f0bc;      /* barra de vida */
+  --l-text: #45d1aa;    /* nome no mini placar da compra */
+  --l-band: #0f4a3e;    /* faixa inferior do cartão */
+  /* time da direita (carmim/bordô) */
+  --r-main: #8f2337;
+  --r-plate: #a51f33;
+  --r-hi: #e0244f;
+  --r-hp: #f0103f;
+  --r-text: #e8404f;
+  --r-band: #4a1220;
+  /* neutros */
+  --ink: #f4f7f8;
+  --ink-2: #c9d0d6;
+  --mute: #8a939c;
+  --spent: #5f7894;
+  --navy: #0a1018;
+  --navy-2: #101721;
+  --panel: rgba(10, 16, 22, 0.8);
+  --panel-dead: rgba(28, 32, 37, 0.84);
+  --row: rgba(14, 21, 29, 0.93);
+  --rule: #24303c;
+  --brand-a: #c3263f;
+  --brand-b: #1c060b;
+  /* fontes: a pasta Resources traz Foundry Gridnik e Tungsten; os outros nomes são reserva */
+  --f-num: "HUDGridnik", "Chakra Petch", "Rajdhani", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  --f-cond: "HUDTungsten", "Oswald", "Bebas Neue", "Arial Narrow", sans-serif;
+  --f-cjk: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "Noto Sans SC", "HUDGridnik", sans-serif;
+  /* tempos */
+  --t-fast: 140ms;
+  --t-mid: 200ms;
+  --t-hp: 180ms;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+body { font-family: var(--f-num); color: var(--ink); -webkit-font-smoothing: antialiased; }
+body.page { background: #0b0f14; }
+img { display: block; }
+
+.viewport { position: fixed; inset: 0; }
+.stage { position: absolute; width: 1920px; height: 1080px; transform: scale(var(--s, 1)); transform-origin: 0 0; overflow: hidden; }
+.stage.bg-ref { background-size: 1920px 1080px; }
+.abs { position: absolute; }
+.hidden { display: none !important; }
+
+/* ---------- Faixa informativa (y 0–34) ---------- */
+.info-band { left: 0; top: 0; width: 1920px; height: 34px; background: linear-gradient(180deg, rgba(3, 9, 15, 0.9), rgba(5, 12, 19, 0.78)); }
+.info { top: 0; height: 34px; display: flex; align-items: center; font: 800 16px/1 var(--f-num); color: var(--ink); white-space: nowrap; letter-spacing: 0.2px; }
+.info.l { left: 10px; gap: 0; }
+.info .it { display: flex; align-items: center; gap: 8px; }
+.info .it:nth-child(1) { width: 197px; }
+.info .it:nth-child(2) { width: 200px; }
+.info .it img { width: 18px; height: 14px; object-fit: contain; filter: brightness(0) invert(0.85); }
+.info.r { left: 1365px; width: 232px; justify-content: center; }
+
+/* ---------- Bloco do evento (canto superior direito) ---------- */
+.brand { left: 1627px; top: 0; width: 293px; height: 90px; clip-path: polygon(0 0, 100% 0, 100% 100%, 15px 100%, 0 75px); background: linear-gradient(160deg, var(--brand-a) 0%, #7a1427 38%, var(--brand-b) 100%); box-shadow: inset 2px 0 0 rgba(0, 0, 0, 0.55); display: grid; place-items: center; overflow: hidden; }
+.brand img { position: absolute; left: 50%; top: 50%; max-width: 190px; max-height: 70px; transform: translate(-50%, -50%); transition: opacity 400ms ease; }
+
+/* ---------- Placar ---------- */
+.bug { left: 0; top: 0; width: 1920px; height: 90px; pointer-events: none; }
+.bug svg { position: absolute; left: 0; top: 0; }
+.bug .logo { position: absolute; top: 8px; width: 46px; height: 44px; object-fit: contain; }
+.bug .logo.l { left: 633px; }
+.bug .logo.r { left: 1242px; }
+.bug .tn { position: absolute; top: 9px; width: 88px; height: 38px; display: flex; align-items: center; justify-content: center; font: 400 37px/1 var(--f-cond); letter-spacing: 0.6px; color: var(--ink); white-space: nowrap; text-transform: uppercase; }
+.bug .tn.l { left: 682px; }
+.bug .tn.r { left: 1150px; }
+.bug .sc { position: absolute; top: 3px; width: 60px; height: 44px; display: flex; align-items: center; justify-content: center; font: 800 44px/1 var(--f-num); color: #fff; }
+.bug .sc.l { left: 778px; }
+.bug .sc.r { left: 1082px; }
+.bug .sc.bump { animation: bump 420ms ease-out; }
+@keyframes bump { 0% { transform: scale(1.18); } 100% { transform: scale(1); } }
+.bug .rnd { position: absolute; left: 900px; width: 120px; top: 5px; text-align: center; font: 700 12px/1 var(--f-num); color: var(--mute); letter-spacing: 0.5px; }
+.bug .time { position: absolute; left: 880px; width: 160px; transform-origin: 50% 50%; white-space: nowrap; top: 24px; text-align: center; font: 400 48px/1 var(--f-cond); color: #fff; letter-spacing: 0.5px; transition: opacity var(--t-fast); }
+.bug .spk { position: absolute; left: 932px; top: 21px; width: 56px; height: 48px; opacity: 0; transition: opacity var(--t-mid); }
+.bug .spk i { position: absolute; inset: 0; background: var(--r-hi); -webkit-mask: var(--spike-mask) center / contain no-repeat; mask: var(--spike-mask) center / contain no-repeat; }
+.bug .spk svg { width: 100%; height: 100%; color: var(--r-hi); }
+.bug.planted .time { opacity: 0; }
+.bug.planted .spk { opacity: 1; }
+.bug.paused .time { font-size: 30px; top: 34px; }
+.pip { fill: rgba(10, 16, 24, 0.55); stroke: #f2f5f7; stroke-width: 1.4; }
+.pip.won.l { fill: var(--l-hi); stroke: var(--l-hi); }
+.pip.won.r { fill: var(--r-hi); stroke: var(--r-hi); }
+
+/* ---------- Cartões dos jogadores (combate) ---------- */
+.cards { top: 575px; width: 291px; }
+.cards.l { left: 16px; }
+.cards.r { left: 1613px; }
+.pc { position: absolute; left: 0; width: 291px; height: 88px; transition: opacity var(--t-mid), transform var(--t-mid); }
+.pc .bgt { position: absolute; top: 9px; height: 47px; background: var(--panel); }
+.cards.l .pc .bgt { left: 69px; width: 222px; clip-path: polygon(0 0, 211px 0, 100% 11px, 100% 100%, 0 100%); }
+.cards.r .pc .bgt { left: 0; width: 222px; clip-path: polygon(11px 0, 100% 0, 100% 100%, 0 100%, 0 11px); }
+.pc .face { position: absolute; top: 0; width: 69px; height: 56px; background: #05070a; overflow: hidden; }
+.cards.l .pc .face { left: 0; clip-path: polygon(0 0, 62px 0, 100% 7px, 100% 100%, 0 100%); }
+.cards.r .pc .face { right: 0; clip-path: polygon(0 7px, 7px 0, 100% 0, 100% 100%, 0 100%); }
+.pc .face img { position: absolute; left: 50%; top: 0; height: 100%; width: auto; transform: translateX(-50%); }
+.pc .face .ph { position: absolute; inset: 0; display: grid; place-items: center; font: 700 11px var(--f-num); color: var(--mute); }
+.pc .band { position: absolute; top: 56px; left: 0; width: 291px; height: 32px; }
+.cards.l .pc .band { clip-path: polygon(0 0, 100% 0, 100% 100%, 32px 100%, 0 0); background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 3px), linear-gradient(90deg, var(--l-band) 0%, rgba(14, 64, 54, 0.95) 40%, rgba(6, 20, 22, 0.92) 100%); }
+.cards.r .pc .band { clip-path: polygon(0 0, 100% 0, calc(100% - 32px) 100%, 0 100%); background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 3px), linear-gradient(270deg, var(--r-band) 0%, rgba(66, 18, 30, 0.95) 40%, rgba(24, 10, 15, 0.92) 100%); }
+.pc .name { position: absolute; top: 15px; max-width: 120px; font: 700 14px/1 var(--f-num); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cards.l .pc .name { left: 81px; }
+.cards.r .pc .name { right: 81px; text-align: right; }
+.pc .kda { position: absolute; top: 15px; font: 700 15px/1 var(--f-num); color: var(--ink); letter-spacing: 0.4px; }
+.cards.l .pc .kda { right: 14px; }
+.cards.r .pc .kda { left: 14px; }
+.pc .shd { position: absolute; top: 33px; width: 18px; height: 21px; }
+.pc .shd svg { width: 100%; height: 100%; }
+.pc .shd b { position: absolute; inset: 0; display: grid; place-items: center; padding-bottom: 2px; font: 700 9px/1 var(--f-num); color: #fff; }
+.cards.l .pc .shd { left: 80px; }
+.cards.r .pc .shd { right: 80px; }
+.pc .hpn { position: absolute; top: 35px; width: 34px; font: 800 17px/1 var(--f-num); color: #fff; }
+.cards.l .pc .hpn { left: 101px; }
+.cards.r .pc .hpn { right: 101px; text-align: right; }
+.pc .hpb { position: absolute; top: 41px; width: 150px; height: 6px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.cards.l .pc .hpb { left: 135px; }
+.cards.r .pc .hpb { right: 135px; }
+.pc .hpb i { position: absolute; inset: 0; transition: transform var(--t-hp) ease-out; }
+.cards.l .pc .hpb i { background: var(--l-hp); transform-origin: 0 50%; }
+.cards.r .pc .hpb i { background: var(--r-hp); transform-origin: 100% 50%; }
+.pc .ult { position: absolute; top: 51px; width: 38px; height: 38px; }
+.cards.l .pc .ult { left: 37px; }
+.cards.r .pc .ult { right: 37px; }
+.pc .abs3 { position: absolute; top: 62px; display: flex; gap: 0; }
+.cards.l .pc .abs3 { left: 72px; }
+.cards.r .pc .abs3 { right: 72px; flex-direction: row-reverse; }
+.ab { width: 38px; height: 26px; position: relative; display: flex; flex-direction: column; align-items: center; }
+.ab img { width: 17px; height: 17px; object-fit: contain; filter: brightness(0) invert(1); }
+.ab .lt { width: 17px; height: 17px; display: grid; place-items: center; font: 700 11px var(--f-num); color: #fff; }
+.ab .dots { display: flex; gap: 4px; margin-top: 3px; height: 4px; }
+.ab .dots i { width: 4px; height: 4px; border-radius: 50%; background: #fff; }
+.ab.empty img, .ab.empty .lt { opacity: 0.32; }
+.pc .wp { position: absolute; top: 62px; width: 60px; height: 18px; display: flex; align-items: center; }
+.cards.l .pc .wp { left: 188px; justify-content: center; }
+.cards.r .pc .wp { right: 188px; justify-content: center; }
+.wpi { max-width: 100%; max-height: 100%; object-fit: contain; filter: brightness(0) invert(1); }
+.flip .wpi, .flip.wpi { transform: scaleX(-1); }
+.wtx { font: 700 11px var(--f-num); color: #fff; text-transform: uppercase; }
+.pc .eye { position: absolute; top: 4px; width: 18px; height: 18px; color: #fff; opacity: 0; transition: opacity var(--t-fast); }
+.cards.l .pc .eye { left: 286px; }
+.cards.r .pc .eye { left: -14px; }
+.pc.obs .eye { opacity: 1; }
+.pc .spikec { position: absolute; top: 58px; width: 27px; height: 27px; border-radius: 50%; background: #0c1116; border: 1.5px solid rgba(255, 255, 255, 0.35); display: none; }
+.pc .spikec i { position: absolute; inset: 5px; background: #fff; -webkit-mask: var(--spike-mask) center / contain no-repeat; mask: var(--spike-mask) center / contain no-repeat; }
+.pc .spikec svg { position: absolute; inset: 4px; width: calc(100% - 8px); height: calc(100% - 8px); color: #fff; }
+.cards.l .pc .spikec { left: 0; }
+.cards.r .pc .spikec { right: 0; }
+.pc.spike .spikec { display: block; }
+/* morto: cartão curto, cinza, com K/D/A e créditos */
+.pc .dinf { position: absolute; top: 9px; height: 79px; width: 127px; display: none; background: var(--panel-dead); }
+.cards.l .pc .dinf { left: 69px; clip-path: polygon(0 0, 116px 0, 100% 11px, 100% 100%, 0 100%); }
+.cards.r .pc .dinf { right: 69px; clip-path: polygon(11px 0, 100% 0, 100% 100%, 0 100%, 0 11px); }
+.pc .dinf .dn { position: absolute; top: 7px; font: 700 14px/1 var(--f-num); max-width: 104px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc .dinf .dk { position: absolute; top: 30px; font: 700 15px/1 var(--f-num); }
+.pc .dinf .dc { position: absolute; top: 54px; display: flex; align-items: center; gap: 0; font: 700 14px/1 var(--f-num); }
+.pc .dinf .dc .cv { width: 13px; height: 13px; }
+.pc .dinf .dc span { width: 48px; text-align: center; }
+.cards.l .pc .dinf .dn, .cards.l .pc .dinf .dk, .cards.l .pc .dinf .dc { left: 12px; }
+.cards.r .pc .dinf .dn, .cards.r .pc .dinf .dk, .cards.r .pc .dinf .dc { right: 12px; }
+.cards.r .pc .dinf .dc { flex-direction: row-reverse; }
+.pc .dbase { position: absolute; top: 56px; width: 69px; height: 32px; background: var(--panel-dead); display: none; }
+.cards.l .pc .dbase { left: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 32px 100%); }
+.cards.r .pc .dbase { right: 0; clip-path: polygon(0 0, 100% 0, calc(100% - 32px) 100%, 0 100%); }
+.pc.dead .bgt, .pc.dead .band, .pc.dead .name, .pc.dead .kda, .pc.dead .shd, .pc.dead .hpn, .pc.dead .hpb, .pc.dead .abs3, .pc.dead .wp { display: none; }
+.pc.dead .dinf, .pc.dead .dbase { display: block; }
+.pc.dead .face { background: #15191d; }
+.pc.dead .face img { filter: grayscale(1) brightness(0.8); }
+
+/* anel da ultimate */
+.ultring { position: relative; width: 100%; height: 100%; }
+.ultring svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ultring .disk { fill: #0d1114; stroke: rgba(0, 0, 0, 0.6); stroke-width: 1; }
+.ultring .sg { stroke: #3b4248; }
+.ultring .sg.on { stroke: #e9eef1; }
+.ultring img, .ultring .lt { position: absolute; left: 50%; top: 50%; width: 46%; height: 46%; transform: translate(-50%, -50%); object-fit: contain; filter: brightness(0) invert(1); }
+.ultring .lt { display: grid; place-items: center; font: 700 11px var(--f-num); color: #fff; }
+.ultring.ready.l .sg { stroke: var(--l-hi); }
+.ultring.ready.r .sg { stroke: var(--r-hi); }
+.ultring.ready .disk { fill: #151b20; }
+
+/* ---------- Câmera do jogador observado ---------- */
+.cam { left: 478px; top: 746px; width: 320px; height: 180px; transition: opacity var(--t-mid); }
+.cam .frame { position: absolute; inset: 0; }
+.cam .frame svg { width: 100%; height: 100%; }
+.cam .cn, .cam .ck { position: absolute; bottom: 14px; font: 700 18px/1 var(--f-num); color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85); }
+.cam .cn { left: 18px; max-width: 190px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cam .ck { right: 15px; }
+.cam .ktab { position: absolute; left: 3px; top: 3px; height: 21px; padding: 0 22px 0 9px; display: none; align-items: center; gap: 6px; font: 700 15px/1 var(--f-num); color: #fff; clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+.cam .ktab.on { display: flex; }
+.cam .ktab svg { width: 15px; height: 15px; }
+.cam.l .ktab { background: var(--l-main); }
+.cam.r .ktab { background: var(--r-hi); }
+
+/* ---------- Fase de compra ---------- */
+.buy { opacity: 0; transition: opacity var(--t-mid) ease; pointer-events: none; }
+.stage.shop .buy { opacity: 1; }
+.stage.shop .combat { opacity: 0; }
+.combat { transition: opacity var(--t-mid) ease; }
+
+/* faixa publicitária / painel de estatísticas (522–1397 × 441–577) */
+.adwrap { left: 522px; top: 441px; width: 876px; height: 137px; }
+.adwrap > div { position: absolute; inset: 0; transition: opacity 300ms ease; }
+.ad img { width: 100%; height: 100%; object-fit: cover; }
+.stat { display: grid; grid-template-columns: 290px 1fr 290px; background: rgba(6, 12, 18, 0.94); }
+.stat::before, .stat::after { content: ""; position: absolute; top: 0; bottom: 0; width: 4px; }
+.stat::before { left: 0; background: var(--l-hi); }
+.stat::after { right: 0; background: var(--r-hi); }
+.stat .side { position: relative; display: flex; align-items: center; }
+.stat .side img { width: 72px; height: 56px; object-fit: contain; }
+.stat .side.l img { margin-left: 34px; }
+.stat .side.r { flex-direction: row-reverse; }
+.stat .side.r img { margin-right: 34px; }
+.stat .side .tx { flex: 1; text-align: center; }
+.stat .side .k { font: 700 22px/1 var(--f-num); }
+.stat .side.l .k { color: var(--l-hi); }
+.stat .side.r .k { color: var(--r-text); }
+.stat .side .v { margin-top: 10px; font: 800 44px/1 var(--f-num); color: #fff; }
+.stat .side .v small { font-size: 26px; }
+.stat .mid { position: relative; background: #0d1720 center / cover no-repeat; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.stat .mid::before { content: ""; position: absolute; inset: 0; background: rgba(4, 10, 16, 0.35); }
+.stat .mid b { position: relative; font: 900 30px/1 var(--f-num); color: #4fe3c5; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); }
+.stat .mid span { position: relative; margin-top: 8px; font: 700 18px/1 var(--f-num); color: #fff; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); }
+
+/* cabeçalho da compra (y 603–705) */
+.plate { top: 603px; width: 406px; height: 102px; overflow: visible; }
+.plate.l { left: 22px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 3px), repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.08) 0 1px, transparent 1px 3px), linear-gradient(90deg, #136652 0%, var(--l-plate) 100%); }
+.plate.r { left: 1492px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 3px), repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.08) 0 1px, transparent 1px 3px), linear-gradient(270deg, #6d1222 0%, var(--r-plate) 100%); }
+.plate .art { position: absolute; top: -38px; width: 205px; height: 140px; object-fit: contain; }
+.plate.l .art { left: 38px; }
+.plate.r .art { right: 38px; }
+.plate .art.logo { top: 14px; width: 120px; height: 76px; opacity: 0.9; }
+.plate.l .art.logo { left: 70px; }
+.plate.r .art.logo { right: 70px; }
+.plate .pn { position: absolute; top: 18px; font: 800 45px/1 var(--f-num); letter-spacing: 1px; color: #fff; white-space: nowrap; text-transform: uppercase; }
+.plate .pv { position: absolute; top: 67px; display: flex; align-items: center; gap: 6px; font: 700 20px/1 var(--f-num); color: #fff; white-space: nowrap; }
+.plate .pv .cv { width: 17px; height: 17px; }
+.plate.l .pn, .plate.l .pv { right: 21px; }
+.plate.r .pn, .plate.r .pv { left: 20px; }
+.plate .pv .lb { font-family: var(--f-num); font-weight: 700; }
+.midbar { left: 428px; top: 603px; width: 1064px; height: 102px; background: rgba(5, 11, 17, 0.95); }
+.tac { position: absolute; top: 0; width: 92px; height: 102px; background: rgba(13, 22, 30, 0.9); }
+.tac.l { left: 0; }
+.tac.r { left: 972px; }
+.tac b { position: absolute; left: 4px; right: 4px; top: 27px; text-align: center; font: 700 15px/1.15 var(--f-num); color: #fff; }
+.tac .bars { position: absolute; left: 0; right: 0; top: 74px; display: flex; justify-content: center; gap: 8px; }
+.tac .bars i { width: 30px; height: 6px; background: rgba(255, 255, 255, 0.15); }
+.tac.l .bars i.on { background: var(--l-hi); }
+.tac.r .bars i.on { background: var(--r-hi); }
+.mini { position: absolute; left: 100px; top: 10px; width: 128px; }
+.mini div { display: flex; justify-content: flex-end; align-items: center; height: 40px; font: 700 26px/1 var(--f-num); }
+.mini div span:first-child { text-align: right; padding-right: 10px; }
+.mini div span:last-child { width: 36px; text-align: center; }
+.mini .l { color: var(--l-text); }
+.mini .r { color: var(--r-text); }
+.hist { position: absolute; left: 252px; top: 0; height: 102px; width: 700px; }
+.hist .rn { position: absolute; top: 37px; width: 51px; text-align: center; font: 700 29px/1 var(--f-num); color: #fff; }
+.hist .rn.wl { color: var(--l-hi); }
+.hist .rn.wr { color: var(--r-text); }
+.hist .mk { position: absolute; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; }
+.hist .mk.t { top: 17px; border-top: 7px solid #9aa3ab; }
+.hist .mk.b { top: 79px; border-bottom: 7px solid #9aa3ab; }
+.hist .sw { position: absolute; left: 618px; top: 37px; width: 22px; height: 30px; }
+.hist .dot { position: absolute; left: 680px; top: 50px; width: 5px; height: 5px; border-radius: 50%; background: #6c757d; }
+
+/* tabela econômica (y 718–1057) */
+.econ { top: 718px; height: 340px; }
+.econ.l { left: 17px; width: 940px; }
+.econ.r { left: 962px; width: 933px; }
+.econ .acc { position: absolute; top: 0; bottom: 0; width: 4px; }
+.econ.l .acc { left: 0; background: var(--l-hi); }
+.econ.r .acc { right: 0; background: var(--r-hi); }
+.er { position: absolute; left: 0; right: 0; height: 67px; background: var(--row); }
+.er .c { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; }
+.er .vr { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--rule); }
+.er .money { font: 700 24px/1 var(--f-num); gap: 0; }
+.er .money .sp { color: var(--spent); min-width: 70px; text-align: right; }
+.er .money .mw { display: flex; align-items: center; white-space: nowrap; }
+.er .face .ph { position: absolute; inset: 0; display: grid; place-items: center; font: 700 10px var(--f-num); color: var(--mute); text-align: center; }
+.er .money .cv { width: 18px; height: 18px; margin: 0 4px; }
+.er .money .cr { color: #fff; }
+.er .face { position: absolute; top: 1px; width: 66px; height: 66px; overflow: hidden; background: #070a0e; }
+.er .face img { height: 100%; width: auto; position: absolute; left: 50%; transform: translateX(-50%); }
+.er .nm { font: 700 18px/1 var(--f-num); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; display: block; }
+.er .kd { font: 700 24px/1 var(--f-num); letter-spacing: 0.5px; }
+.er .kd i { font-style: normal; color: #6f7b86; }
+.er .wcell .ws { position: absolute; top: 0; bottom: 0; width: 120px; display: flex; align-items: center; justify-content: center; }
+.er .wcell .ss { position: absolute; top: 0; bottom: 0; width: 30px; display: flex; align-items: center; justify-content: center; }
+.er .wcell .wpi { max-height: 22px; max-width: 120px; }
+.er .shi { width: 26px; height: 26px; object-fit: contain; }
+.er .ults { width: 36px; height: 36px; }
+.er .abl { display: flex; }
+.er .abl .ab { width: 41px; height: 34px; }
+.er .abl .ab img, .er .abl .ab .lt { width: 19px; height: 19px; }
+.er .abl .ab .dots { margin-top: 5px; }
+
+/* aviso de prévia */
+.demo-tag { right: 10px; bottom: 6px; font: 600 11px/1 var(--f-num); color: rgba(255, 255, 255, 0.55); letter-spacing: 1px; text-transform: uppercase; }
+.status { left: 16px; top: 44px; padding: 6px 10px; background: rgba(0, 0, 0, 0.7); font: 600 14px var(--f-num); color: #ffd36b; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="viewport" id="viewport"></div>
+<script>
+(() => {
+  "use strict";
+
+  // =====================================================================
+  //  CONFIGURAÇÃO — tudo o que costuma mudar entre eventos fica aqui
+  // =====================================================================
+  const CONFIG = {
+    servidor: "",              // ex.: "http://localhost:5200" (vazio: usa ?server= ou localhost:5200)
+    codigo: "",                // groupCode digitado no capturador (vazio: usa ?groupCode=)
+    recursos: "Resources/",    // pasta de imagens e fontes, relativa a este arquivo (ou ?assets=)
+    fase: "",                  // texto do canto superior direito (ex.: "Chave inferior · Rodada 1"); vazio usa tournamentInfo.name
+    camera: true,              // moldura da câmera do jogador observado
+    trocaPublicidade: 8,       // segundos entre a faixa publicitária e o painel de estatísticas na compra
+    trocaPatrocinio: 6,        // segundos entre as artes do bloco do evento
+    armasParaDireita: true,    // as imagens de Armas/ apontam o cano para a direita? (o time da direita é espelhado)
+    duracao: { compra: 30, combate: 100, spike: 45 },
+  };
+  // =====================================================================
+
+  // textos da HUD (todos em português)
+  const L10N = { cur: "Mapa atual", next: "Próximo", dec: "Decisivo", round: "Rodada ", tac: "Pausa tática", eq: "Equipamento", def: "Vitórias na defesa", att: "Vitórias no ataque", rate: "Aproveitamento", pause: "Pausa", tech: "Pausa técnica" };
+  const MAP_NAMES = { Triad: "Haven", Bonsai: "Split", Duality: "Bind", Port: "Icebox", Foxtrot: "Breeze", Canyon: "Fracture", Pitt: "Pearl", Jam: "Lotus", Juliett: "Sunset", Infinity: "Abyss", Rook: "Corrode", Ascent: "Ascent" };
+  const AGENTS = {
+    AggroBot: "Gekko", BountyHunter: "Fade", Breach: "Breach", Cable: "Deadlock", Cashew: "Tejo", Clay: "Raze", Deadeye: "Chamber",
+    Grenadier: "KAY/O", Guide: "Skye", Gumshoe: "Cypher", Hunter: "Sova", Iris: "Miks", Killjoy: "Killjoy", Mage: "Harbor", Nox: "Vyse",
+    Pandemic: "Viper", Pine: "Veto", Phoenix: "Phoenix", Rift: "Astra", Sarge: "Brimstone", Sequoia: "Iso", Smonk: "Clove", Sprinter: "Neon",
+    Stealth: "Yoru", Terra: "Waylay", Thorne: "Sage", Vampire: "Reyna", Wraith: "Omen", Wushu: "Jett",
+  };
+  const FOLDER = { "KAY/O": "Kayo" };
+  const COST = { Classic: 0, Shorty: 150, Frenzy: 450, Ghost: 500, Sheriff: 800, Stinger: 1100, Spectre: 1600, Bucky: 850, Judge: 1850, Bulldog: 2050, Guardian: 2250, Phantom: 2900, Vandal: 2900, Marshal: 950, Outlaw: 2400, Operator: 4700, Ares: 1600, Odin: 3200, Bandit: 0, Heavy: 1000, Light: 400, Regen: 650 };
+  const ARMOR = { Heavy: 50, Light: 25, Regen: 25 };
+  const SHIELD_IMG = { Heavy: "Escudo50.png", Light: "Escudo100.png", Regen: "EscudoReg.png" };
+
+  const params = new URLSearchParams(location.search);
+  const groupCode = (params.get("groupCode") || CONFIG.codigo || "").toUpperCase();
+  const SERVER = params.get("server") || CONFIG.servidor || "http://localhost:5200";
+  const MODE = groupCode ? "live" : "demo";
+  const DEBUG = params.has("debug");
+  const CLEAN = params.has("clean");
+  let BASE = params.get("assets") || CONFIG.recursos;
+  if (BASE && !BASE.endsWith("/")) BASE += "/";
+
+  const agentName = (raw) => { const k = String(raw || "").replace(/_PC_C$/i, ""); return AGENTS[k] || Object.entries(AGENTS).find(([a]) => a.toLowerCase() === k.toLowerCase())?.[1] || k; };
+  const mapName = (m) => MAP_NAMES[m] || m || "";
+  const mapLabel = (m) => mapName(m);
+  const money = (n) => Math.round(n || 0).toLocaleString("en-US");
+  const fmtTime = (s) => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+  const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const A = (p) => BASE + p.split("/").map(encodeURIComponent).join("/");
+  const agentImg = (internal, slot) => { const n = agentName(internal); if (!n) return ""; const f = FOLDER[n] || n; return A(`Agentes/${f}/${slot ? slot : f}.png`); };
+  const weaponImg = (w) => (w && w !== "Knife" ? A(`Armas/${w}.png`) : w === "Knife" ? A("Armas/Knife.png") : "");
+
+  // ícones vetoriais (reserva quando falta a imagem)
+  const SPIKE_SVG = '<svg viewBox="0 0 100 92"><path d="M10 9h80L50 83z" fill="currentColor" stroke="currentColor" stroke-width="14" stroke-linejoin="round"/><circle cx="50" cy="38" r="22" fill="#0e131b"/><circle cx="50" cy="38" r="15" fill="currentColor"/><path d="m50 29 8 4.5v9L50 47l-8-4.5v-9z" fill="#0e131b"/></svg>';
+  const EYE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/></svg>';
+  const CREDIT_SVG = '<svg class="cv" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3l10 10M13 3 3 13"/><circle cx="8" cy="8" r="3.4" fill="#0b1219"/></svg>';
+  const SHIELD_SVG = '<svg viewBox="0 0 17 19"><path d="M8.5 0.5 16 3.4v6.1c0 4.2-3.1 7.4-7.5 9-4.4-1.6-7.5-4.8-7.5-9V3.4z" fill="#030405"/></svg>';
+  const SWAP_SVG = '<svg viewBox="0 0 22 30"><path d="M1 2h11L6.5 11z" fill="#fff"/><path d="M10 28h11l-5.5-9z" fill="#fff"/></svg>';
+  const KILL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg>';
+  let CREDIT = CREDIT_SVG; // trocado pela imagem Escudos/CV.png quando ela existir
+  let SPIKE_HTML = SPIKE_SVG; // trocado pela máscara de spike.png quando ela existir
+
+  // ---------- palco ----------
+  const viewport = document.getElementById("viewport");
+  viewport.innerHTML = `
+  <div class="stage" id="stage">
+    <div class="abs info-band"></div>
+    <div class="abs info l" id="info-l"></div>
+    <div class="abs info r" id="info-r"></div>
+    <div class="abs brand" id="brand"><img id="brand-a" alt=""><img id="brand-b" alt="" style="opacity:0"></div>
+    <div class="abs bug" id="bug">
+      <svg width="1920" height="90" viewBox="0 0 1920 90" aria-hidden="true">
+        <defs>
+          <pattern id="dots" width="3" height="3" patternUnits="userSpaceOnUse"><rect width="1" height="3" fill="#fff" opacity=".07"/><rect y="2" width="3" height="1" fill="#000" opacity=".08"/></pattern>
+          <linearGradient id="gl" x1="0" x2="1"><stop offset="0" stop-color="var(--l-main)" stop-opacity=".92"/><stop offset="1" stop-color="var(--l-main)"/></linearGradient>
+          <linearGradient id="gr" x1="1" x2="0"><stop offset="0" stop-color="var(--r-main)" stop-opacity=".88"/><stop offset="1" stop-color="var(--r-main)"/></linearGradient>
+        </defs>
+        <polygon points="559,0 830,0 864,47 784,47 770,61 607,61" style="fill:url(#gl)"/>
+        <polygon points="559,0 830,0 864,47 784,47 770,61 607,61" fill="url(#dots)"/>
+        <polygon points="1361,0 1090,0 1056,47 1136,47 1150,61 1313,61" style="fill:url(#gr)"/>
+        <polygon points="1361,0 1090,0 1056,47 1136,47 1150,61 1313,61" fill="url(#dots)"/>
+        <polygon points="836,0 1084,0 1027,80 893,80" fill="#0f1520" fill-opacity=".97"/>
+        <polygon points="827,0 836,0 870,47 861,47" style="fill:var(--l-hi)"/>
+        <polygon points="1093,0 1084,0 1050,47 1059,47" style="fill:var(--r-hi)"/>
+        <g id="pips-l"></g><g id="pips-r"></g>
+      </svg>
+      <img class="logo l" id="logo-l" alt="">
+      <div class="tn l" id="tn-l"></div>
+      <div class="sc l" id="sc-l">0</div>
+      <div class="rnd" id="rnd"></div>
+      <div class="time" id="time">0:00</div>
+      <div class="spk" id="spk">${SPIKE_SVG}</div>
+      <div class="sc r" id="sc-r">0</div>
+      <div class="tn r" id="tn-r"></div>
+      <img class="logo r" id="logo-r" alt="">
+    </div>
+
+    <div class="abs cards l combat" id="cards-l"></div>
+    <div class="abs cards r combat" id="cards-r"></div>
+    <div class="abs cam combat" id="cam">
+      <div class="frame"><svg viewBox="0 0 320 180" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M1 1h86l6 4h134l6-4h86v178h-86l-6-4H93l-6 4H1z" fill="none" stroke="#1b2531" stroke-width="2.5"/>
+        <path d="M0 20V0h20M300 0h20v20M320 160v20h-20M20 180H0v-20" fill="none" stroke="#3b4a59" stroke-width="2"/>
+      </svg></div>
+      <div class="ktab" id="cam-k"><span id="cam-kn">1</span>${KILL_SVG}</div>
+      <div class="cn" id="cam-n"></div>
+      <div class="ck" id="cam-kda"></div>
+    </div>
+
+    <div class="abs adwrap buy" id="adwrap">
+      <div class="ad" id="ad"><img id="ad-img" alt=""></div>
+      <div class="stat" id="stat" style="opacity:0">
+        <div class="side l"><img id="st-logo-l" alt=""><div class="tx"><div class="k" id="st-k-l"></div><div class="v" id="st-v-l"></div></div></div>
+        <div class="mid" id="st-mid"><b id="st-t"></b><span id="st-m"></span></div>
+        <div class="side r"><img id="st-logo-r" alt=""><div class="tx"><div class="k" id="st-k-r"></div><div class="v" id="st-v-r"></div></div></div>
+      </div>
+    </div>
+    <div class="abs plate l buy" id="plate-l"><img class="art" id="art-l" alt=""><div class="pn" id="pn-l"></div><div class="pv"><span class="lb">${L10N.eq}</span><span class="cvw" id="cv-l"></span><span id="pv-l"></span></div></div>
+    <div class="abs midbar buy">
+      <div class="tac l"><b>Pausa<br>tática</b><div class="bars" id="tac-l"></div></div>
+      <div class="mini"><div class="l"><span id="mn-l"></span><span id="ms-l"></span></div><div class="r"><span id="mn-r"></span><span id="ms-r"></span></div></div>
+      <div class="hist" id="hist"></div>
+      <div class="tac r"><b>Pausa<br>tática</b><div class="bars" id="tac-r"></div></div>
+    </div>
+    <div class="abs plate r buy" id="plate-r"><img class="art" id="art-r" alt=""><div class="pn" id="pn-r"></div><div class="pv"><span class="cvw" id="cv-r"></span><span id="pv-r"></span><span class="lb">${L10N.eq}</span></div></div>
+    <div class="abs econ l buy" id="econ-l"><i class="acc"></i></div>
+    <div class="abs econ r buy" id="econ-r"><i class="acc"></i></div>
+
+    <div class="abs demo-tag hidden" id="demo-tag">Prévia · dados simulados</div>
+    <div class="abs status hidden" id="status"></div>
+  </div>`;
+
+  const $ = (id) => document.getElementById(id);
+  const stage = $("stage");
+  const fit = () => {
+    const w = innerWidth, h = innerHeight, s = Math.min(w / 1920, h / 1080);
+    stage.style.setProperty("--s", String(s));
+    stage.style.left = Math.round((w - 1920 * s) / 2) + "px";
+    stage.style.top = Math.round((h - 1080 * s) / 2) + "px";
+  };
+  addEventListener("resize", fit); fit();
+  // imagem que não carregou some, em vez de mostrar o ícone quebrado
+  stage.addEventListener("error", (e) => { const t = e.target; if (t.tagName !== "IMG" || t.classList.contains("art")) return; if (t.dataset.fb) { const fb = t.dataset.fb; t.removeAttribute("data-fb"); t.outerHTML = fb; } else t.style.visibility = "hidden"; }, true);
+
+  const setText = (n, t) => { t = String(t ?? ""); if (n.textContent !== t) n.textContent = t; };
+  const setHTML = (n, h, key) => { key = key ?? h; if (n._k !== key) { n._k = key; n.innerHTML = h; } };
+  const setSrc = (img, src) => { if (!src) { img.style.visibility = "hidden"; img.removeAttribute("src"); return; } if (img.getAttribute("src") !== src) { img.style.visibility = ""; img.src = src; } };
+  const fitText = (el, max) => { el.style.transform = ""; const w = el.scrollWidth; if (w > max) el.style.transform = `scaleX(${(max / w).toFixed(3)})`; };
+
+  // pontos de série (paralelogramos sob o placar)
+  function pipsSVG(side, need, won) {
+    let s = "";
+    for (let k = 0; k < need; k++) {
+      const x = 840 - k * 34; // k = 0 é o mais perto do centro
+      const pts = side === "l"
+        ? [[x, 52], [x + 22, 52], [x + 31, 61], [x + 9, 61]]
+        : [[1920 - x, 52], [1898 - x, 52], [1889 - x, 61], [1911 - x, 61]];
+      s += `<polygon class="pip ${side}${k < won ? " won" : ""}" points="${pts.map((q) => q.join(",")).join(" ")}"/>`;
+    }
+    return s;
+  }
+
+  // ---------- cartões ----------
+  function buildCards(el, side) {
+    const out = [];
+    for (let i = 0; i < 5; i++) {
+      const c = document.createElement("div");
+      c.className = "pc";
+      c.style.top = i * 100 + "px";
+      c.innerHTML = `<i class="bgt"></i><i class="band"></i><i class="dbase"></i>
+        <div class="face" data-k="face"></div>
+        <div class="name" data-k="name"></div><div class="kda" data-k="kda"></div>
+        <div class="shd">${SHIELD_SVG}<b data-k="sh">0</b></div>
+        <div class="hpn" data-k="hpn"></div><div class="hpb"><i data-k="hpb"></i></div>
+        <div class="ult" data-k="ult"></div>
+        <div class="abs3" data-k="ab"></div>
+        <div class="wp${side === "r" ? " flip" : ""}" data-k="wp"></div>
+        <div class="dinf"><div class="dn" data-k="dn"></div><div class="dk" data-k="dk"></div><div class="dc" data-k="dc"></div></div>
+        <div class="eye">${EYE_SVG}</div>
+        <div class="spikec" data-k="spk"></div>`;
+      const k = { el: c };
+      c.querySelectorAll("[data-k]").forEach((n) => (k[n.dataset.k] = n));
+      el.appendChild(c);
+      out.push(k);
+    }
+    return out;
+  }
+  // tabela econômica: colunas medidas no frame 00:02
+  const COLS = {
+    l: { money: [5, 181], vr: [181, 361, 940], abil: [181, 361], wp: [361, 588], face: 588, name: 673, kda: [760, 905] },
+    r: { kda: [36, 180], name: [180, 268], face: 288, wp: [353, 580], abil: [580, 761], money: [761, 929], vr: [580, 761] },
+  };
+  function buildRows(el, side) {
+    const out = [], C = COLS[side];
+    for (let i = 0; i < 5; i++) {
+      const r = document.createElement("div");
+      r.className = "er";
+      r.style.top = i * 68 + "px";
+      const cell = (k, [a, b], cls = "", inner = "") => `<div class="c ${cls}" data-k="${k}" style="left:${a}px;width:${b - a}px">${inner}</div>`;
+      let h = C.vr.map((x) => `<i class="vr" style="left:${x - 1}px"></i>`).join("");
+      if (side === "l") {
+        h += `<div class="c money" style="left:14px;width:${C.money[1] - 14}px"><span class="mw" data-k="mw" style="transform-origin:0 50%"><span class="sp" data-k="sp"></span><span class="cvw" data-k="cv"></span><span class="cr" data-k="cr"></span></span></div>`;
+        h += `<div class="c" style="left:${C.abil[0] - 1}px;width:${C.abil[1] - C.abil[0]}px;gap:5px"><span class="abl" data-k="ab"></span><span class="ults" data-k="ult"></span></div>`;
+        h += `<div class="c wcell" data-k="wc" style="left:${C.wp[0]}px;width:${C.wp[1] - C.wp[0]}px"></div>`;
+        h += `<div class="face" data-k="face" style="left:${C.face}px"></div>`;
+        h += `<div class="c" style="left:${C.name}px;width:150px"><span class="nm" data-k="nm"></span></div>`;
+        h += `<div class="c" style="left:${C.kda[0]}px;width:${C.kda[1] - C.kda[0]}px;justify-content:flex-end"><span class="kd" data-k="kd"></span></div>`;
+      } else {
+        h += `<div class="c" style="left:${C.kda[0]}px;width:${C.kda[1] - C.kda[0]}px"><span class="kd" data-k="kd"></span></div>`;
+        h += `<div class="c" style="left:${C.name[0]}px;width:${C.name[1] - C.name[0]}px;justify-content:flex-end"><span class="nm" data-k="nm" style="text-align:right"></span></div>`;
+        h += `<div class="face" data-k="face" style="left:${C.face}px"></div>`;
+        h += `<div class="c wcell flip" data-k="wc" style="left:${C.wp[0]}px;width:${C.wp[1] - C.wp[0]}px"></div>`;
+        h += `<div class="c" style="left:${C.abil[0] + 17}px;width:${C.abil[1] - C.abil[0] - 17}px;gap:6px"><span class="ults" data-k="ult"></span><span class="abl" data-k="ab"></span></div>`;
+        h += `<div class="c money" style="left:${C.money[0]}px;width:${C.money[1] - C.money[0] - 8}px;justify-content:flex-end"><span class="mw" data-k="mw" style="transform-origin:100% 50%"><span class="cr" data-k="cr"></span><span class="cvw" data-k="cv"></span><span class="sp" data-k="sp" style="text-align:left;min-width:66px"></span></span></div>`;
+      }
+      r.innerHTML = h;
+      const k = { el: r };
+      r.querySelectorAll("[data-k]").forEach((n) => (k[n.dataset.k] = n));
+      el.appendChild(r);
+      out.push(k);
+    }
+    return out;
+  }
+  const cards = { l: buildCards($("cards-l"), "l"), r: buildCards($("cards-r"), "r") };
+  const rows = { l: buildRows($("econ-l"), "l"), r: buildRows($("econ-r"), "r") };
+
+  // ---------- peças reutilizáveis ----------
+  const img = (src, cls, alt, fb) => (src ? `<img class="${cls}" src="${esc(src)}" alt="${esc(alt || "")}"${fb ? ` data-fb="${esc(fb)}"` : ""}>` : fb || "");
+  function faceHTML(internal) {
+    const n = agentName(internal);
+    return img(agentImg(internal), "", n, `<div class="ph">${esc(n)}</div>`);
+  }
+  function abilsHTML(internal, ab, known) {
+    return [["grenade", "C"], ["ability1", "Q"], ["ability2", "E"]].map(([slot, key]) => {
+      const n = known ? (ab && ab[slot]) || 0 : 1;
+      const icon = img(agentImg(internal, key), "", key, `<span class="lt">${key}</span>`);
+      return `<div class="ab${n ? "" : " empty"}">${icon}<span class="dots">${known ? "<i></i>".repeat(Math.min(n, 3)) : ""}</span></div>`;
+    }).join("");
+  }
+  function ultHTML(internal, cur, max, ready, side) {
+    const n = Math.max(1, max || 1), r = 16.2, C = 2 * Math.PI * r, gap = n > 1 ? 2.6 : 0, seg = C / n - gap;
+    let arcs = "";
+    for (let i = 0; i < n; i++) arcs += `<circle class="sg${ready || i < cur ? " on" : ""}" cx="20" cy="20" r="${r}" fill="none" stroke-width="2.6" stroke-dasharray="${seg.toFixed(2)} ${(C - seg).toFixed(2)}" stroke-dashoffset="${(-i * C / n - gap / 2 + C / 4).toFixed(2)}"/>`;
+    return `<div class="ultring ${side}${ready ? " ready" : ""}"><svg viewBox="0 0 40 40"><circle class="disk" cx="20" cy="20" r="19"/>${arcs}</svg>${img(agentImg(internal, "X"), "", "X", '<span class="lt">X</span>')}</div>`;
+  }
+  const weaponHTML = (w) => (w ? img(weaponImg(w), "wpi", w, `<span class="wtx">${esc(w === "Knife" ? "" : w)}</span>`) : "");
+  const shieldNum = (a) => ARMOR[a] || 0;
+
+  // ---------- estado ----------
+  const clock = { phase: "", round: -1, at: 0, spikeAt: null };
+  const lastScore = { l: null, r: null };
+  const sideOf = (i) => (i === 0 ? "l" : "r");
+
+  function render(d, now) {
+    if (!d || !Array.isArray(d.teams) || d.teams.length < 2) return;
+    const phase = d.roundPhase || "shopping";
+    if (phase !== clock.phase || d.roundNumber !== clock.round) { clock.phase = phase; clock.round = d.roundNumber; clock.at = now; }
+    const sp = d.spikeState || {};
+    const planted = phase === "combat" && !!(sp.planted && !sp.defused && !sp.detonated);
+    if (planted && clock.spikeAt == null) clock.spikeAt = now;
+    if (!planted) clock.spikeAt = null;
+    stage.classList.toggle("shop", phase === "shopping");
+
+    // cronômetro: o servidor não manda o tempo; conta a partir da mudança de fase
+    const D = CONFIG.duracao;
+    let rem = 0;
+    if (phase === "shopping") rem = D.compra - (now - clock.at);
+    else if (phase === "combat") rem = planted ? D.spike - (now - clock.spikeAt) : D.combate - (now - clock.at);
+    const ts = d.timeoutState || {};
+    const paused = !!(ts.techPause || ts.leftTeam || ts.rightTeam);
+    $("bug").classList.toggle("planted", planted);
+    $("bug").classList.toggle("paused", paused);
+    setText($("time"), paused ? (ts.techPause ? L10N.tech : L10N.pause) : phase === "shopping" || phase === "combat" ? fmtTime(rem) : "0:00");
+    fitText($("time"), 150);
+    setText($("rnd"), L10N.round + (d.roundNumber || 1));
+
+    const tools = d.tools || {};
+    const series = tools.seriesInfo || {};
+    const [TL, TR] = d.teams;
+    const tri = (t) => t.teamTricode || (t.teamName || "").slice(0, 4).toUpperCase();
+
+    // faixa informativa
+    const mi = Array.isArray(series.mapInfo) ? series.mapInfo : [];
+    const fut = mi.filter((m) => m && m.type === "future" && m.map);
+    const logoOf = (m) => (m && m.logo) || (m && m.left && m.left.logo) || "";
+    const items = [[L10N.cur, mapLabel(d.map), ""]];
+    if (fut.length > 1) items.push([L10N.next, mapLabel(fut[0].map), logoOf(fut[0])]);
+    if (fut.length) items.push([L10N.dec, mapLabel(fut[fut.length - 1].map), ""]);
+    setHTML($("info-l"), items.map(([k, v, lg]) => `<span class="it">${esc(k)}: ${esc(v)}${lg ? `<img src="${esc(lg)}" alt="">` : ""}</span>`).join(""));
+    setText($("info-r"), CONFIG.fase || (tools.tournamentInfo && tools.tournamentInfo.name) || "");
+
+    // placar e times
+    const need = series.needed > 1 ? series.needed : 0;
+    [[TL, 0], [TR, 1]].forEach(([t, i]) => {
+      const s = sideOf(i);
+      const tn = $("tn-" + s); setText(tn, tri(t)); fitText(tn, 88);
+      const sc = String(t.roundsWon ?? 0), scEl = $("sc-" + s);
+      setText(scEl, sc);
+      if (lastScore[s] !== null && lastScore[s] !== sc) { scEl.classList.remove("bump"); void scEl.offsetWidth; scEl.classList.add("bump"); }
+      lastScore[s] = sc;
+      const logo = (MODE === "live" && t.teamUrl) || A(`Logos/logo${i + 1}.png`);
+      setSrc($("logo-" + s), logo);
+      const won = i ? series.wonRight || 0 : series.wonLeft || 0;
+      const pg = $("pips-" + s); const ph = pipsSVG(s, need, won); if (pg._k !== ph) { pg._k = ph; pg.innerHTML = ph; }
+
+      renderCards(cards[s], t, s, phase);
+      renderRows(rows[s], t, s);
+
+      // cabeçalho da compra
+      const pn = $("pn-" + s); setText(pn, tri(t)); fitText(pn, 220);
+      const eq = (t.players || []).reduce((a, p) => a + (COST[p.highestWeapon] || 0) + (COST[p.armorName] || 0), 0);
+      setText($("pv-" + s), money(eq));
+      setHTML($("cv-" + s), CREDIT);
+      setText($("mn-" + s), tri(t)); setText($("ms-" + s), sc);
+      const toc = tools.timeoutCounter;
+      if (toc) setHTML($("tac-" + s), Array.from({ length: toc.max || 0 }, (_, n) => `<i class="${n < (i ? toc.right : toc.left) ? "on" : ""}"></i>`).join(""));
+      // arte do cabeçalho: Logos/skinN.png (arma do time) se existir, senão o logo
+      const art = $("art-" + s);
+      if (!art._init) {
+        art._init = true;
+        art.onerror = () => { art.onerror = () => (art.style.visibility = "hidden"); art.className = "art logo"; art.style.visibility = ""; art.src = logo; };
+        art.src = A(`Logos/skin${i + 1}.png`);
+      }
+    });
+    renderHistory(d, TL, TR);
+    renderStats(d, TL, TR, tri);
+    renderCam(d, phase);
+  }
+
+  function renderCards(list, team, s, phase) {
+    const ps = (team.players || []).slice(0, 5);
+    list.forEach((k, i) => {
+      const p = ps[i];
+      k.el.classList.toggle("hidden", !p); if (!p) return;
+      const dead = !p.isAlive;
+      k.el.classList.toggle("dead", dead);
+      k.el.classList.toggle("obs", !!p.isObserved && !dead);
+      k.el.classList.toggle("spike", !!p.hasSpike && !dead);
+      setHTML(k.face, faceHTML(p.agentInternal), "f" + p.agentInternal);
+      const nm = p.name || p.fullName || "";
+      setText(k.name, nm); setText(k.dn, nm);
+      const kda = `${p.kills ?? 0}/${p.deaths ?? 0}/${p.assists ?? 0}`;
+      setText(k.kda, kda); setText(k.dk, kda);
+      setHTML(k.dc, s === "l" ? `${CREDIT}<span>${money(p.money)}</span>` : `${CREDIT}<span>${money(p.money)}</span>`, "c" + p.money);
+      setText(k.sh, shieldNum(p.armorName));
+      const hasHp = !p.auxiliaryAvailable || p.auxiliaryAvailable.health !== false;
+      const hp = dead ? 0 : hasHp ? Math.max(0, Math.min(100, p.health ?? 100)) : 100;
+      setText(k.hpn, hp);
+      const tf = `scaleX(${(hp / 100).toFixed(3)})`; if (k.hpb.style.transform !== tf) k.hpb.style.transform = tf;
+      const ab = p.abilities || {};
+      const known = !p.auxiliaryAvailable || p.auxiliaryAvailable.abilities !== false;
+      setHTML(k.ab, abilsHTML(p.agentInternal, ab, known), [p.agentInternal, known, ab.grenade, ab.ability1, ab.ability2].join());
+      setHTML(k.ult, ultHTML(p.agentInternal, p.currUltPoints || 0, p.maxUltPoints || 0, !!p.ultReady, s), [p.agentInternal, p.currUltPoints, p.maxUltPoints, p.ultReady].join());
+      setHTML(k.wp, weaponHTML(p.highestWeapon), "w" + p.highestWeapon);
+      setHTML(k.spk, SPIKE_HTML);
+    });
+  }
+
+  function renderRows(list, team, s) {
+    const ps = (team.players || []).slice(0, 5);
+    list.forEach((k, i) => {
+      const p = ps[i];
+      k.el.classList.toggle("hidden", !p); if (!p) return;
+      setText(k.sp, "-" + money(p.moneySpent || 0));
+      setHTML(k.cv, CREDIT);
+      setText(k.cr, money(p.money));
+      fitText(k.mw, s === "l" ? 166 : 160);
+      const ab = p.abilities || {};
+      const known = !p.auxiliaryAvailable || p.auxiliaryAvailable.abilities !== false;
+      setHTML(k.ab, abilsHTML(p.agentInternal, ab, known), [p.agentInternal, known, ab.grenade, ab.ability1, ab.ability2].join());
+      setHTML(k.ult, ultHTML(p.agentInternal, p.currUltPoints || 0, p.maxUltPoints || 0, !!p.ultReady, s), [p.agentInternal, p.currUltPoints, p.maxUltPoints, p.ultReady].join());
+      const sh = SHIELD_IMG[p.armorName] ? img(A("Escudos/" + SHIELD_IMG[p.armorName]), "shi", p.armorName, `<span class="wtx">${shieldNum(p.armorName)}</span>`) : "";
+      // esquerda: [escudo] arma; direita: arma [escudo] — como no frame 00:02
+      // centros medidos no frame 00:02 — esquerda: escudo x 388, arma x 446; direita: arma x 496, escudo x 554 (relativos à tabela)
+      const wx = s === "l" ? 446 - 361 : 496 - 353, sx = s === "l" ? 388 - 361 : 554 - 353;
+      setHTML(k.wc, `<span class="ws" style="left:${wx - 60}px">${weaponHTML(p.highestWeapon)}</span><span class="ss" style="left:${sx - 15}px">${sh}</span>`, [p.highestWeapon, p.armorName].join());
+      setHTML(k.face, faceHTML(p.agentInternal), "f" + p.agentInternal);
+      setText(k.nm, p.name || p.fullName || "");
+      setHTML(k.kd, `${p.kills ?? 0}<i>/</i>${p.deaths ?? 0}<i>/</i>${p.assists ?? 0}`, [p.kills, p.deaths, p.assists].join());
+    });
+  }
+
+  // indicadores de rodada: janela da metade atual (1–12, 13–24, prorrogação)
+  function renderHistory(d, TL, TR) {
+    const cur = d.roundNumber || 1, sw = d.switchRound || 13;
+    const half = sw - 1;
+    const start = cur <= half ? 1 : cur <= half * 2 ? sw : Math.max(half * 2 + 1, cur - 11);
+    const recL = {}, recR = {};
+    (TL.roundRecord || []).forEach((r) => (recL[r.round] = r));
+    (TR.roundRecord || []).forEach((r) => (recR[r.round] = r));
+    const key = [start, cur, (TL.roundRecord || []).length, (TR.roundRecord || []).length].join();
+    const h = $("hist");
+    if (h._k === key) return;
+    h._k = key;
+    let html = "";
+    for (let j = 0; j < 12; j++) {
+      const n = start + j, x = 0 + j * 51;
+      const wl = recL[n] && recL[n].type && recL[n].type !== "lost";
+      const wr = recR[n] && recR[n].type && recR[n].type !== "lost";
+      html += `<div class="rn${wl ? " wl" : wr ? " wr" : ""}" style="left:${x}px">${String(n).padStart(2, "0")}</div>`;
+      if (n === cur) html += `<i class="mk t" style="left:${x + 19}px"></i><i class="mk b" style="left:${x + 19}px"></i>`;
+    }
+    if (start === 1) html += `<div class="sw">${SWAP_SVG}</div>`;
+    html += `<i class="dot"></i>`;
+    h.innerHTML = html;
+  }
+
+  // painel de estatísticas (alterna com a publicidade na compra)
+  function renderStats(d, TL, TR, tri) {
+    const rate = (t) => {
+      const side = !!t.isAttacking;
+      const recs = (t.roundRecord || []).filter((r) => !!r.wasAttack === side && r.type);
+      const w = recs.filter((r) => r.type !== "lost").length;
+      return { side, txt: recs.length ? Math.round((w / recs.length) * 100) : null };
+    };
+    [[TL, "l", 0], [TR, "r", 1]].forEach(([t, s, i]) => {
+      const r = rate(t);
+      setText($("st-k-" + s), r.side ? L10N.att : L10N.def);
+      setHTML($("st-v-" + s), r.txt == null ? "--<small>%</small>" : `${r.txt}<small>%</small>`);
+      setSrc($("st-logo-" + s), (MODE === "live" && t.teamUrl) || A(`Logos/logo${i + 1}.png`));
+    });
+    setText($("st-t"), L10N.rate);
+    setText($("st-m"), mapLabel(d.map));
+    const art = d.map ? `url("${A("Maps/" + mapName(d.map) + ".png")}")` : "none";
+    const mid = $("st-mid"); if (mid._k !== art) { mid._k = art; mid.style.backgroundImage = art; }
+  }
+
+  function renderCam(d, phase) {
+    const cam = $("cam");
+    let who = null, wi = 0;
+    d.teams.forEach((t, i) => (t.players || []).forEach((p) => { if (p.isObserved && p.isAlive) { who = p; wi = i; } }));
+    const on = CONFIG.camera && phase === "combat" && !!who;
+    cam.classList.toggle("hidden", !on);
+    if (!on) return;
+    cam.classList.toggle("l", wi === 0); cam.classList.toggle("r", wi === 1);
+    setText($("cam-n"), who.name || "");
+    setText($("cam-kda"), `${who.kills ?? 0}/${who.deaths ?? 0}/${who.assists ?? 0}`);
+    const k = who.killsThisRound || 0;
+    $("cam-k").classList.toggle("on", k > 0);
+    setText($("cam-kn"), k);
+  }
+
+  // ---------- publicidade e patrocínio ----------
+  const probe = (src, ms = 2500) => new Promise((ok) => { const im = new Image(); const t = setTimeout(() => ok(false), ms); im.onload = () => { clearTimeout(t); ok(true); }; im.onerror = () => { clearTimeout(t); ok(false); }; im.src = src; });
+  async function listImages(prefix, max = 12) { const out = []; for (let i = 1; i <= max; i++) { const s = A(`${prefix}${i}.png`); if (await probe(s, 1500)) out.push(s); else break; } return out; }
+  function rotate(imgA, imgB, list, secs) {
+    if (!list.length) return;
+    let n = 0, front = imgA, back = imgB;
+    front.src = list[0]; front.style.opacity = "1";
+    if (list.length < 2) return;
+    setInterval(() => {
+      n = (n + 1) % list.length;
+      back.src = list[n];
+      back.style.opacity = "1"; front.style.opacity = "0";
+      [front, back] = [back, front];
+    }, secs * 1000);
+  }
+  async function startMedia(d0) {
+    // bloco do evento: Sponsors/SponsorN.png (ou os patrocinadores configurados no capturador)
+    const si = d0 && d0.tools && d0.tools.sponsorInfo;
+    const remote = si && si.enabled && Array.isArray(si.sponsors) ? si.sponsors.filter(Boolean) : [];
+    const list = remote.length ? remote : await listImages("Sponsors/Sponsor");
+    rotate($("brand-a"), $("brand-b"), list, (si && si.duration) || CONFIG.trocaPatrocinio);
+    // faixa da compra: Logos/bannerN.png, alternando com o painel de estatísticas
+    const banners = await listImages("Logos/banner", 6);
+    const ad = $("ad"), st = $("stat"), adImg = $("ad-img");
+    let showAd = banners.length > 0, bi = 0;
+    if (banners.length) adImg.src = banners[0];
+    const apply = () => { ad.style.opacity = showAd ? "1" : "0"; st.style.opacity = showAd ? "0" : "1"; };
+    apply();
+    setInterval(() => {
+      if (!stage.classList.contains("shop")) return;
+      if (!banners.length) { showAd = false; apply(); return; }
+      showAd = !showAd;
+      if (showAd) { bi = (bi + 1) % banners.length; adImg.src = banners[bi]; }
+      apply();
+    }, CONFIG.trocaPublicidade * 1000);
+  }
+
+  // ---------- fontes e imagens fixas da pasta Resources ----------
+  async function loadResources() {
+    const fonts = [["HUDGridnik", "FoundryGridnik-Regular.otf", "400"], ["HUDGridnik", "FoundryGridnik-Bold.otf", "700"], ["HUDGridnik", "FoundryGridnik-ExtraBold.otf", "800"], ["HUDTungsten", "Tungsten-Bold.ttf", "400"]];
+    await Promise.all(fonts.map(async ([fam, file, w]) => { try { const f = new FontFace(fam, `url("${A(file)}")`, { weight: w }); document.fonts.add(await f.load()); } catch (e) { if (DEBUG) console.warn("fonte não carregou:", file); } }));
+    if (await probe(A("spike.png"), 1500)) {
+      stage.style.setProperty("--spike-mask", `url("${A("spike.png")}")`);
+      $("spk").innerHTML = "<i></i>";
+      SPIKE_HTML = "<i></i>";
+    }
+    if (await probe(A("Escudos/CV.png"), 1500)) CREDIT = `<img class="cv" src="${A("Escudos/CV.png")}" alt="">`;
+  }
+
+  // ---------- partida real ----------
+  const status = $("status");
+  const show = (m) => { if (DEBUG) { status.classList.toggle("hidden", !m); status.textContent = m || ""; } };
+  const ready = loadResources();
+
+  if (MODE === "live") {
+    let data = null, media = false;
+    ready.then(() => {
+      if (typeof io === "undefined") { show("socket.io não carregou (sem internet no PC do OBS?)"); return; }
+      const socket = io(SERVER, { reconnection: true });
+      const logon = () => socket.emit("logon", JSON.stringify({ groupCode }));
+      show("Conectando a " + SERVER + "…");
+      socket.on("connect", logon);
+      socket.on("logon_success", () => show(""));
+      socket.on("logon_failed", () => show("Código não aceito pelo servidor: " + groupCode));
+      socket.on("connect_error", () => show("Sem conexão com " + SERVER));
+      socket.on("match_data", (raw) => {
+        try { data = typeof raw === "string" ? JSON.parse(raw) : raw; } catch (e) { return; }
+        if (!media) { media = true; startMedia(data); }
+      });
+      setInterval(() => { if (data) render(data, performance.now() / 1000); }, 100);
+    });
+    return;
+  }
+
+  // ---------- prévia com dados simulados (só sem groupCode) ----------
+  if (!CLEAN) $("demo-tag").classList.remove("hidden");
+  const ROSTERS = window.HUD_FIXTURE || [
+    { teamName: "Jangada Esports", teamTricode: "JGD", players: [["kaiaque", "Jett"], ["mareh", "Omen"], ["tucunare", "Sova"], ["ventosul", "Killjoy"], ["cajuzin", "Breach"]] },
+    { teamName: "Caatinga Club", teamTricode: "CTG", players: [["xique", "Raze"], ["mandacaru", "Viper"], ["lampiao", "Fade"], ["seriema", "Cypher"], ["aboio", "Astra"]] },
+  ];
+  const internalOf = (n) => Object.keys(AGENTS).find((k) => AGENTS[k] === n) || n;
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  function newMatch() {
+    return {
+      groupCode: "DEMO", roundNumber: 1, roundPhase: "shopping", map: (window.HUD_FIXTURE_MAP || "Ascent"), attackersWon: false, switchRound: 13, firstOtRound: 25,
+      spikeState: { planted: false, defused: false, detonated: false },
+      timeoutState: { techPause: false, leftTeam: false, rightTeam: false, timeRemaining: 0 },
+      tools: { seriesInfo: { needed: 2, wonLeft: 0, wonRight: 0, mapInfo: [{ type: "present", map: "Ascent" }, { type: "future", map: "Juliett" }, { type: "future", map: "Ascent" }] }, tournamentInfo: { name: window.HUD_FIXTURE_STAGE || "Prévia" }, timeoutCounter: { max: 2, left: 2, right: 2 } },
+      teams: ROSTERS.map((t, ti) => ({
+        teamName: t.teamName, teamTricode: t.teamTricode, teamUrl: "", isAttacking: ti === 1, roundsWon: 0, roundRecord: [],
+        players: t.players.map(([name, agent], pi) => ({
+          name, playerId: ti * 5 + pi, isAlive: true, agentInternal: internalOf(agent), armorName: "None", money: 800, moneySpent: 0,
+          highestWeapon: "Classic", currUltPoints: 0, maxUltPoints: 7, ultReady: false, hasSpike: false,
+          auxiliaryAvailable: { health: true, abilities: true, scoreboard: true },
+          kills: 0, deaths: 0, assists: 0, killsThisRound: 0, health: 100, isObserved: false, abilities: { grenade: 1, ability1: 1, ability2: 0 },
+        })),
+      })),
+    };
+  }
+  const sim = { d: newMatch(), t: 0, at: 0, nextEvent: 0, plantAt: 0, nextObs: 0, plan: [] };
+  function startShopping() {
+    const d = sim.d; d.roundPhase = "shopping"; sim.at = sim.t; sim.plan = [];
+    d.spikeState = { planted: false, defused: false, detonated: false };
+    d.teams.forEach((t) => t.players.forEach((p) => {
+      p.isAlive = true; p.health = 100; p.killsThisRound = 0; p.moneySpent = 0; p.isObserved = false; p.hasSpike = false;
+      p.abilities = { grenade: 1, ability1: 1, ability2: 0 };
+      let w = p.highestWeapon, a = p.armorName;
+      if (p.money >= 3900) { w = pick(["Vandal", "Phantom"]); a = "Heavy"; } else if (p.money >= 2400) { w = pick(["Spectre", "Bulldog"]); a = "Light"; } else if (p.money >= 1100 && w === "Classic") { w = pick(["Sheriff", "Ghost"]); }
+      const cost = Math.min(p.money, (w !== p.highestWeapon ? COST[w] : 0) + (a !== p.armorName ? COST[a] || 0 : 0) + 200);
+      sim.plan.push({ p, cost, w, a, at: rnd(2, 14) });
+    }));
+    const att = d.teams.find((t) => t.isAttacking); pick(att.players).hasSpike = true;
+  }
+  const buy = (b) => { if (b.done) return; b.done = true; b.p.money -= b.cost; b.p.moneySpent += b.cost; b.p.highestWeapon = b.w; b.p.armorName = b.a; b.p.abilities = { grenade: 1, ability1: 2, ability2: 1 }; };
+  function startCombat() { sim.plan.forEach(buy); sim.plan = []; sim.d.roundPhase = "combat"; sim.at = sim.t; sim.nextEvent = sim.t + rnd(6, 12); sim.plantAt = sim.t + rnd(35, 60); sim.nextObs = sim.t; }
+  function endRound(attWon, reason) {
+    const d = sim.d; if (d.roundPhase === "end") return;
+    d.roundPhase = "end"; sim.at = sim.t; d.attackersWon = attWon;
+    d.teams.forEach((t) => {
+      const won = t.isAttacking === attWon; if (won) t.roundsWon++;
+      t.roundRecord.push({ type: won ? reason : "lost", wasAttack: t.isAttacking, round: d.roundNumber });
+      t.players.forEach((p) => { p.money = Math.min(9000, p.money + (won ? 3000 : 1900) + p.killsThisRound * 200); if (!p.isAlive) { p.highestWeapon = "Classic"; p.armorName = "None"; } p.isObserved = false; });
+    });
+  }
+  function nextRound() { const d = sim.d; if (d.teams.some((t) => t.roundsWon >= 13)) { sim.d = newMatch(); startShopping(); return; } d.roundNumber++; if (d.roundNumber === d.switchRound) d.teams.forEach((t) => (t.isAttacking = !t.isAttacking)); startShopping(); }
+  function fight() {
+    const [X, Y] = sim.d.teams, alive = (t) => t.players.filter((p) => p.isAlive);
+    if (!alive(X).length || !alive(Y).length) return;
+    const st = Math.random() < 0.5 ? X : Y, tt = st === X ? Y : X, s = pick(alive(st)), v = pick(alive(tt));
+    if (Math.random() < 0.5) { const k = pick(["grenade", "ability1", "ability2"]); s.abilities[k] = Math.max(0, s.abilities[k] - 1); }
+    v.health = Math.max(0, v.health - (Math.random() < 0.55 ? 999 : Math.round(rnd(15, 70))));
+    if (!v.health) {
+      v.isAlive = false; v.deaths++; s.kills++; s.killsThisRound++;
+      if (v.hasSpike) v.hasSpike = false;
+      const h = alive(st).find((p) => p !== s); if (h && Math.random() < 0.4) h.assists++;
+      s.currUltPoints = Math.min(s.maxUltPoints, s.currUltPoints + 1); s.ultReady = s.currUltPoints >= s.maxUltPoints;
+      if (v.isObserved) sim.nextObs = sim.t;
+    }
+  }
+  function step(dt) {
+    const d = sim.d; sim.t += dt; const el = sim.t - sim.at;
+    if (d.roundPhase === "shopping") { sim.plan.forEach((b) => { if (el >= b.at) buy(b); }); if (el >= CONFIG.duracao.compra) startCombat(); }
+    else if (d.roundPhase === "combat") {
+      const att = d.teams.find((t) => t.isAttacking), def = d.teams.find((t) => !t.isAttacking);
+      const aA = att.players.some((p) => p.isAlive), dA = def.players.some((p) => p.isAlive);
+      if (sim.t >= sim.nextObs) { d.teams.forEach((t) => t.players.forEach((p) => (p.isObserved = false))); const c = d.teams.flatMap((t) => t.players.filter((p) => p.isAlive)); if (c.length) pick(c).isObserved = true; sim.nextObs = sim.t + rnd(6, 11); }
+      if (sim.t >= sim.nextEvent) { fight(); sim.nextEvent = sim.t + rnd(3, 8); }
+      if (!d.spikeState.planted && sim.t >= sim.plantAt && aA) { d.spikeState.planted = true; sim.plantAt = sim.t; att.players.forEach((p) => (p.hasSpike = false)); }
+      if (d.spikeState.planted) { if (sim.t - sim.plantAt >= CONFIG.duracao.spike) { d.spikeState.detonated = true; endRound(true, "detonated"); } else if (!dA) endRound(true, "kills"); else if (!aA && sim.t - sim.plantAt > 8) { d.spikeState.defused = true; endRound(false, "defused"); } }
+      else if (!aA) endRound(false, "kills"); else if (!dA) endRound(true, "kills"); else if (el >= CONFIG.duracao.combate) endRound(false, "timeout");
+    } else if (d.roundPhase === "end" && el >= 6) nextRound();
+  }
+  startShopping();
+  // ?state=buy|combat|plant|dead congela a prévia num momento (para comparar com a referência)
+  const freeze = params.get("state");
+  if (freeze) {
+    const d = sim.d;
+    if (freeze !== "buy") startCombat();
+    if (freeze === "dead" || freeze === "plant") {
+      const [X, Y] = d.teams;
+      [X.players[0], X.players[2], X.players[4]].forEach((p) => { p.isAlive = false; p.deaths = 1; p.health = 0; });
+      Y.players[1].kills = 1; Y.players[3].kills = 1; Y.players[4].kills = 1; Y.players[0].assists = 1; Y.players[3].killsThisRound = 1; Y.players[1].health = 70;
+      if (freeze === "plant") d.spikeState.planted = true;
+      d.teams.forEach((t) => t.players.forEach((p) => (p.isObserved = false))); Y.players[3].isObserved = true;
+    } else if (freeze === "combat") d.teams[0].players[4].isObserved = true;
+    if (window.HUD_FIXTURE_PATCH) window.HUD_FIXTURE_PATCH(d);
+  }
+  let last = performance.now();
+  const frozenT = Number(params.get("t")) || 0; // segundos decorridos na fase congelada
+  ready.then(() => {
+    startMedia(sim.d);
+    if (freeze) render(sim.d, 0);
+    (function frame(ts) {
+      const dt = Math.min(0.25, (ts - last) / 1000); last = ts;
+      if (!freeze) step(dt * (Number(params.get("speed")) || 1));
+      render(sim.d, freeze ? frozenT : sim.t);
+      requestAnimationFrame(frame);
+    })(last);
+  });
+})();
+</script>
+</body>
+</html>
