@@ -559,6 +559,7 @@ body.wait .connecting { display: inline; }
     camOn: false, camId: "", camS: "", camTri: true, tray: true, boot: false, min: false,
   };
   const S = Object.assign(structuredClone(DEF), store.get());
+  S.maps.forEach((m) => { if (m.type === "off") m.type = "disabled"; });
   const KEYNAMES = { leftTimeout: "Pausa tática da esquerda", rightTimeout: "Pausa tática da direita", techPause: "Pausa técnica", spikePlanted: "Spike plantada", switchKdaCredits: "Trocar K/D/A e créditos", showToast: "Mostrar a mensagem" };
 
   // ---------- campos simples ----------
@@ -597,14 +598,14 @@ body.wait .connecting { display: inline; }
   });
 
   // ---------- mapas da série ----------
-  const TYPES = [["past", "Já jogado"], ["present", "Atual"], ["future", "Próximo"], ["off", "Não mostrar"]];
+  const TYPES = [["past", "Já jogado"], ["present", "Atual"], ["future", "Próximo"], ["disabled", "Não mostrar"]];
   function renderMaps() {
     const box = $("maps");
     const n = S.fmt * 2 - 1;
     while (S.maps.length < n) S.maps.push({ type: "future", map: MAPS[S.maps.length % MAPS.length], pick: S.maps.length === n - 1 ? "dec" : (S.maps.length % 2 ? "r" : "l"), sl: "", sr: "" });
     S.maps.forEach((m, i) => { if (i === n - 1 && n > 1) m.pick = "dec"; else if (m.pick === "dec") m.pick = i % 2 ? "r" : "l"; });
     box.innerHTML = S.maps.slice(0, n).map((m, i) => `
-      <div class="map${m.type === "off" ? " off" : ""}" data-i="${i}">
+      <div class="map${m.type === "disabled" || m.type === "off" ? " off" : ""}" data-i="${i}">
         <div class="art" style="background-image:url('Resources/Maps/${esc(m.map)}.png')"><b>${esc(m.map || "Mapa")}</b><em>${TYPES.find((t) => t[0] === m.type)[1]}</em></div>
         <div class="body">
           <div class="f keep"><label for="mt-${i}">Situação</label><select id="mt-${i}" data-m="type">${TYPES.map(([v, t]) => `<option value="${v}"${m.type === v ? " selected" : ""}>${t}</option>`).join("")}</select></div>
@@ -771,7 +772,7 @@ body.wait .connecting { display: inline; }
   }
   const logoUrl = (u) => (u && /^(https?:|data:)/i.test(u) ? u : u || "");
   function hudSrc() {
-    const mp = S.maps.slice(0, S.fmt * 2 - 1).filter((m) => m.type !== "off").map((m) => m.type + ":" + m.map).join(",");
+    const mp = S.maps.slice(0, S.fmt * 2 - 1).filter((m) => m.type !== "off" && m.type !== "disabled").map((m) => m.type + ":" + m.map).join(",");
     const q = new URLSearchParams({ demo: "", clean: "", need: S.serOn ? S.fmt : 0, wl: S.wonL || 0, wr: S.wonR || 0, maps: mp, ln: S.lName, lt: S.lTri, lg: logoUrl(S.lLogo), rn: S.rName, rt: S.rTri, rg: logoUrl(S.rLogo), att: L.lAtt ? "l" : "r", stage: S.stage || "", map: (S.maps.find((m) => m.type === "present") || {}).map || "" });
     return "vctcn.html?" + q.toString();
   }
@@ -786,18 +787,25 @@ body.wait .connecting { display: inline; }
     log(`Conectado a ${esc(S.srvMode === "local" ? "este PC" : S.srv)} com o código <b>${esc(S.code)}</b>`);
     paintScore();
     const players = ["Ezeir", "cb", "qiutiaN", "Dynamite", "ra1ny", "Coco"];
+    // placar, rodada e tempo vêm da própria HUD (ela avisa por postMessage), então os números sempre batem
     tick = setInterval(() => {
-      L.t--;
-      if (L.t < 0) {
-        if (L.phase === "compra") { L.phase = "combate"; L.t = 100; log(`Rodada ${L.round}: combate`); }
-        else { const w = Math.random() < .5; w ? L.sl++ : L.sr++; log(`<b>${esc(w ? S.lTri : S.rTri)}</b> venceu a rodada ${L.round}`); L.round++; L.phase = "compra"; L.t = 30; if (L.round === 13) { L.lAtt = !L.lAtt; log("Troca de lado"); } }
-      }
-      if (L.t % 7 === 0 && L.phase === "combate") { L.obs = players[Math.floor(Math.random() * players.length)]; $("f-obs").textContent = L.obs; }
+      if (L.phase === "combate" && Math.random() < 0.15) { L.obs = players[Math.floor(Math.random() * players.length)]; $("f-obs").textContent = L.obs; }
       $("f-rate").textContent = (9 + Math.round(Math.random() * 2)) + " por segundo";
       $("f-age").textContent = "agora";
-      paintScore();
     }, 1000);
   }
+  const PHASES = { shopping: "compra", combat: "combate", end: "fim da rodada", game_end: "fim do mapa", LOBBY: "seleção de agentes" };
+  window.addEventListener("message", (e) => {
+    const m = e.data; if (!m || m.hud !== "vctcn" || !document.body.classList.contains("on")) return;
+    const ph = PHASES[m.phase] || m.phase;
+    if (m.sl > L.sl) log(`<b>${esc(S.lTri)}</b> venceu a rodada ${m.sr + m.sl}`);
+    if (m.sr > L.sr) log(`<b>${esc(S.rTri)}</b> venceu a rodada ${m.sr + m.sl}`);
+    if (m.round !== L.round && m.lAtt !== L.lAtt && m.round > 1) log("Troca de lado");
+    if (ph !== L.phase && m.phase === "combat") log(`Rodada ${m.round}: combate`);
+    L.round = m.round; L.phase = ph; L.sl = m.sl; L.sr = m.sr; L.lAtt = m.lAtt; L.t = m.t;
+    if (m.phase !== "combat") { L.obs = ""; $("f-obs").textContent = "—"; }
+    paintScore();
+  });
   function stopLive() { clearInterval(tick); $("hud").src = "about:blank"; log("Desconectado"); }
 
   // ações ao vivo (mesmos atalhos)

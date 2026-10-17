@@ -99,6 +99,20 @@ img { display: block; }
 .bug.planted .time { opacity: 0; }
 .bug.planted .spk { opacity: 1; }
 .bug.paused .time { font-size: 30px; top: 34px; }
+.bug .seed { position: absolute; top: 48px; width: 120px; font: 700 11px/1 var(--f-num); letter-spacing: 1px; color: rgba(255,255,255,.8); white-space: nowrap; }
+.bug .seed.l { left: 640px; text-align: left; }
+.bug .seed.r { left: 1160px; text-align: right; }
+.toast { left: 510px; top: 104px; width: 900px; height: 104px; display: flex; align-items: center; gap: 26px; padding: 0 34px; background: rgba(6, 12, 18, 0.92); border-left: 4px solid var(--l-hi); border-right: 4px solid var(--r-hi); opacity: 0; transform: translateY(-10px); transition: opacity var(--t-mid), transform var(--t-mid); pointer-events: none; }
+.toast.on { opacity: 1; transform: none; }
+.toast.t-l { border-right-color: var(--l-hi); }
+.toast.t-r { border-left-color: var(--r-hi); }
+.toast img { width: 76px; height: 64px; object-fit: contain; flex: none; }
+.toast img[hidden] { display: none; }
+.toast .tx { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.toast b { font: 800 26px/1 var(--f-num); color: #fff; text-transform: uppercase; letter-spacing: .5px; }
+.toast span { font: 400 19px/1.25 var(--f-num); color: #dfe6ea; }
+.toast b:empty { display: none; }
+.stage.lobby .combat, .stage.lobby .buy { display: none; }
 .pip { fill: rgba(10, 16, 24, 0.55); stroke: #f2f5f7; stroke-width: 1.4; }
 .pip.won.l { fill: var(--l-hi); stroke: var(--l-hi); }
 .pip.won.r { fill: var(--r-hi); stroke: var(--r-hi); }
@@ -122,9 +136,10 @@ img { display: block; }
 .pc .name { position: absolute; top: 15px; max-width: 120px; font: 700 14px/1 var(--f-num); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cards.l .pc .name { left: 81px; }
 .cards.r .pc .name { right: 81px; text-align: right; }
-.pc .kda { position: absolute; top: 15px; font: 700 15px/1 var(--f-num); color: var(--ink); letter-spacing: 0.4px; }
+.pc .kda { white-space: nowrap; position: absolute; top: 15px; font: 700 15px/1 var(--f-num); color: var(--ink); letter-spacing: 0.4px; }
 .cards.l .pc .kda { right: 14px; }
 .cards.r .pc .kda { left: 14px; }
+.pc .kda .cv { display: inline-block; height: 13px; width: 13px; margin-right: 4px; vertical-align: -1px; }
 .pc .shd { position: absolute; top: 33px; width: 18px; height: 21px; }
 .pc .shd svg { width: 100%; height: 100%; }
 .pc .shd b { position: absolute; inset: 0; display: grid; place-items: center; padding-bottom: 2px; font: 700 9px/1 var(--f-num); color: #fff; }
@@ -407,6 +422,7 @@ img { display: block; }
   const CREDIT_SVG = '<svg class="cv" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3l10 10M13 3 3 13"/><circle cx="8" cy="8" r="3.4" fill="#0b1219"/></svg>';
   const SHIELD_SVG = '<svg viewBox="0 0 17 19"><path d="M8.5 0.5 16 3.4v6.1c0 4.2-3.1 7.4-7.5 9-4.4-1.6-7.5-4.8-7.5-9V3.4z" fill="#030405"/></svg>';
   const SWAP_SVG = '<svg viewBox="0 0 22 30"><path d="M1 2h11L6.5 11z" fill="#fff"/><path d="M10 28h11l-5.5-9z" fill="#fff"/></svg>';
+  const WIN_TYPES = { kills: 1, defused: 1, detonated: 1, timeout: 1 };
   const REASON_SVG = {
     kills: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="12" cy="12" r="7.2"/><path d="M8.6 8.6l6.8 6.8M15.4 8.6l-6.8 6.8M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg>',
     defused: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.2 3.5 12 10.5 13.8 3.5"/><path d="M12 10.5 7 21M12 10.5 17 21"/><circle cx="12" cy="11.5" r="1.4" fill="#fff"/></svg>',
@@ -450,7 +466,9 @@ img { display: block; }
       <div class="sc r" id="sc-r">0</div>
       <div class="tn r" id="tn-r"></div>
       <img class="logo r" id="logo-r" alt="">
+      <div class="seed l" id="seed-l"></div><div class="seed r" id="seed-r"></div>
     </div>
+    <div class="abs toast" id="toast"><img id="toast-logo" alt=""><div class="tx"><b id="toast-t"></b><span id="toast-m"></span></div></div>
 
     <div class="abs cards l combat" id="cards-l"></div>
     <div class="abs cards r combat" id="cards-r"></div>
@@ -621,6 +639,10 @@ img { display: block; }
     if (planted && clock.spikeAt == null) clock.spikeAt = now;
     if (!planted) clock.spikeAt = null;
     stage.classList.toggle("shop", phase === "shopping");
+    stage.classList.toggle("lobby", phase === "LOBBY");
+    overrides(d);
+    SHOW_CREDITS = !!d.showAliveKDA;
+    renderToast(d, phase);
     stage.classList.toggle("l-att", !!(CONFIG.corPorLado && d.teams[0].isAttacking));
 
     // cronômetro: o servidor não manda o tempo; conta a partir da mudança de fase
@@ -635,6 +657,11 @@ img { display: block; }
     setText($("time"), paused ? (ts.techPause ? L10N.tech : L10N.pause) : phase === "shopping" || phase === "combat" ? fmtTime(rem) : "0:00");
     fitText($("time"), 150);
     setText($("rnd"), L10N.round + (d.roundNumber || 1));
+    // dentro da prévia do capturador: avisa a janela de fora como está a partida, para os números baterem
+    if (window.parent !== window && now - (render._post || -9) > 0.3) {
+      render._post = now;
+      try { window.parent.postMessage({ hud: "vctcn", round: d.roundNumber || 1, phase, sl: d.teams[0].roundsWon || 0, sr: d.teams[1].roundsWon || 0, lAtt: !!d.teams[0].isAttacking, t: Math.max(0, Math.ceil(rem)), paused }, "*"); } catch (e) { /* sem janela de fora */ }
+    }
 
     const tools = d.tools || {};
     const series = tools.seriesInfo || {};
@@ -685,11 +712,24 @@ img { display: block; }
         art.src = A(`Logos/skin${i + 1}.png`);
       }
     });
+    const seed = (tools.seedingInfo) || {};
+    setText($("seed-l"), (seed.left || "").toUpperCase()); setText($("seed-r"), (seed.right || "").toUpperCase());
     renderHistory(d, TL, TR);
     renderStats(d, TL, TR, tri);
     renderCam(d, phase);
   }
 
+  let OVR = { raw: null, map: new Map() };
+  function overrides(d) {
+    const raw = d.tools && d.tools.nameOverrides && d.tools.nameOverrides.overrides;
+    if (raw === OVR.raw) return OVR.map;
+    let m = new Map();
+    try { const arr = typeof raw === "string" ? JSON.parse(raw) : raw; if (Array.isArray(arr)) m = new Map(arr.filter((x) => Array.isArray(x) && x.length >= 2)); } catch (e) { /* formato desconhecido */ }
+    OVR = { raw, map: m };
+    return m;
+  }
+  const shownName = (p) => OVR.map.get(p.fullName) || OVR.map.get(p.name) || p.name || p.fullName || "";
+  let SHOW_CREDITS = false;
   function renderCards(list, team, s, phase) {
     const ps = (team.players || []).slice(0, 5);
     list.forEach((k, i) => {
@@ -700,10 +740,11 @@ img { display: block; }
       k.el.classList.toggle("obs", !!p.isObserved && !dead);
       k.el.classList.toggle("spike", !!p.hasSpike && !dead);
       setHTML(k.face, faceHTML(p.agentInternal), "f" + p.agentInternal);
-      const nm = p.name || p.fullName || "";
+      const nm = shownName(p);
       setText(k.name, nm); setText(k.dn, nm);
       const kda = `${p.kills ?? 0}/${p.deaths ?? 0}/${p.assists ?? 0}`;
-      setText(k.kda, kda); setText(k.dk, kda);
+      // atalho "Trocar K/D/A e créditos" do capturador: o canto do cartão vivo alterna entre os dois
+      if (SHOW_CREDITS) setHTML(k.kda, `${CREDIT}<span>${money(p.money)}</span>`, "c" + p.money); else setHTML(k.kda, esc(kda), "k" + kda); setText(k.dk, kda);
       setHTML(k.dc, s === "l" ? `${CREDIT}<span>${money(p.money)}</span>` : `${CREDIT}<span>${money(p.money)}</span>`, "c" + p.money);
       setText(k.sh, shieldNum(p.armorName));
       const hasHp = !p.auxiliaryAvailable || p.auxiliaryAvailable.health !== false;
@@ -738,7 +779,7 @@ img { display: block; }
       const wx = s === "l" ? 446 - 361 : 496 - 353, sx = s === "l" ? 388 - 361 : 554 - 353;
       setHTML(k.wc, `<span class="ws" style="left:${wx - 60}px">${weaponHTML(p.highestWeapon)}</span><span class="ss" style="left:${sx - 15}px">${sh}</span>`, [p.highestWeapon, p.armorName].join());
       setHTML(k.face, faceHTML(p.agentInternal), "f" + p.agentInternal);
-      setText(k.nm, p.name || p.fullName || "");
+      setText(k.nm, shownName(p));
       setHTML(k.kd, `${p.kills ?? 0}<i>/</i>${p.deaths ?? 0}<i>/</i>${p.assists ?? 0}`, [p.kills, p.deaths, p.assists].join());
     });
   }
@@ -776,7 +817,7 @@ img { display: block; }
       if (c === cur) { html += `<div class="hn" style="left:${x}px">${nn(c)}</div><i class="mk t" style="left:${x + 19}px"></i><i class="mk b" style="left:${x + 19}px"></i>`; return; }
       if (c > cur) { html += `<div class="hn" style="left:${x}px">${nn(c)}</div>`; return; }
       const rl = recL[c], rr = recR[c];
-      const winL = rl && rl.type && rl.type !== "lost", winR = rr && rr.type && rr.type !== "lost";
+      const winL = !!(rl && WIN_TYPES[rl.type]), winR = !!(rr && WIN_TYPES[rr.type]);
       if (!winL && !winR) { html += `<div class="hn old" style="left:${x}px">${nn(c)}</div>`; return; }
       const rec = winL ? rl : rr, side = rec.wasAttack ? "att" : "def", icon = REASON_SVG[rec.type] || REASON_SVG.kills;
       const win = `<div class="hc ${winL ? "t" : "b"} ${side}" style="left:${x}px" title="${esc(rec.type)}">${icon}</div>`;
@@ -786,12 +827,26 @@ img { display: block; }
     h.innerHTML = html;
   }
 
+  // mensagem na tela (toastInfo do capturador); como no Spectra, só aparece na compra
+  function renderToast(d, phase) {
+    const ti = d.toastInfo || {}, el = $("toast");
+    const on = !!ti.active && phase === "shopping" && !!(ti.title || ti.message);
+    el.classList.toggle("on", on);
+    if (!on) return;
+    setText($("toast-t"), ti.title || ""); setText($("toast-m"), ti.message || "");
+    const sel = ti.selectedTeam === "left" ? 0 : ti.selectedTeam === "right" ? 1 : -1;
+    el.classList.toggle("t-l", sel === 0); el.classList.toggle("t-r", sel === 1);
+    const tinfo = (d.tools && d.tools.tournamentInfo) || {};
+    const logo = sel >= 0 ? (d.teams[sel].teamUrl || A(`Logos/logo${sel + 1}.png`)) : ti.eventLogoEnabled ? (tinfo.logoUrl || "") : "";
+    const img = $("toast-logo"); img.hidden = !logo; if (logo) setSrc(img, logo);
+  }
+
   // painel de estatísticas (alterna com a publicidade na compra)
   function renderStats(d, TL, TR, tri) {
     const rate = (t) => {
       const side = !!t.isAttacking;
-      const recs = (t.roundRecord || []).filter((r) => !!r.wasAttack === side && r.type);
-      const w = recs.filter((r) => r.type !== "lost").length;
+      const recs = (t.roundRecord || []).filter((r) => r && !!r.wasAttack === side && (WIN_TYPES[r.type] || r.type === "lost"));
+      const w = recs.filter((r) => WIN_TYPES[r.type]).length;
       return { side, txt: recs.length ? Math.round((w / recs.length) * 100) : null };
     };
     [[TL, "l", 0], [TR, "r", 1]].forEach(([t, s, i]) => {
@@ -814,7 +869,7 @@ img { display: block; }
     cam.classList.toggle("hidden", !on);
     if (!on) return;
     cam.classList.toggle("l", wi === 0); cam.classList.toggle("r", wi === 1);
-    setText($("cam-n"), who.name || "");
+    setText($("cam-n"), shownName(who));
     setText($("cam-kda"), `${who.kills ?? 0}/${who.deaths ?? 0}/${who.assists ?? 0}`);
     const k = who.killsThisRound || 0;
     $("cam-k").classList.toggle("on", k > 0);
@@ -840,8 +895,11 @@ img { display: block; }
     // bloco do evento: Sponsors/SponsorN.png (ou os patrocinadores configurados no capturador)
     const si = d0 && d0.tools && d0.tools.sponsorInfo;
     const remote = si && si.enabled && Array.isArray(si.sponsors) ? si.sponsors.filter(Boolean) : [];
-    const list = remote.length ? remote : await listImages("Sponsors/Sponsor");
-    rotate($("brand-a"), $("brand-b"), list, (si && si.duration) || CONFIG.trocaPatrocinio);
+    let list = remote.length ? remote : await listImages("Sponsors/Sponsor");
+    const tlogo = d0 && d0.tools && d0.tools.tournamentInfo && d0.tools.tournamentInfo.logoUrl;
+    if (!list.length && tlogo) list = [tlogo];
+    const dur = Number(si && si.duration) || 0; // o Spectra manda em milissegundos (ex.: 5000)
+    rotate($("brand-a"), $("brand-b"), list, dur ? (dur > 100 ? dur / 1000 : dur) : CONFIG.trocaPatrocinio);
     // faixa da compra: Logos/bannerN.png, alternando com o painel de estatísticas
     const banners = CONFIG.faixaPublicidade ? await listImages("Logos/banner", 6) : [];
     const ad = $("ad"), st = $("stat"), adImg = $("ad-img");
