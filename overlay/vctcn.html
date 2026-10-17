@@ -647,7 +647,7 @@ img { display: block; }
     setText($("info-r"), CONFIG.fase || (tools.tournamentInfo && tools.tournamentInfo.name) || "");
 
     // placar e times
-    const need = series.needed > 1 ? series.needed : 0;
+    const need = series.needed >= 1 ? Math.min(4, series.needed) : 0;
     [[TL, 0], [TR, 1]].forEach(([t, i]) => {
       const s = sideOf(i);
       const tn = $("tn-" + s); setText(tn, tri(t)); fitText(tn, 88);
@@ -905,6 +905,8 @@ img { display: block; }
       if (PN(s + "g")) ROSTERS[i].teamUrl = PN(s + "g");
     });
   }
+  window.HUD_FIXTURE_SERIES = { needed: Number(params.get("need") ?? 2), wonLeft: Number(params.get("wl")) || 0, wonRight: Number(params.get("wr")) || 0 };
+  if (PN("maps")) window.HUD_FIXTURE_MAPINFO = PN("maps").split(",").map((x) => { const [type, map] = x.split(":"); return { type, map }; });
   if (PN("stage")) window.HUD_FIXTURE_STAGE = PN("stage");
   if (PN("map")) window.HUD_FIXTURE_MAP = PN("map");
   const internalOf = (n) => Object.keys(AGENTS).find((k) => AGENTS[k] === n) || n;
@@ -915,7 +917,7 @@ img { display: block; }
       groupCode: "DEMO", roundNumber: 1, roundPhase: "shopping", map: (window.HUD_FIXTURE_MAP || "Ascent"), attackersWon: false, switchRound: 13, firstOtRound: 25,
       spikeState: { planted: false, defused: false, detonated: false },
       timeoutState: { techPause: false, leftTeam: false, rightTeam: false, timeRemaining: 0 },
-      tools: { seriesInfo: { needed: 2, wonLeft: 0, wonRight: 0, mapInfo: [{ type: "present", map: "Ascent" }, { type: "future", map: "Juliett" }, { type: "future", map: "Ascent" }] }, tournamentInfo: { name: window.HUD_FIXTURE_STAGE || "Prévia" }, timeoutCounter: { max: 2, left: 2, right: 2 } },
+      tools: { seriesInfo: Object.assign({ needed: 2, wonLeft: 0, wonRight: 0, mapInfo: [{ type: "present", map: "Ascent" }, { type: "future", map: "Juliett" }, { type: "future", map: "Ascent" }] }, window.HUD_FIXTURE_SERIES || {}, window.HUD_FIXTURE_MAPINFO ? { mapInfo: window.HUD_FIXTURE_MAPINFO } : {}), tournamentInfo: { name: window.HUD_FIXTURE_STAGE || "Prévia" }, timeoutCounter: { max: 2, left: 2, right: 2 } },
       teams: ROSTERS.map((t, ti) => ({
         teamName: t.teamName, teamTricode: t.teamTricode, teamUrl: t.teamUrl || "", isAttacking: PN("att") ? (PN("att") === "l" ? ti === 0 : ti === 1) : ti === 1, roundsWon: 0, roundRecord: [],
         players: t.players.map(([name, agent], pi) => ({
