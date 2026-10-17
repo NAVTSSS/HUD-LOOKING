@@ -5,5 +5,6 @@ window.HUD_CONFIG = {
   recursos: "Resources/",             // pasta das imagens e fontes, ao lado deste arquivo
   fase: "",                           // texto do canto superior direito (vazio usa o nome do torneio do capturador)
   camera: true,                       // moldura da câmera do jogador observado
+  corPorLado: true,                   // como no VCT CN: defesa verde, ataque vermelho (false: esquerda sempre verde)
   armasParaDireita: false,            // as imagens de Resources/Armas apontam para a esquerda
 };
