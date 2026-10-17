@@ -576,12 +576,14 @@ body.wait .connecting { display: inline; }
   segs("fmt", "fmt", Number);
   segs("rw", "rw");
   document.querySelectorAll("[data-start]").forEach((b) => b.addEventListener("click", () => { S.start = b.dataset.start; update(); }));
-  $("swap").addEventListener("click", () => {
+  function swapTeams(flipStart) {
     [S.lName, S.rName, S.lTri, S.rTri, S.lLogo, S.rLogo, S.wonL, S.wonR, S.seedL, S.seedR] = [S.rName, S.lName, S.rTri, S.lTri, S.rLogo, S.lLogo, S.wonR, S.wonL, S.seedR, S.seedL];
-    S.start = S.start === "l" ? "r" : "l";
-    ["t-l-name", "t-r-name", "t-l-tri", "t-r-tri", "t-l-logo", "t-r-logo", "won-l", "won-r", "seed-l", "seed-r"].forEach((id) => { const el = $(id); el.value = S[el.dataset.k]; });
-    update(); toast("Times trocados de lado");
-  });
+    if (flipStart) S.start = S.start === "l" ? "r" : "l";
+    ["t-l-name", "t-r-name", "t-l-tri", "t-r-tri", "t-l-logo", "t-r-logo", "won-l", "won-r", "seed-l", "seed-r"].forEach((id) => { const el = $(id); if (el) el.value = S[el.dataset.k] ?? ""; });
+    S.maps.forEach((m) => { if (m.pick === "l") m.pick = "r"; else if (m.pick === "r") m.pick = "l"; [m.sl, m.sr] = [m.sr, m.sl]; });
+    update(); store.set(S);
+  }
+  $("swap").addEventListener("click", () => { swapTeams(true); toast("Times trocados de lado"); });
   $("gen").addEventListener("click", () => { const c = Array.from({ length: 6 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join(""); S.code = c; $("code").value = c; update(); });
   $("srv-mode").addEventListener("change", () => {
     if (S.srvMode === "local") S.srv = "localhost:5100";
@@ -671,11 +673,11 @@ body.wait .connecting { display: inline; }
     const lAtt = S.start === "l";
     $("pl-l").className = "plate l " + (lAtt ? "att" : "def");
     $("pl-r").className = "plate r " + (lAtt ? "def" : "att");
-    $("sd-l").textContent = lAtt ? "Começa no ataque" : "Começa na defesa";
-    $("sd-r").textContent = lAtt ? "Começa na defesa" : "Começa no ataque";
+    $("sd-l").textContent = (S.lTri ? S.lTri + " · " : "") + (lAtt ? "começa no ataque" : "começa na defesa");
+    $("sd-r").textContent = (S.rTri ? S.rTri + " · " : "") + (lAtt ? "começa na defesa" : "começa no ataque");
     document.querySelectorAll("[data-start]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.start === S.start)));
-    $("tn-l").textContent = S.lTri || S.lName || "Time A";
-    $("tn-r").textContent = S.rTri || S.rName || "Time B";
+    $("tn-l").textContent = S.lName || S.lTri || "Time A";
+    $("tn-r").textContent = S.rName || S.rTri || "Time B";
     [["l", S.lLogo], ["r", S.rLogo]].forEach(([s, u]) => {
       const box = $("lg-" + s), wm = $("wm-" + s);
       if (u && logoOk(u)) {
@@ -717,7 +719,7 @@ body.wait .connecting { display: inline; }
   const io = new IntersectionObserver((ents) => ents.forEach((en) => { if (en.isIntersecting) document.querySelectorAll(".rail a").forEach((a) => a.classList.toggle("on", a.dataset.sec === en.target.id)); }), { root: $("scroll"), rootMargin: "-10% 0px -70% 0px" });
   document.querySelectorAll("section").forEach((s) => io.observe(s));
 
-  $("save").addEventListener("click", () => { store.set(S); toast("Configurações salvas"); });
+  $("save").addEventListener("click", () => { update(); store.set(S); toast("Configurações salvas"); });
 
   // ---------- luzes (na prévia: simuladas) ----------
   const light = (id, cls, t) => { $(id).className = "light " + cls; $(id + "-t").textContent = t; };
@@ -762,9 +764,16 @@ body.wait .connecting { display: inline; }
     $("sc-phase").textContent = `Rodada ${L.round}, ${L.phase}`;
     $("f-map").textContent = (S.maps.find((m) => m.type === "present") || {}).map || "—";
   }
+  const logoUrl = (u) => (u && /^(https?:|data:)/i.test(u) ? u : u || "");
+  function hudSrc() {
+    const q = new URLSearchParams({ demo: "", clean: "", ln: S.lName, lt: S.lTri, lg: logoUrl(S.lLogo), rn: S.rName, rt: S.rTri, rg: logoUrl(S.rLogo), att: L.lAtt ? "l" : "r", stage: S.stage || "", map: (S.maps.find((m) => m.type === "present") || {}).map || "" });
+    return "vctcn.html?" + q.toString();
+  }
+  function reloadHud() { $("hud").src = hudSrc(); }
   function startLive() {
     const fr = $("hud");
-    fr.src = "vctcn.html?demo&clean";
+    L.lAtt = S.start === "l";
+    fr.src = hudSrc();
     const fit = () => { fr.style.transform = `scale(${$("screen").clientWidth / 1920})`; };
     fit(); new ResizeObserver(fit).observe($("screen"));
     L.round = 1; L.phase = "compra"; L.t = 30; L.sl = 0; L.sr = 0; L.lAtt = S.start === "l";
@@ -809,7 +818,11 @@ body.wait .connecting { display: inline; }
   document.querySelectorAll("[data-fix]").forEach((b) => b.addEventListener("click", () => {
     const ad = b.dataset.fix === "ad";
     ask(ad ? "Inverter ataque e defesa?" : "Inverter esquerda e direita?", ad ? "Use só se a HUD estiver mostrando os lados trocados." : "Use só se os times aparecerem do lado errado da tela.", () => {
-      if (ad) L.lAtt = !L.lAtt; else { [S.lTri, S.rTri] = [S.rTri, S.lTri]; [L.sl, L.sr] = [L.sr, L.sl]; }
+      if (ad) L.lAtt = !L.lAtt;
+      else {
+        swapTeams(false); L.lAtt = !L.lAtt; [L.sl, L.sr] = [L.sr, L.sl];
+      }
+      reloadHud();
       paintScore(); renderActs(); log(ad ? "Ataque e defesa invertidos" : "Esquerda e direita invertidas");
     });
   }));

@@ -655,7 +655,7 @@ img { display: block; }
       setText(scEl, sc);
       if (lastScore[s] !== null && lastScore[s] !== sc) { scEl.classList.remove("bump"); void scEl.offsetWidth; scEl.classList.add("bump"); }
       lastScore[s] = sc;
-      const logo = (MODE === "live" && t.teamUrl) || A(`Logos/logo${i + 1}.png`);
+      const logo = t.teamUrl || A(`Logos/logo${i + 1}.png`);
       setSrc($("logo-" + s), logo);
       const won = i ? series.wonRight || 0 : series.wonLeft || 0;
       const pg = $("pips-" + s); const ph = pipsSVG(s, need, won); if (pg._k !== ph) { pg._k = ph; pg.innerHTML = ph; }
@@ -793,7 +793,7 @@ img { display: block; }
       const r = rate(t);
       setText($("st-k-" + s), r.side ? L10N.att : L10N.def);
       setHTML($("st-v-" + s), r.txt == null ? "--<small>%</small>" : `${r.txt}<small>%</small>`);
-      setSrc($("st-logo-" + s), (MODE === "live" && t.teamUrl) || A(`Logos/logo${i + 1}.png`));
+      setSrc($("st-logo-" + s), t.teamUrl || A(`Logos/logo${i + 1}.png`));
     });
     setText($("st-t"), L10N.rate);
     setText($("st-m"), mapLabel(d.map));
@@ -896,6 +896,17 @@ img { display: block; }
     { teamName: "Jangada Esports", teamTricode: "JGD", players: [["kaiaque", "Jett"], ["mareh", "Omen"], ["tucunare", "Sova"], ["ventosul", "Killjoy"], ["cajuzin", "Breach"]] },
     { teamName: "Caatinga Club", teamTricode: "CTG", players: [["xique", "Raze"], ["mandacaru", "Viper"], ["lampiao", "Fade"], ["seriema", "Cypher"], ["aboio", "Astra"]] },
   ];
+  // dados vindos do capturador pela URL (nome, sigla, logo, quem ataca, fase, mapa)
+  const PN = (k) => (params.get(k) || "").trim();
+  if (PN("ln") || PN("rn") || PN("lt") || PN("rt")) {
+    [["l", 0], ["r", 1]].forEach(([s, i]) => {
+      if (PN(s + "n")) ROSTERS[i].teamName = PN(s + "n");
+      if (PN(s + "t")) ROSTERS[i].teamTricode = PN(s + "t");
+      if (PN(s + "g")) ROSTERS[i].teamUrl = PN(s + "g");
+    });
+  }
+  if (PN("stage")) window.HUD_FIXTURE_STAGE = PN("stage");
+  if (PN("map")) window.HUD_FIXTURE_MAP = PN("map");
   const internalOf = (n) => Object.keys(AGENTS).find((k) => AGENTS[k] === n) || n;
   const rnd = (a, b) => a + Math.random() * (b - a);
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
@@ -906,7 +917,7 @@ img { display: block; }
       timeoutState: { techPause: false, leftTeam: false, rightTeam: false, timeRemaining: 0 },
       tools: { seriesInfo: { needed: 2, wonLeft: 0, wonRight: 0, mapInfo: [{ type: "present", map: "Ascent" }, { type: "future", map: "Juliett" }, { type: "future", map: "Ascent" }] }, tournamentInfo: { name: window.HUD_FIXTURE_STAGE || "Prévia" }, timeoutCounter: { max: 2, left: 2, right: 2 } },
       teams: ROSTERS.map((t, ti) => ({
-        teamName: t.teamName, teamTricode: t.teamTricode, teamUrl: "", isAttacking: ti === 1, roundsWon: 0, roundRecord: [],
+        teamName: t.teamName, teamTricode: t.teamTricode, teamUrl: t.teamUrl || "", isAttacking: PN("att") ? (PN("att") === "l" ? ti === 0 : ti === 1) : ti === 1, roundsWon: 0, roundRecord: [],
         players: t.players.map(([name, agent], pi) => ({
           name, playerId: ti * 5 + pi, isAlive: true, agentInternal: internalOf(agent), armorName: "None", money: 800, moneySpent: 0,
           highestWeapon: "Classic", currUltPoints: 0, maxUltPoints: 7, ultReady: false, hasSpike: false,
