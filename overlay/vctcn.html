@@ -346,6 +346,7 @@ img { display: block; }
     recursos: "Resources/",    // pasta de imagens e fontes, relativa a este arquivo (ou ?assets=)
     fase: "",                  // texto do canto superior direito (ex.: "Chave inferior · Rodada 1"); vazio usa tournamentInfo.name
     camera: true,              // moldura da câmera do jogador observado
+    faixaPublicidade: false,   // true: na compra, alterna o painel de estatísticas com as artes Logos/bannerN.png
     trocaPublicidade: 8,       // segundos entre a faixa publicitária e o painel de estatísticas na compra
     corPorLado: true,          // como no VCT CN: defesa verde, ataque vermelho (false: esquerda sempre verde)
     trocaPatrocinio: 6,        // segundos entre as artes do bloco do evento
@@ -464,8 +465,8 @@ img { display: block; }
     </div>
 
     <div class="abs adwrap buy" id="adwrap">
-      <div class="ad" id="ad"><img id="ad-img" alt=""></div>
-      <div class="stat" id="stat" style="opacity:0">
+      <div class="ad" id="ad" style="opacity:0"><img id="ad-img" alt=""></div>
+      <div class="stat" id="stat" style="opacity:1">
         <div class="side l"><img id="st-logo-l" alt=""><div class="tx"><div class="k" id="st-k-l"></div><div class="v" id="st-v-l"></div></div></div>
         <div class="mid" id="st-mid"><b id="st-t"></b><span id="st-m"></span></div>
         <div class="side r"><img id="st-logo-r" alt=""><div class="tx"><div class="k" id="st-k-r"></div><div class="v" id="st-v-r"></div></div></div>
@@ -842,7 +843,7 @@ img { display: block; }
     const list = remote.length ? remote : await listImages("Sponsors/Sponsor");
     rotate($("brand-a"), $("brand-b"), list, (si && si.duration) || CONFIG.trocaPatrocinio);
     // faixa da compra: Logos/bannerN.png, alternando com o painel de estatísticas
-    const banners = await listImages("Logos/banner", 6);
+    const banners = CONFIG.faixaPublicidade ? await listImages("Logos/banner", 6) : [];
     const ad = $("ad"), st = $("stat"), adImg = $("ad-img");
     let showAd = banners.length > 0, bi = 0;
     if (banners.length) adImg.src = banners[0];
