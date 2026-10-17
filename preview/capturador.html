@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capturador VCT CN</title>
+<style>
+/* =====================================================================
+   Capturador VCT CN — prévia da tela nova do capturador (fork do Spectra Client)
+   Duas telas: Preparação (antes de conectar) e Ao vivo (depois de conectar).
+   Esta prévia não conversa com o jogo; os botões simulam o comportamento.
+   ===================================================================== */
+@font-face { font-family: "Grid"; src: url("Resources/FoundryGridnik-Bold.otf"); font-weight: 700; unicode-range: U+0020-007E; }
+@font-face { font-family: "Grid"; src: url("Resources/FoundryGridnik-ExtraBold.otf"); font-weight: 800; unicode-range: U+0020-007E; }
+@font-face { font-family: "Grid"; src: url("Resources/FoundryGridnik-Regular.otf"); font-weight: 400; unicode-range: U+0020-007E; }
+:root {
+  --bg: #0d141b;
+  --rail: #0a1016;
+  --panel: #131c25;
+  --panel-2: #1a2531;
+  --line: #233140;
+  --ink: #e8eef2;
+  --ink-2: #b7c3cd;
+  --mute: #7d8b98;
+  --def: #24896f;      /* defesa / verde da HUD */
+  --def-hi: #38d6ae;
+  --att: #a51b2a;      /* ataque / carmim da HUD */
+  --att-hi: #ef3a5d;
+  --ok: #38d6ae;
+  --warn: #f2b84b;
+  --bad: #ef3a5d;
+  --focus: #8fd3ff;
+  --num: "Grid", "Bahnschrift", "DIN Alternate", "Segoe UI", sans-serif;
+  --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.45 var(--ui); overflow: hidden; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ---------- barra de cima: sempre visível ---------- */
+.top { height: 64px; display: flex; align-items: center; gap: 18px; padding: 0 18px 0 20px; background: var(--rail); border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 200px; }
+.brand svg { width: 26px; height: 26px; }
+.brand b { font: 800 17px/1 var(--num); letter-spacing: .3px; }
+.brand small { display: block; color: var(--mute); font-size: 11.5px; margin-top: 3px; }
+.lights { display: flex; gap: 6px; flex: 1; }
+.light { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); white-space: nowrap; }
+.light i { width: 8px; height: 8px; border-radius: 50%; background: var(--mute); box-shadow: 0 0 0 3px rgba(125, 139, 152, .15); }
+.light.ok i { background: var(--ok); box-shadow: 0 0 0 3px rgba(56, 214, 174, .18); }
+.light.warn i { background: var(--warn); box-shadow: 0 0 0 3px rgba(242, 184, 75, .18); }
+.light.bad i { background: var(--bad); box-shadow: 0 0 0 3px rgba(239, 58, 93, .18); }
+.light span { color: var(--mute); }
+.light b { font-weight: 600; }
+.btn { height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { border-color: #3a4d60; }
+.btn.go { background: var(--def); border-color: var(--def); color: #fff; padding: 0 22px; }
+.btn.go:hover { background: #2b9c7f; }
+.btn.stop { background: transparent; border-color: var(--att-hi); color: #ffd7de; }
+.btn.small { height: 30px; padding: 0 10px; font-size: 13px; }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+.btn svg { width: 16px; height: 16px; }
+
+/* ---------- estrutura ---------- */
+.main { height: calc(100% - 64px); display: grid; grid-template-columns: 228px 1fr; }
+.rail { background: var(--rail); border-right: 1px solid var(--line); padding: 16px 10px; overflow: auto; display: flex; flex-direction: column; }
+.rail a { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; color: var(--ink-2); text-decoration: none; }
+.rail a:hover { background: var(--panel); color: var(--ink); }
+.rail a.on { background: var(--panel-2); color: var(--ink); }
+.rail a .st { margin-left: auto; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; font-size: 11px; font-weight: 700; }
+.st.ok { background: rgba(56, 214, 174, .15); color: var(--ok); }
+.st.need { background: rgba(239, 58, 93, .16); color: var(--bad); }
+.st.opt { border: 1px dashed #445566; }
+.rail .foot { margin-top: auto; padding: 12px 10px 4px; color: var(--mute); font-size: 12px; border-top: 1px solid var(--line); }
+.rail .foot b { color: var(--ink-2); font-weight: 600; }
+.scroll { overflow: auto; scroll-behavior: smooth; }
+.page { max-width: 1060px; padding: 22px 28px 80px; }
+
+/* ---------- seções ---------- */
+section { padding: 22px 0 26px; border-bottom: 1px solid var(--line); scroll-margin-top: 10px; }
+section:last-child { border-bottom: 0; }
+.sh { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.sh h2 { font: 700 19px/1.2 var(--num); letter-spacing: .2px; }
+.sh p { color: var(--mute); font-size: 13px; }
+.sh .sw { margin-left: auto; }
+.grid { display: grid; gap: 14px 16px; grid-template-columns: repeat(12, 1fr); }
+.c3 { grid-column: span 3; } .c4 { grid-column: span 4; } .c5 { grid-column: span 5; } .c6 { grid-column: span 6; } .c8 { grid-column: span 8; } .c12 { grid-column: span 12; }
+.f label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+.f .hint { font-size: 12px; color: var(--mute); margin-top: 5px; }
+.f .hint.err { color: #ff9aac; }
+input[type=text], input[type=number], input[type=url], select, textarea { width: 100%; height: 38px; padding: 0 11px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); outline: none; }
+textarea { height: auto; padding: 9px 11px; resize: vertical; }
+input:focus, select:focus, textarea:focus { border-color: #4d6a85; }
+input.bad { border-color: rgba(239, 58, 93, .7); }
+.row { display: flex; gap: 8px; align-items: center; }
+.row > input { flex: 1; }
+.num { font-family: var(--num); font-weight: 700; }
+
+/* interruptor */
+.tg { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+.tg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.tg i { width: 36px; height: 20px; border-radius: 10px; background: #2b3947; position: relative; transition: background .15s; flex: none; }
+.tg i::after { content: ""; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: #c9d3db; transition: transform .15s; }
+.tg input:checked + i { background: var(--def); }
+.tg input:checked + i::after { transform: translateX(16px); background: #fff; }
+.tg input:focus-visible + i { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* segmentado */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel); }
+.seg button { height: 34px; padding: 0 14px; border: 0; background: transparent; cursor: pointer; color: var(--ink-2); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed=true] { background: var(--panel-2); color: var(--ink); font-weight: 600; }
+
+/* ---------- confronto: as duas placas como na HUD ---------- */
+.versus { display: grid; grid-template-columns: 1fr 150px 1fr; gap: 0; align-items: stretch; }
+.plate { position: relative; padding: 18px 20px 18px; min-height: 216px; overflow: hidden; }
+.plate::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .05) 0 1px, transparent 1px 3px); pointer-events: none; }
+.plate.def { background: linear-gradient(90deg, #135c4b, #1f8a6e); }
+.plate.att { background: linear-gradient(270deg, #6d1222, #a51b2a); }
+.plate.l { clip-path: polygon(0 0, 100% 0, 100% 100%, 22px 100%, 0 calc(100% - 22px)); }
+.plate.r { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%); }
+.plate .wm { position: absolute; top: 50%; width: 190px; height: 170px; transform: translateY(-50%); object-fit: contain; filter: brightness(0) invert(1); opacity: .13; pointer-events: none; }
+.plate.l .wm { right: 12px; }
+.plate.r .wm { left: 12px; }
+.plate .who { position: relative; display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.plate.r .who { flex-direction: row-reverse; text-align: right; }
+.plate .logo { width: 58px; height: 58px; border-radius: 8px; background: rgba(0, 0, 0, .25); display: grid; place-items: center; overflow: hidden; flex: none; }
+.plate .logo img { width: 46px; height: 46px; object-fit: contain; }
+.plate .logo span { font: 800 13px var(--num); opacity: .7; }
+.plate .tn { font: 800 30px/1 var(--num); letter-spacing: .5px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.plate .side { font-size: 12.5px; opacity: .85; margin-top: 5px; }
+.plate .grid { position: relative; gap: 10px 12px; }
+.plate label { color: rgba(255, 255, 255, .82) !important; }
+.plate input { background: rgba(5, 12, 18, .42); border-color: rgba(255, 255, 255, .14); }
+.plate input:focus { border-color: rgba(255, 255, 255, .5); }
+.mid { background: #0a1219; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 14px 10px; text-align: center; }
+.mid .vs { font: 800 30px/1 var(--num); color: #44566a; }
+.mid p { font-size: 12px; color: var(--mute); }
+.mid .seg { flex-direction: column; width: 120px; }
+.mid .seg button { height: 32px; }
+.mid .seg button + button { border-left: 0; border-top: 1px solid var(--line); }
+
+/* mapas da série */
+.maps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.map { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); overflow: hidden; }
+.map .art { height: 74px; background: #0b1218 center / cover no-repeat; position: relative; display: flex; align-items: flex-end; padding: 8px 12px; }
+.map .art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(10, 16, 22, .92), rgba(10, 16, 22, .15)); }
+.map .art b { position: relative; z-index: 1; font: 800 20px/1 var(--num); }
+.map .art em { position: relative; z-index: 1; margin-left: auto; font-style: normal; font-size: 12px; padding: 2px 8px; border-radius: 10px; background: rgba(0, 0, 0, .45); }
+.map .body { padding: 12px; display: grid; gap: 10px; }
+.map .sc { display: grid; grid-template-columns: 1fr 26px 1fr; align-items: center; gap: 6px; }
+.map .sc span { text-align: center; color: var(--mute); }
+.map.off .body > :not(.keep) { opacity: .35; pointer-events: none; }
+
+/* listas (patrocinadores, atalhos) */
+.list { display: grid; gap: 8px; }
+.sp { display: grid; grid-template-columns: 96px 1fr auto; gap: 10px; align-items: center; }
+.sp .pv { height: 44px; border-radius: 6px; background: #0a1016 center / contain no-repeat; border: 1px solid var(--line); }
+.keys { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 16px; }
+.key { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+kbd { font: 600 12.5px var(--ui); padding: 3px 8px; border-radius: 5px; background: #0a1016; border: 1px solid #2d3d4d; border-bottom-width: 2px; white-space: nowrap; }
+.key.rec kbd { border-color: var(--warn); color: var(--warn); }
+
+/* ---------- tela ao vivo ---------- */
+.live { display: none; height: 100%; grid-template-columns: 1fr 360px; }
+body.on .main { display: none; }
+body.on .live { display: grid; }
+.stagewrap { padding: 18px 18px 18px 20px; overflow: auto; }
+.score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; margin-bottom: 14px; }
+.score .t { display: flex; align-items: center; gap: 12px; padding: 0 18px; height: 64px; }
+.score .t.l { justify-content: flex-end; }
+.score .t b { font: 800 26px/1 var(--num); }
+.score .t .n { font: 800 40px/1 var(--num); margin: 0 4px; }
+.score .t.def { background: linear-gradient(90deg, #135c4b, #1f8a6e); }
+.score .t.att { background: linear-gradient(270deg, #6d1222, #a51b2a); }
+.score .t.r.def { background: linear-gradient(270deg, #135c4b, #1f8a6e); }
+.score .t.l.att { background: linear-gradient(90deg, #6d1222, #a51b2a); }
+.score .c { background: #0a1219; padding: 8px 22px; text-align: center; min-width: 150px; }
+.score .c b { display: block; font: 800 24px/1 var(--num); }
+.score .c span { color: var(--mute); font-size: 12px; }
+.screen { position: relative; aspect-ratio: 16 / 9; background: repeating-conic-gradient(#18212a 0 25%, #121a22 0 50%) 0 0 / 22px 22px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.screen iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; }
+.screen .cap { position: absolute; left: 10px; bottom: 8px; font-size: 12px; color: rgba(255, 255, 255, .7); background: rgba(0, 0, 0, .5); padding: 2px 8px; border-radius: 10px; }
+.facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+.fact { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.fact span { color: var(--mute); font-size: 12px; }
+.fact b { display: block; font: 700 18px/1.3 var(--num); }
+.side-panel { background: var(--rail); border-left: 1px solid var(--line); padding: 18px; overflow: auto; display: flex; flex-direction: column; gap: 18px; }
+.side-panel h3 { font: 700 15px/1.2 var(--num); margin-bottom: 10px; }
+.acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.act { position: relative; text-align: left; padding: 10px 12px; min-height: 64px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; }
+.act:hover { border-color: #3a4d60; }
+.act b { font-weight: 600; }
+.act kbd { align-self: flex-start; font-size: 11.5px; }
+.act.def { border-left: 3px solid var(--def-hi); }
+.act.att { border-left: 3px solid var(--att-hi); }
+.act.lit { background: #1d2a36; border-color: var(--warn); }
+.act.wide { grid-column: span 2; }
+.log { font-size: 13px; display: grid; gap: 2px; max-height: 220px; overflow: auto; }
+.log div { display: grid; grid-template-columns: 62px 1fr; gap: 8px; padding: 4px 0; border-bottom: 1px solid rgba(255, 255, 255, .04); }
+.log time { color: var(--mute); font-variant-numeric: tabular-nums; }
+.toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 20px); opacity: 0; background: #1f2c38; border: 1px solid #36495b; padding: 10px 16px; border-radius: 8px; transition: all .2s; pointer-events: none; z-index: 20; }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+dialog { margin: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); padding: 20px; width: min(460px, 92vw); }
+dialog::backdrop { background: rgba(3, 7, 11, .7); }
+dialog h3 { font: 700 17px var(--num); margin-bottom: 8px; }
+dialog p { color: var(--ink-2); margin-bottom: 14px; }
+dialog .row { justify-content: flex-end; margin-top: 14px; }
+.connecting { display: none; }
+body.wait .connecting { display: inline; }
+
+@media (max-width: 980px) {
+  .main { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .versus { grid-template-columns: 1fr; }
+  .mid { flex-direction: row; }
+  .mid .seg { flex-direction: row; width: auto; }
+  .maps, .keys { grid-template-columns: 1fr; }
+  .c3, .c4, .c5, .c6, .c8 { grid-column: span 12; }
+  .live { grid-template-columns: 1fr; overflow: auto; }
+  .lights .light:nth-child(n+3) { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 26 26" aria-hidden="true"><path d="M3 4h20l-4 7H7z" fill="#38d6ae"/><path d="M7 15h12l-6 8z" fill="#ef3a5d"/></svg>
+    <div><b>Capturador</b><small id="ver">baseado no Spectra Client</small></div>
+  </div>
+  <div class="lights" role="status" aria-live="polite">
+    <div class="light" id="l-ow"><i></i><span>Overwolf</span><b id="l-ow-t">sem chave</b></div>
+    <div class="light" id="l-game"><i></i><span>Valorant</span><b id="l-game-t">fechado</b></div>
+    <div class="light" id="l-srv"><i></i><span>Servidor</span><b id="l-srv-t">desconectado</b></div>
+  </div>
+  <button class="btn" id="save" type="button">Salvar</button>
+  <button class="btn go" id="connect" type="button"><span class="idle-t">Conectar</span><span class="connecting">Conectando…</span></button>
+  <button class="btn stop" id="disconnect" type="button" hidden>Desconectar</button>
+</header>
+
+<!-- ===================== PREPARAÇÃO ===================== -->
+<div class="main">
+  <nav class="rail" aria-label="Seções">
+    <a href="#conexao" data-sec="conexao">Conexão <i class="st"></i></a>
+    <a href="#times" data-sec="times">Times <i class="st"></i></a>
+    <a href="#serie" data-sec="serie">Série e mapas <i class="st"></i></a>
+    <a href="#torneio" data-sec="torneio">Torneio e pausas <i class="st"></i></a>
+    <a href="#patrocinio" data-sec="patrocinio">Patrocinadores <i class="st"></i></a>
+    <a href="#atalhos" data-sec="atalhos">Atalhos <i class="st"></i></a>
+    <a href="#cameras" data-sec="cameras">Câmeras <i class="st"></i></a>
+    <a href="#app" data-sec="app">Programa <i class="st"></i></a>
+    <div class="foot" id="summary"></div>
+  </nav>
+
+  <div class="scroll" id="scroll">
+    <div class="page">
+
+      <section id="conexao">
+        <div class="sh"><h2>Conexão</h2><p>Para onde os dados vão e qual código a HUD usa.</p></div>
+        <div class="grid">
+          <div class="f c6"><label for="name">Seu nome no Valorant</label><input type="text" id="name" data-k="name" placeholder="nome#tag" autocomplete="off"><div class="hint">O capturador preenche sozinho quando o Valorant está aberto.</div></div>
+          <div class="f c6"><label for="srv">Servidor</label>
+            <div class="row"><select id="srv-mode" data-k="srvMode" style="width:150px"><option value="local">Este PC</option><option value="custom">Outro endereço</option></select><input type="text" id="srv" data-k="srv" placeholder="localhost:5100"></div>
+            <div class="hint">O Spectra Server recebe na porta 5100 e a HUD lê na 5200.</div></div>
+          <div class="f c6"><label for="code">Código da partida</label>
+            <div class="row"><input type="text" id="code" data-k="code" placeholder="TESTE" style="text-transform:uppercase" autocomplete="off"><button class="btn small" type="button" id="gen">Gerar</button></div>
+            <div class="hint" id="code-h">O mesmo código vai no <b>config.js</b> da HUD.</div></div>
+          <div class="f c6"><label for="key">Chave da organização <span style="color:var(--mute);font-weight:400">(opcional)</span></label><input type="text" id="key" data-k="key" placeholder="Só para os servidores oficiais do Spectra" autocomplete="off"><div class="hint">No seu próprio servidor ela não é usada.</div></div>
+        </div>
+      </section>
+
+      <section id="times">
+        <div class="sh"><h2>Times</h2><p>A cor de cada placa segue o lado em que o time começa, como na HUD.</p></div>
+        <div class="versus">
+          <div class="plate l" id="pl-l">
+            <img class="wm" id="wm-l" alt="">
+            <div class="who"><div class="logo" id="lg-l"><span>LOGO</span></div><div><div class="tn" id="tn-l">Time A</div><div class="side" id="sd-l"></div></div></div>
+            <div class="grid">
+              <div class="f c8"><label for="t-l-name">Nome</label><input type="text" id="t-l-name" data-k="lName" placeholder="Nova Esports"></div>
+              <div class="f c4"><label for="t-l-tri">Sigla</label><input type="text" id="t-l-tri" data-k="lTri" maxlength="4" placeholder="NOVA" style="text-transform:uppercase"></div>
+              <div class="f c12"><label for="t-l-logo">Logo (link ou arquivo da pasta Resources)</label><input type="text" id="t-l-logo" data-k="lLogo" placeholder="Resources/Logos/logo1.png"></div>
+            </div>
+          </div>
+          <div class="mid">
+            <span class="vs" aria-hidden="true">VS</span>
+            <p id="start-label">Quem começa atacando</p>
+            <div class="seg" role="group" aria-labelledby="start-label"><button type="button" data-start="l" aria-pressed="false">Esquerda</button><button type="button" data-start="r" aria-pressed="true">Direita</button></div>
+            <button class="btn small" type="button" id="swap">Trocar de lado</button>
+          </div>
+          <div class="plate r" id="pl-r">
+            <img class="wm" id="wm-r" alt="">
+            <div class="who"><div class="logo" id="lg-r"><span>LOGO</span></div><div><div class="tn" id="tn-r">Time B</div><div class="side" id="sd-r"></div></div></div>
+            <div class="grid">
+              <div class="f c4"><label for="t-r-tri">Sigla</label><input type="text" id="t-r-tri" data-k="rTri" maxlength="4" placeholder="TEC" style="text-transform:uppercase"></div>
+              <div class="f c8"><label for="t-r-name">Nome</label><input type="text" id="t-r-name" data-k="rName" placeholder="Titan Esports Club"></div>
+              <div class="f c12"><label for="t-r-logo">Logo (link ou arquivo da pasta Resources)</label><input type="text" id="t-r-logo" data-k="rLogo" placeholder="Resources/Logos/logo2.png"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="serie">
+        <div class="sh"><h2>Série e mapas</h2><p>Aparece na faixa do topo da HUD e nos paralelogramos do placar.</p>
+          <label class="tg sw"><input type="checkbox" id="ser-on" data-k="serOn" checked><i></i><span>Mostrar série</span></label></div>
+        <div class="grid" style="margin-bottom:16px">
+          <div class="f c4"><label id="fmt-l">Formato</label><div class="seg" role="group" aria-labelledby="fmt-l" id="fmt"><button type="button" data-v="1">MD1</button><button type="button" data-v="2" aria-pressed="true">MD3</button><button type="button" data-v="3">MD5</button></div></div>
+          <div class="f c4"><label for="won-l">Mapas vencidos</label><div class="row"><input type="number" id="won-l" data-k="wonL" min="0" max="3" value="0" class="num" style="text-align:center"><span style="color:var(--mute)">a</span><input type="number" id="won-r" data-k="wonR" min="0" max="3" value="0" class="num" style="text-align:center"></div></div>
+          <div class="f c4"><label for="seed-l">Seed (opcional)</label><div class="row"><input type="text" id="seed-l" data-k="seedL" placeholder="#1"><input type="text" id="seed-r" data-k="seedR" placeholder="#4"></div></div>
+        </div>
+        <div class="maps" id="maps"></div>
+      </section>
+
+      <section id="torneio">
+        <div class="sh"><h2>Torneio e pausas</h2><p>Nome da fase no canto da HUD e quantas pausas táticas cada time tem.</p></div>
+        <div class="grid">
+          <div class="f c6"><label for="stage">Fase do torneio</label><input type="text" id="stage" data-k="stage" placeholder="Chave inferior, rodada 1"></div>
+          <div class="f c3"><label for="to-n">Pausas por time</label><input type="number" id="to-n" data-k="toN" min="0" max="4" value="2" class="num"></div>
+          <div class="f c3"><label for="to-d">Duração da pausa (s)</label><input type="number" id="to-d" data-k="toD" min="15" max="120" value="60" class="num"></div>
+          <div class="f c6"><label for="t-logo">Logo do torneio</label><input type="text" id="t-logo" data-k="tLogo" placeholder="link da imagem (quadrada)"></div>
+          <div class="f c6"><label for="t-back">Fundo das telas de pausa e vitória</label><input type="text" id="t-back" data-k="tBack" placeholder="link da imagem (875 × 200)"></div>
+          <div class="f c6"><label id="rw-l">Quadro da vitória da rodada</label><div class="seg" role="group" aria-labelledby="rw-l" id="rw"><button type="button" data-v="off">Desligado</button><button type="button" data-v="tour" aria-pressed="true">Torneio</button><button type="button" data-v="spons">Patrocinadores</button></div></div>
+          <div class="f c6"><label for="wm-text">Texto fixo na tela (opcional)</label><input type="text" id="wm-text" data-k="wmText" maxlength="20" placeholder="Até 20 letras"></div>
+        </div>
+      </section>
+
+      <section id="patrocinio">
+        <div class="sh"><h2>Patrocinadores</h2><p>Artes que giram no bloco do canto superior direito.</p>
+          <label class="tg sw"><input type="checkbox" id="sp-on" data-k="spOn" checked><i></i><span>Mostrar</span></label></div>
+        <div class="grid" style="margin-bottom:12px"><div class="f c4"><label for="sp-d">Tempo de cada arte (s)</label><input type="number" id="sp-d" data-k="spD" min="2" max="60" value="6" class="num"></div></div>
+        <div class="list" id="sp-list"></div>
+        <button class="btn small" type="button" id="sp-add" style="margin-top:10px">Adicionar arte</button>
+      </section>
+
+      <section id="atalhos">
+        <div class="sh"><h2>Atalhos</h2><p>Funcionam com o Valorant em primeiro plano. Clique em uma tecla para trocar.</p></div>
+        <div class="keys" id="keys"></div>
+      </section>
+
+      <section id="cameras">
+        <div class="sh"><h2>Câmeras dos jogadores</h2><p>Só se você usar o serviço de câmeras do Spectra.</p>
+          <label class="tg sw"><input type="checkbox" id="cam-on" data-k="camOn"><i></i><span>Usar</span></label></div>
+        <div class="grid" id="cam-f">
+          <div class="f c5"><label for="cam-id">Identificador</label><input type="text" id="cam-id" data-k="camId"></div>
+          <div class="f c5"><label for="cam-s">Senha</label><input type="text" id="cam-s" data-k="camS"></div>
+          <div class="f c12"><label class="tg"><input type="checkbox" data-k="camTri" checked><i></i><span>Tirar a sigla do time do começo dos nomes</span></label></div>
+        </div>
+      </section>
+
+      <section id="app">
+        <div class="sh"><h2>Programa</h2></div>
+        <div class="grid">
+          <div class="f c4"><label class="tg"><input type="checkbox" data-k="tray" checked><i></i><span>Fechar para a bandeja</span></label></div>
+          <div class="f c4"><label class="tg"><input type="checkbox" data-k="boot"><i></i><span>Abrir com o Windows</span></label></div>
+          <div class="f c4"><label class="tg"><input type="checkbox" data-k="min"><i></i><span>Abrir minimizado</span></label></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== AO VIVO ===================== -->
+<div class="live">
+  <div class="stagewrap">
+    <div class="score" aria-label="Placar">
+      <div class="t l" id="sc-l"><b id="sc-l-n">NOVA</b><span class="n" id="sc-l-s">0</span></div>
+      <div class="c"><b id="sc-time">0:30</b><span id="sc-phase">Rodada 1, compra</span></div>
+      <div class="t r" id="sc-r"><span class="n" id="sc-r-s">0</span><b id="sc-r-n">TEC</b></div>
+    </div>
+    <div class="screen" id="screen"><iframe id="hud" title="HUD" tabindex="-1"></iframe><span class="cap">Como está saindo no OBS</span></div>
+    <div class="facts">
+      <div class="fact"><span>Dados enviados</span><b id="f-rate">0 por segundo</b></div>
+      <div class="fact"><span>Último pacote</span><b id="f-age">agora</b></div>
+      <div class="fact"><span>Mapa</span><b id="f-map">Bind</b></div>
+      <div class="fact"><span>Observando</span><b id="f-obs">—</b></div>
+    </div>
+  </div>
+  <aside class="side-panel">
+    <div>
+      <h3>Durante a partida</h3>
+      <div class="acts" id="acts"></div>
+    </div>
+    <div>
+      <h3>Mensagem na tela</h3>
+      <div class="f" style="display:grid;gap:8px">
+        <input type="text" id="msg-t" maxlength="35" placeholder="Título (opcional)">
+        <textarea id="msg-b" rows="2" maxlength="100" placeholder="Texto que aparece para quem assiste"></textarea>
+        <div class="row"><select id="msg-team" style="width:auto;flex:1"><option value="none">Sem logo de time</option><option value="l">Logo do time da esquerda</option><option value="r">Logo do time da direita</option></select><button class="btn small" type="button" id="msg-send">Mostrar</button></div>
+      </div>
+    </div>
+    <div>
+      <h3>Correções</h3>
+      <div class="acts">
+        <button class="act wide" type="button" data-fix="ad"><b>Inverter ataque e defesa</b><span style="color:var(--mute);font-size:12px">Use se a HUD mostrar o lado errado.</span></button>
+        <button class="act wide" type="button" data-fix="lr"><b>Inverter esquerda e direita</b><span style="color:var(--mute);font-size:12px">Use se os times estiverem trocados de lado.</span></button>
+      </div>
+    </div>
+    <div>
+      <h3>Registro</h3>
+      <div class="log" id="log" aria-live="polite"></div>
+    </div>
+  </aside>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+<dialog id="dlg"><h3 id="dlg-t"></h3><p id="dlg-p"></p><div class="row"><button class="btn" type="button" id="dlg-no">Voltar</button><button class="btn go" type="button" id="dlg-yes">Continuar</button></div></dialog>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const store = {
+    get() { try { return JSON.parse(localStorage.getItem("capturador") || "{}"); } catch (e) { return {}; } },
+    set(v) { try { localStorage.setItem("capturador", JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } },
+  };
+  const toast = (t) => { const el = $("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("on"), 2200); };
+
+  // ---------- estado (o que o capturador manda para o servidor) ----------
+  const MAPS = ["Abyss", "Ascent", "Bind", "Breeze", "Corrode", "Fracture", "Haven", "Icebox", "Lotus", "Pearl", "Split", "Summit", "Sunset"];
+  const DEF = {
+    name: "", srvMode: "local", srv: "localhost:5100", code: "TESTE", key: "",
+    lName: "Nova Esports", lTri: "NOVA", lLogo: "Resources/Logos/logo1.png",
+    rName: "Titan Esports Club", rTri: "TEC", rLogo: "Resources/Logos/logo2.png", start: "r",
+    serOn: true, fmt: 2, wonL: 0, wonR: 0, seedL: "", seedR: "",
+    maps: [{ type: "present", map: "Bind", pick: "l", sl: "", sr: "" }, { type: "future", map: "Sunset", pick: "r", sl: "", sr: "" }, { type: "future", map: "Ascent", pick: "dec", sl: "", sr: "" }],
+    stage: "Chave inferior, rodada 1", toN: 2, toD: 60, tLogo: "", tBack: "", rw: "tour", wmText: "",
+    spOn: true, spD: 6, sponsors: ["Resources/Sponsors/Sponsor1.png", "Resources/Sponsors/Sponsor2.png", "Resources/Sponsors/Sponsor3.png"],
+    keys: { leftTimeout: ["Ctrl", "F1"], rightTimeout: ["Ctrl", "F2"], techPause: ["Ctrl", "F3"], spikePlanted: ["Ctrl", "F4"], switchKdaCredits: ["Ctrl", "F5"], showToast: ["Ctrl", "F6"] },
+    keysOn: { leftTimeout: true, rightTimeout: true, techPause: true, spikePlanted: true, switchKdaCredits: true, showToast: true },
+    camOn: false, camId: "", camS: "", camTri: true, tray: true, boot: false, min: false,
+  };
+  const S = Object.assign(structuredClone(DEF), store.get());
+  const KEYNAMES = { leftTimeout: "Pausa tática da esquerda", rightTimeout: "Pausa tática da direita", techPause: "Pausa técnica", spikePlanted: "Spike plantada", switchKdaCredits: "Trocar K/D/A e créditos", showToast: "Mostrar a mensagem" };
+
+  // ---------- campos simples ----------
+  document.querySelectorAll("[data-k]").forEach((el) => {
+    const k = el.dataset.k;
+    if (el.type === "checkbox") el.checked = !!S[k]; else el.value = S[k] ?? "";
+    el.addEventListener("input", () => { S[k] = el.type === "checkbox" ? el.checked : el.type === "number" ? Number(el.value) : el.value; update(); });
+  });
+  const segs = (id, key, cast = (v) => v) => {
+    const g = $(id);
+    const paint = () => g.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(String(S[key]) === b.dataset.v)));
+    g.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; S[key] = cast(b.dataset.v); paint(); update(); });
+    paint();
+  };
+  segs("fmt", "fmt", Number);
+  segs("rw", "rw");
+  document.querySelectorAll("[data-start]").forEach((b) => b.addEventListener("click", () => { S.start = b.dataset.start; update(); }));
+  $("swap").addEventListener("click", () => {
+    [S.lName, S.rName, S.lTri, S.rTri, S.lLogo, S.rLogo, S.wonL, S.wonR, S.seedL, S.seedR] = [S.rName, S.lName, S.rTri, S.lTri, S.rLogo, S.lLogo, S.wonR, S.wonL, S.seedR, S.seedL];
+    S.start = S.start === "l" ? "r" : "l";
+    ["t-l-name", "t-r-name", "t-l-tri", "t-r-tri", "t-l-logo", "t-r-logo", "won-l", "won-r", "seed-l", "seed-r"].forEach((id) => { const el = $(id); el.value = S[el.dataset.k]; });
+    update(); toast("Times trocados de lado");
+  });
+  $("gen").addEventListener("click", () => { const c = Array.from({ length: 6 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join(""); S.code = c; $("code").value = c; update(); });
+  $("srv-mode").addEventListener("change", () => { if (S.srvMode === "local") { S.srv = "localhost:5100"; $("srv").value = S.srv; } update(); });
+
+  // ---------- mapas da série ----------
+  const TYPES = [["past", "Já jogado"], ["present", "Atual"], ["future", "Próximo"], ["off", "Não mostrar"]];
+  function renderMaps() {
+    const box = $("maps");
+    const n = S.fmt * 2 - 1;
+    box.innerHTML = S.maps.slice(0, Math.max(1, Math.min(3, n))).map((m, i) => `
+      <div class="map${m.type === "off" ? " off" : ""}" data-i="${i}">
+        <div class="art" style="background-image:url('Resources/Maps/${esc(m.map)}.png')"><b>${esc(m.map || "Mapa")}</b><em>${TYPES.find((t) => t[0] === m.type)[1]}</em></div>
+        <div class="body">
+          <div class="f keep"><label for="mt-${i}">Situação</label><select id="mt-${i}" data-m="type">${TYPES.map(([v, t]) => `<option value="${v}"${m.type === v ? " selected" : ""}>${t}</option>`).join("")}</select></div>
+          <div class="f"><label for="mm-${i}">Mapa</label><select id="mm-${i}" data-m="map">${MAPS.map((x) => `<option${m.map === x ? " selected" : ""}>${x}</option>`).join("")}</select></div>
+          <div class="f"><label for="mp-${i}">Escolha de</label><select id="mp-${i}" data-m="pick"><option value="l"${m.pick === "l" ? " selected" : ""}>${esc(S.lTri || "Esquerda")}</option><option value="r"${m.pick === "r" ? " selected" : ""}>${esc(S.rTri || "Direita")}</option><option value="dec"${m.pick === "dec" ? " selected" : ""}>Decisivo</option></select></div>
+          ${m.type === "past" ? `<div class="f"><label>Placar</label><div class="sc"><input type="number" data-m="sl" value="${esc(m.sl)}" class="num" style="text-align:center" aria-label="Placar da esquerda"><span>a</span><input type="number" data-m="sr" value="${esc(m.sr)}" class="num" style="text-align:center" aria-label="Placar da direita"></div></div>` : ""}
+        </div>
+      </div>`).join("");
+  }
+  $("maps").addEventListener("input", (e) => {
+    const el = e.target, card = el.closest(".map"); if (!card || !el.dataset.m) return;
+    S.maps[Number(card.dataset.i)][el.dataset.m] = el.value;
+    if (el.tagName === "SELECT") renderMaps();
+    update(false);
+  });
+
+  // ---------- patrocinadores ----------
+  function renderSponsors() {
+    $("sp-list").innerHTML = S.sponsors.map((u, i) => `
+      <div class="sp"><div class="pv" style="background-image:url('${esc(u)}')"></div>
+      <input type="text" data-sp="${i}" value="${esc(u)}" aria-label="Arte ${i + 1}" placeholder="link ou Resources/Sponsors/...">
+      <button class="btn small" type="button" data-sp-del="${i}" aria-label="Remover arte ${i + 1}">Remover</button></div>`).join("");
+  }
+  $("sp-list").addEventListener("input", (e) => { const i = e.target.dataset.sp; if (i == null) return; S.sponsors[i] = e.target.value; e.target.previousElementSibling.style.backgroundImage = `url('${e.target.value}')`; update(false); });
+  $("sp-list").addEventListener("click", (e) => { const i = e.target.dataset.spDel; if (i == null) return; S.sponsors.splice(Number(i), 1); renderSponsors(); update(false); });
+  $("sp-add").addEventListener("click", () => { S.sponsors.push(""); renderSponsors(); $("sp-list").lastElementChild.querySelector("input").focus(); });
+
+  // ---------- atalhos (clique e aperte as teclas) ----------
+  let recording = null;
+  function renderKeys() {
+    $("keys").innerHTML = Object.keys(KEYNAMES).map((k) => `
+      <div class="key${recording === k ? " rec" : ""}">
+        <label class="tg"><input type="checkbox" data-kon="${k}"${S.keysOn[k] ? " checked" : ""}><i></i><span class="sr">Ativar</span></label>
+        <span>${KEYNAMES[k]}</span>
+        <button class="btn small" type="button" data-krec="${k}" aria-label="Trocar o atalho de ${KEYNAMES[k]}">${recording === k ? "<kbd>Aperte as teclas…</kbd>" : S.keys[k].map((x) => `<kbd>${esc(x)}</kbd>`).join(" + ")}</button>
+      </div>`).join("");
+  }
+  $("keys").addEventListener("click", (e) => { const b = e.target.closest("[data-krec]"); if (!b) return; recording = recording === b.dataset.krec ? null : b.dataset.krec; renderKeys(); });
+  $("keys").addEventListener("change", (e) => { const k = e.target.dataset.kon; if (k) { S.keysOn[k] = e.target.checked; update(false); } });
+  document.addEventListener("keydown", (e) => {
+    if (!recording) return;
+    if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) return;
+    e.preventDefault();
+    if (e.key === "Escape") { recording = null; renderKeys(); return; }
+    const combo = [e.ctrlKey && "Ctrl", e.altKey && "Alt", e.shiftKey && "Shift", e.key.length === 1 ? e.key.toUpperCase() : e.key].filter(Boolean);
+    S.keys[recording] = combo; recording = null; renderKeys(); update(false); toast("Atalho salvo");
+  });
+
+  // ---------- conferência: o que falta em cada seção ----------
+  const logoOk = (u) => !u || /^(https?:|file:|Resources\/)/i.test(u.trim());
+  function checks() {
+    const c = {};
+    c.conexao = S.code.trim().length >= 3 && S.srv.trim() ? "ok" : "need";
+    c.times = S.lName.trim() && S.rName.trim() && S.lTri.trim() && S.rTri.trim() && logoOk(S.lLogo) && logoOk(S.rLogo) ? "ok" : "need";
+    c.serie = !S.serOn ? "opt" : S.wonL < S.fmt && S.wonR < S.fmt ? "ok" : "need";
+    c.torneio = S.toN >= 0 && S.toD >= 15 ? "ok" : "need";
+    c.patrocinio = !S.spOn ? "opt" : S.sponsors.filter((x) => x.trim()).length ? "ok" : "need";
+    c.atalhos = "ok";
+    c.cameras = !S.camOn ? "opt" : S.camId.trim() && S.camS.trim() ? "ok" : "need";
+    c.app = "ok";
+    return c;
+  }
+
+  // ---------- desenho ----------
+  function update(full = true) {
+    S.code = S.code.toUpperCase(); S.lTri = S.lTri.toUpperCase(); S.rTri = S.rTri.toUpperCase();
+    // placas: cor pelo lado em que começam
+    const lAtt = S.start === "l";
+    $("pl-l").className = "plate l " + (lAtt ? "att" : "def");
+    $("pl-r").className = "plate r " + (lAtt ? "def" : "att");
+    $("sd-l").textContent = lAtt ? "Começa no ataque" : "Começa na defesa";
+    $("sd-r").textContent = lAtt ? "Começa na defesa" : "Começa no ataque";
+    document.querySelectorAll("[data-start]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.start === S.start)));
+    $("tn-l").textContent = S.lTri || S.lName || "Time A";
+    $("tn-r").textContent = S.rTri || S.rName || "Time B";
+    [["l", S.lLogo], ["r", S.rLogo]].forEach(([s, u]) => {
+      const box = $("lg-" + s), wm = $("wm-" + s);
+      if (u && logoOk(u)) {
+        if (box._u !== u) { box._u = u; box.innerHTML = `<img alt="" src="${esc(u)}" onerror="this.parentNode.innerHTML='<span>LOGO</span>'">`; wm.src = u; wm.hidden = false; }
+      } else { box._u = ""; box.innerHTML = "<span>LOGO</span>"; wm.hidden = true; }
+    });
+    $("t-l-logo").classList.toggle("bad", !logoOk(S.lLogo));
+    $("t-r-logo").classList.toggle("bad", !logoOk(S.rLogo));
+    $("srv").disabled = S.srvMode === "local";
+    $("code-h").innerHTML = S.code.length >= 3 ? `Na HUD: <b>codigo: "${esc(S.code)}"</b> no config.js.` : '<span style="color:#ff9aac">Use pelo menos 3 letras ou números.</span>';
+    $("code-h").classList.toggle("err", S.code.length < 3);
+    document.querySelectorAll("#cam-f input:not([type=checkbox])").forEach((i) => (i.disabled = !S.camOn));
+    if (full) renderMaps();
+    // conferência no menu
+    const c = checks();
+    let need = 0;
+    document.querySelectorAll(".rail a").forEach((a) => {
+      const st = a.querySelector(".st"), v = c[a.dataset.sec];
+      st.className = "st " + v; st.textContent = v === "ok" ? "✓" : v === "need" ? "!" : "";
+      st.title = v === "ok" ? "Pronto" : v === "need" ? "Falta preencher" : "Opcional, desligado";
+      if (v === "need") need++;
+    });
+    $("summary").innerHTML = need ? `<b>${need} ${need > 1 ? "seções precisam" : "seção precisa"}</b> de atenção antes de conectar.` : "<b>Tudo pronto.</b> Abra o Valorant e conecte.";
+    $("connect").disabled = need > 0;
+    $("connect").title = need ? "Resolva os itens marcados com ! no menu" : "";
+    store.set(S);
+  }
+
+  // menu acompanha a rolagem
+  const io = new IntersectionObserver((ents) => ents.forEach((en) => { if (en.isIntersecting) document.querySelectorAll(".rail a").forEach((a) => a.classList.toggle("on", a.dataset.sec === en.target.id)); }), { root: $("scroll"), rootMargin: "-10% 0px -70% 0px" });
+  document.querySelectorAll("section").forEach((s) => io.observe(s));
+
+  $("save").addEventListener("click", () => { store.set(S); toast("Configurações salvas"); });
+
+  // ---------- luzes (na prévia: simuladas) ----------
+  const light = (id, cls, t) => { $(id).className = "light " + cls; $(id + "-t").textContent = t; };
+  light("l-ow", "warn", "aguardando a chave");
+  light("l-game", "", "fechado");
+  light("l-srv", "", "desconectado");
+  setTimeout(() => { light("l-game", "ok", "na partida"); if (!S.name) { S.name = "observador#BR1"; $("name").value = S.name; update(false); } }, 1500);
+
+  // ---------- conectar / ao vivo ----------
+  const dlg = $("dlg");
+  const ask = (t, p, yes) => { $("dlg-t").textContent = t; $("dlg-p").textContent = p; dlg.showModal(); $("dlg-yes").onclick = () => { dlg.close(); yes(); }; };
+  $("dlg-no").addEventListener("click", () => dlg.close());
+  const log = (m) => { const d = document.createElement("div"); d.innerHTML = `<time>${new Date().toLocaleTimeString("pt-BR")}</time><span>${m}</span>`; $("log").prepend(d); };
+
+  $("connect").addEventListener("click", () => {
+    if ($("connect").disabled) return;
+    document.body.classList.add("wait");
+    light("l-srv", "warn", "conectando");
+    setTimeout(() => {
+      document.body.classList.remove("wait");
+      document.body.classList.add("on");
+      $("connect").hidden = true; $("disconnect").hidden = false; $("save").hidden = true;
+      light("l-srv", "ok", "recebendo");
+      startLive();
+    }, 900);
+  });
+  $("disconnect").addEventListener("click", () => ask("Desconectar?", "A HUD para de receber dados até você conectar de novo. Se for reconectar, abra o capturador antes do Valorant.", () => {
+    document.body.classList.remove("on");
+    $("connect").hidden = false; $("disconnect").hidden = true; $("save").hidden = false;
+    light("l-srv", "", "desconectado");
+    stopLive();
+  }));
+
+  let tick = null;
+  const L = { round: 1, phase: "compra", t: 30, sl: 0, sr: 0, rate: 10, obs: "", lAtt: S.start === "l" };
+  function paintScore() {
+    $("sc-l-n").textContent = S.lTri; $("sc-r-n").textContent = S.rTri;
+    $("sc-l-s").textContent = L.sl; $("sc-r-s").textContent = L.sr;
+    $("sc-l").className = "t l " + (L.lAtt ? "att" : "def");
+    $("sc-r").className = "t r " + (L.lAtt ? "def" : "att");
+    $("sc-time").textContent = Math.floor(L.t / 60) + ":" + String(L.t % 60).padStart(2, "0");
+    $("sc-phase").textContent = `Rodada ${L.round}, ${L.phase}`;
+    $("f-map").textContent = (S.maps.find((m) => m.type === "present") || {}).map || "—";
+  }
+  function startLive() {
+    const fr = $("hud");
+    fr.src = "vctcn.html?demo&clean";
+    const fit = () => { fr.style.transform = `scale(${$("screen").clientWidth / 1920})`; };
+    fit(); new ResizeObserver(fit).observe($("screen"));
+    L.round = 1; L.phase = "compra"; L.t = 30; L.sl = 0; L.sr = 0; L.lAtt = S.start === "l";
+    log(`Conectado a ${esc(S.srvMode === "local" ? "este PC" : S.srv)} com o código <b>${esc(S.code)}</b>`);
+    paintScore();
+    const players = ["Ezeir", "cb", "qiutiaN", "Dynamite", "ra1ny", "Coco"];
+    tick = setInterval(() => {
+      L.t--;
+      if (L.t < 0) {
+        if (L.phase === "compra") { L.phase = "combate"; L.t = 100; log(`Rodada ${L.round}: combate`); }
+        else { const w = Math.random() < .5; w ? L.sl++ : L.sr++; log(`<b>${esc(w ? S.lTri : S.rTri)}</b> venceu a rodada ${L.round}`); L.round++; L.phase = "compra"; L.t = 30; if (L.round === 13) { L.lAtt = !L.lAtt; log("Troca de lado"); } }
+      }
+      if (L.t % 7 === 0 && L.phase === "combate") { L.obs = players[Math.floor(Math.random() * players.length)]; $("f-obs").textContent = L.obs; }
+      $("f-rate").textContent = (9 + Math.round(Math.random() * 2)) + " por segundo";
+      $("f-age").textContent = "agora";
+      paintScore();
+    }, 1000);
+  }
+  function stopLive() { clearInterval(tick); $("hud").src = "about:blank"; log("Desconectado"); }
+
+  // ações ao vivo (mesmos atalhos)
+  const ACTS = [["leftTimeout", "def"], ["rightTimeout", "att"], ["techPause", ""], ["spikePlanted", ""], ["switchKdaCredits", ""], ["showToast", ""]];
+  function renderActs() {
+    $("acts").innerHTML = ACTS.map(([k, cls]) => `<button class="act ${cls}" type="button" data-act="${k}" aria-pressed="false"><b>${KEYNAMES[k].replace("Pausa tática da esquerda", `Pausa de ${esc(S.lTri)}`).replace("Pausa tática da direita", `Pausa de ${esc(S.rTri)}`)}</b>${S.keysOn[k] ? `<kbd>${S.keys[k].map(esc).join(" + ")}</kbd>` : '<span style="color:var(--mute);font-size:12px">sem atalho</span>'}</button>`).join("");
+  }
+  $("acts").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    const k = b.dataset.act;
+    if (k === "showToast") { $("msg-b").focus(); return; }
+    const on = b.getAttribute("aria-pressed") !== "true";
+    if (k === "leftTimeout" || k === "rightTimeout" || k === "techPause") {
+      b.setAttribute("aria-pressed", String(on)); b.classList.toggle("lit", on);
+      log(on ? `${KEYNAMES[k]} começou` : `${KEYNAMES[k]} terminou`);
+    } else log(k === "spikePlanted" ? "Spike marcada como plantada" : "HUD alternou entre K/D/A e créditos");
+  });
+  $("msg-send").addEventListener("click", () => {
+    const t = $("msg-b").value.trim();
+    if (t.length < 3) { $("msg-b").focus(); toast("Escreva pelo menos 3 letras"); return; }
+    log(`Mensagem na tela: “${esc(t)}”`); toast("Mensagem enviada para a HUD"); $("msg-b").value = ""; $("msg-t").value = "";
+  });
+  document.querySelectorAll("[data-fix]").forEach((b) => b.addEventListener("click", () => {
+    const ad = b.dataset.fix === "ad";
+    ask(ad ? "Inverter ataque e defesa?" : "Inverter esquerda e direita?", ad ? "Use só se a HUD estiver mostrando os lados trocados." : "Use só se os times aparecerem do lado errado da tela.", () => {
+      if (ad) L.lAtt = !L.lAtt; else { [S.lTri, S.rTri] = [S.rTri, S.lTri]; [L.sl, L.sr] = [L.sr, L.sl]; }
+      paintScore(); renderActs(); log(ad ? "Ataque e defesa invertidos" : "Esquerda e direita invertidas");
+    });
+  }));
+
+  // primeira pintura
+  renderSponsors(); renderKeys(); update();
+  const _u = update; // as ações ao vivo usam as siglas atuais
+  document.addEventListener("input", () => renderActs());
+  renderActs();
+  void _u;
+})();
+</script>
+</body>
+</html>
