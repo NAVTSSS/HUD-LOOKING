@@ -505,12 +505,16 @@ img { display: block; }
 
   // pontos de série (paralelogramos sob o placar)
   function pipsSVG(side, need, won) {
+    // cabem no recorte entre a placa do time e o centro escuro (x 788 a 862, y 51 a 60), sem encostar em nenhum dos dois
+    if (!need) return "";
+    const gap = 6, sk = 7, right = 862, left = 788;
+    const w = Math.min(22, Math.floor((right - left - (need - 1) * gap) / need));
     let s = "";
     for (let k = 0; k < need; k++) {
-      const x = 840 - k * 34; // k = 0 é o mais perto do centro
+      const x = right - w - k * (w + gap); // k = 0 é o mais perto do centro
       const pts = side === "l"
-        ? [[x, 52], [x + 22, 52], [x + 31, 61], [x + 9, 61]]
-        : [[1920 - x, 52], [1898 - x, 52], [1889 - x, 61], [1911 - x, 61]];
+        ? [[x, 51], [x + w, 51], [x + w + sk, 60], [x + sk, 60]]
+        : [[1920 - x, 51], [1920 - x - w, 51], [1920 - x - w - sk, 60], [1920 - x - sk, 60]];
       s += `<polygon class="pip ${side}${k < won ? " won" : ""}" points="${pts.map((q) => q.join(",")).join(" ")}"/>`;
     }
     return s;
