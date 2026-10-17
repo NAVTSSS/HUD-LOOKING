@@ -102,7 +102,8 @@ input.bad { border-color: rgba(239, 58, 93, .7); }
 /* interruptor */
 .tg { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
 .tg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.tg i { width: 36px; height: 20px; border-radius: 10px; background: #2b3947; position: relative; transition: background .15s; flex: none; }
+.f label.tg { display: inline-flex; margin-bottom: 0; }
+.tg i { display: inline-block; width: 36px; height: 20px; border-radius: 10px; background: #2b3947; position: relative; transition: background .15s; flex: none; }
 .tg i::after { content: ""; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: #c9d3db; transition: transform .15s; }
 .tg input:checked + i { background: var(--def); }
 .tg input:checked + i::after { transform: translateX(16px); background: #fff; }
@@ -209,10 +210,65 @@ dialog::backdrop { background: rgba(3, 7, 11, .7); }
 dialog h3 { font: 700 17px var(--num); margin-bottom: 8px; }
 dialog p { color: var(--ink-2); margin-bottom: 14px; }
 dialog .row { justify-content: flex-end; margin-top: 14px; }
+/* faixa de aviso do Overwolf */
+.banner { display: none; align-items: center; gap: 12px; padding: 9px 20px; font-size: 13.5px; border-bottom: 1px solid var(--line); }
+.banner.on { display: flex; }
+.banner.warn { background: #2d2512; color: #ffe2a6; }
+.banner.bad { background: #311620; color: #ffc4cf; }
+.banner b { font-weight: 700; }
+.banner button { margin-left: auto; background: transparent; border: 0; color: inherit; cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px; }
+body.has-banner .main, body.has-banner .live { height: calc(100% - 64px - 39px); }
+/* bloco que só funciona no servidor oficial */
+.official { font-size: 12px; color: var(--mute); display: flex; align-items: center; gap: 6px; }
+.official::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #50606f; }
+/* patrocinadores da vitória da rodada */
+.rws { display: grid; gap: 10px; margin-top: 14px; }
+.rws-item { display: grid; grid-template-columns: 64px 1fr 1fr; gap: 10px 14px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); align-items: start; }
+.rws-item .pv { grid-row: span 2; width: 64px; height: 64px; border-radius: 8px; background: #0a1016 center / contain no-repeat; border: 1px solid var(--line); }
+.rws-item .full { grid-column: 2 / span 2; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { height: 28px; padding: 0 11px; border-radius: 14px; border: 1px solid var(--line); background: transparent; cursor: pointer; color: var(--ink-2); font-size: 12.5px; }
+.chip[aria-pressed=true] { background: #1d3b35; border-color: var(--def); color: #d9fff4; }
+.rws-item .del { justify-self: end; }
+/* área de prévia no menu */
+.devbox { margin-top: 14px; padding: 10px; border: 1px dashed #34495c; border-radius: 8px; display: grid; gap: 4px; }
+.devbox p { font-size: 11.5px; color: var(--mute); margin-bottom: 4px; }
+.devbox button { text-align: left; background: transparent; border: 0; color: var(--ink-2); padding: 5px 6px; border-radius: 5px; cursor: pointer; font-size: 12.5px; }
+.devbox button:hover { background: var(--panel); color: var(--ink); }
+/* tela de carregamento */
+.loading { position: fixed; inset: 0; z-index: 30; background: var(--bg); display: none; place-items: center; }
+.loading.on { display: grid; }
+.loading .box { width: 340px; text-align: center; }
+.loading svg { width: 64px; height: 64px; animation: pulse 1.4s ease-in-out infinite; }
+.loading h2 { font: 700 18px var(--num); margin: 16px 0 4px; }
+.loading p { color: var(--mute); font-size: 13px; min-height: 20px; }
+.loading .bar { height: 4px; border-radius: 2px; background: #1c2833; overflow: hidden; margin-top: 18px; }
+.loading .bar i { display: block; width: 35%; height: 100%; background: var(--def-hi); animation: slide 1.1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .45; } }
+@keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
+/* modo auxiliar (PC de cada jogador) */
+.auxv { display: none; height: calc(100% - 64px); place-items: center; padding: 20px; }
+body.aux .main, body.aux .live { display: none !important; }
+body.aux .auxv { display: grid; }
+body.aux .top .btn, body.aux #l-ow, body.aux .top .x-extra { display: none; }
+.auxcard { width: 750px; max-width: 100%; display: grid; grid-template-columns: 1fr 260px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); overflow: hidden; }
+.auxcard .form { padding: 22px; display: grid; gap: 14px; align-content: start; }
+.auxcard .form h2 { font: 700 19px var(--num); }
+.auxcard .form > p { color: var(--mute); font-size: 13px; margin-top: -8px; }
+.auxcard .stat { background: var(--rail); border-left: 1px solid var(--line); padding: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; }
+.auxcard .stat svg { width: 72px; height: 72px; }
+.auxcard .stat b { font: 700 16px var(--num); }
+.auxcard .stat span { color: var(--mute); font-size: 12.5px; }
+.auxcard .big { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 16px; background: rgba(56, 214, 174, .12); color: var(--ok); font-weight: 600; font-size: 13px; }
+.auxcard .big.off { background: rgba(125, 139, 152, .14); color: var(--ink-2); }
+.auxcard .big i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+input[readonly] { color: var(--ink-2); background: #10171f; }
 .connecting { display: none; }
 body.wait .connecting { display: inline; }
 
 @media (max-width: 980px) {
+  .auxcard { grid-template-columns: 1fr; }
+  .rws-item { grid-template-columns: 1fr; } .rws-item .pv { grid-row: auto; } .rws-item .full { grid-column: auto; }
   .main { grid-template-columns: 1fr; }
   .rail { display: none; }
   .versus { grid-template-columns: 1fr; }
@@ -237,10 +293,12 @@ body.wait .connecting { display: inline; }
     <div class="light" id="l-game"><i></i><span>Valorant</span><b id="l-game-t">fechado</b></div>
     <div class="light" id="l-srv"><i></i><span>Servidor</span><b id="l-srv-t">desconectado</b></div>
   </div>
+  <button class="btn x-extra" id="extras" type="button">Extras</button>
   <button class="btn" id="save" type="button">Salvar</button>
   <button class="btn go" id="connect" type="button"><span class="idle-t">Conectar</span><span class="connecting">Conectando…</span></button>
   <button class="btn stop" id="disconnect" type="button" hidden>Desconectar</button>
 </header>
+<div class="banner" id="banner" role="alert"><span id="banner-t"></span><button type="button" id="banner-x" aria-label="Fechar aviso">×</button></div>
 
 <!-- ===================== PREPARAÇÃO ===================== -->
 <div class="main">
@@ -254,6 +312,13 @@ body.wait .connecting { display: inline; }
     <a href="#cameras" data-sec="cameras">Câmeras <i class="st"></i></a>
     <a href="#app" data-sec="app">Programa <i class="st"></i></a>
     <div class="foot" id="summary"></div>
+    <div class="devbox" aria-label="Ver outras telas">
+      <p>Só nesta prévia: ver as outras telas</p>
+      <button type="button" data-dev="aux">Modo auxiliar (PC dos jogadores)</button>
+      <button type="button" data-dev="ev">Aviso do Overwolf</button>
+      <button type="button" data-dev="close">Fechar o programa</button>
+      <button type="button" data-dev="load">Tela de carregamento</button>
+    </div>
   </nav>
 
   <div class="scroll" id="scroll">
@@ -264,12 +329,14 @@ body.wait .connecting { display: inline; }
         <div class="grid">
           <div class="f c6"><label for="name">Seu nome no Valorant</label><input type="text" id="name" data-k="name" placeholder="nome#tag" autocomplete="off"><div class="hint">O capturador preenche sozinho quando o Valorant está aberto.</div></div>
           <div class="f c6"><label for="srv">Servidor</label>
-            <div class="row"><select id="srv-mode" data-k="srvMode" style="width:150px"><option value="local">Este PC</option><option value="custom">Outro endereço</option></select><input type="text" id="srv" data-k="srv" placeholder="localhost:5100"></div>
+            <div class="row"><select id="srv-mode" data-k="srvMode" style="width:210px"><option value="local">Este PC</option><option value="custom">Outro endereço</option><option value="official">Servidor oficial do Spectra</option></select><input type="text" id="srv" data-k="srv" placeholder="localhost:5100"></div>
             <div class="hint">O Spectra Server recebe na porta 5100 e a HUD lê na 5200.</div></div>
           <div class="f c6"><label for="code">Código da partida</label>
             <div class="row"><input type="text" id="code" data-k="code" placeholder="TESTE" style="text-transform:uppercase" autocomplete="off"><button class="btn small" type="button" id="gen">Gerar</button></div>
             <div class="hint" id="code-h">O mesmo código vai no <b>config.js</b> da HUD.</div></div>
-          <div class="f c6"><label for="key">Chave da organização <span style="color:var(--mute);font-weight:400">(opcional)</span></label><input type="text" id="key" data-k="key" placeholder="Só para os servidores oficiais do Spectra" autocomplete="off"><div class="hint">No seu próprio servidor ela não é usada.</div></div>
+          <div class="f c6"><label for="key">Chave da organização <span id="key-opt" style="color:var(--mute);font-weight:400">(opcional)</span></label>
+            <div class="row"><input type="text" id="key" data-k="key" placeholder="Só para os servidores oficiais do Spectra" autocomplete="off"><button class="btn small" type="button" id="key-val">Validar</button></div>
+            <div class="hint" id="key-h">No seu próprio servidor ela não é usada.</div></div>
         </div>
       </section>
 
@@ -323,7 +390,15 @@ body.wait .connecting { display: inline; }
           <div class="f c6"><label for="t-logo">Logo do torneio</label><input type="text" id="t-logo" data-k="tLogo" placeholder="link da imagem (quadrada)"></div>
           <div class="f c6"><label for="t-back">Fundo das telas de pausa e vitória</label><input type="text" id="t-back" data-k="tBack" placeholder="link da imagem (875 × 200)"></div>
           <div class="f c6"><label id="rw-l">Quadro da vitória da rodada</label><div class="seg" role="group" aria-labelledby="rw-l" id="rw"><button type="button" data-v="off">Desligado</button><button type="button" data-v="tour" aria-pressed="true">Torneio</button><button type="button" data-v="spons">Patrocinadores</button></div></div>
-          <div class="f c6"><label for="wm-text">Texto fixo na tela (opcional)</label><input type="text" id="wm-text" data-k="wmText" maxlength="20" placeholder="Até 20 letras"></div>
+          <div class="f c6"><label for="wm-text">Texto fixo na tela</label>
+            <div class="row"><label class="tg"><input type="checkbox" id="wm-on" data-k="wmOn"><i></i><span class="sr">Mostrar texto fixo</span></label><input type="text" id="wm-text" data-k="wmText" maxlength="20" placeholder="Até 20 letras"></div>
+            <div class="hint">Fica num canto da HUD a partida inteira.</div></div>
+          <div class="f c12" id="rws-box" hidden>
+            <label>Patrocinadores do quadro de vitória</label>
+            <div class="hint" style="margin:0 0 4px">Cada um aparece só para o time e os tipos de rodada que você marcar.</div>
+            <div class="rws" id="rws"></div>
+            <button class="btn small" type="button" id="rws-add" style="margin-top:10px">Adicionar patrocinador</button>
+          </div>
         </div>
       </section>
 
@@ -347,6 +422,7 @@ body.wait .connecting { display: inline; }
           <div class="f c5"><label for="cam-id">Identificador</label><input type="text" id="cam-id" data-k="camId"></div>
           <div class="f c5"><label for="cam-s">Senha</label><input type="text" id="cam-s" data-k="camS"></div>
           <div class="f c12"><label class="tg"><input type="checkbox" data-k="camTri" checked><i></i><span>Tirar a sigla do time do começo dos nomes</span></label></div>
+          <div class="f c12 row" style="gap:10px;flex-wrap:wrap"><button class="btn small" type="button" data-official disabled>Abrir no navegador</button><button class="btn small" type="button" data-official disabled>Iniciar sessão</button><span class="official">Só funciona no servidor oficial do Spectra</span></div>
         </div>
       </section>
 
@@ -388,7 +464,10 @@ body.wait .connecting { display: inline; }
       <div class="f" style="display:grid;gap:8px">
         <input type="text" id="msg-t" maxlength="35" placeholder="Título (opcional)">
         <textarea id="msg-b" rows="2" maxlength="100" placeholder="Texto que aparece para quem assiste"></textarea>
-        <div class="row"><select id="msg-team" style="width:auto;flex:1"><option value="none">Sem logo de time</option><option value="l">Logo do time da esquerda</option><option value="r">Logo do time da direita</option></select><button class="btn small" type="button" id="msg-send">Mostrar</button></div>
+        <div class="row"><select id="msg-team" style="width:auto;flex:1" aria-label="Logo de time"><option value="none">Sem logo de time</option><option value="l">Logo do time da esquerda</option><option value="r">Logo do time da direita</option></select></div>
+        <div class="row"><label class="row" style="gap:6px;flex:none" for="msg-d"><input type="number" id="msg-d" min="3" max="30" value="8" class="num" style="width:56px;text-align:center"><span style="color:var(--mute);font-size:12.5px">s na tela</span></label>
+          <label class="tg" style="margin-left:6px"><input type="checkbox" id="msg-ev" checked><i></i><span>Logo do evento</span></label></div>
+        <button class="btn small" type="button" id="msg-send" style="justify-self:end">Mostrar</button>
       </div>
     </div>
     <div>
@@ -404,6 +483,51 @@ body.wait .connecting { display: inline; }
     </div>
   </aside>
 </div>
+
+<!-- ===================== MODO AUXILIAR (PC de cada jogador) ===================== -->
+<div class="auxv">
+  <div class="auxcard">
+    <div class="form">
+      <h2>Modo auxiliar</h2>
+      <p>Roda no PC de cada jogador e manda a vida e as cargas das habilidades. Não precisa preencher mais nada.</p>
+      <div class="f"><label for="ax-name">Seu nome no Valorant</label><input type="text" id="ax-name" readonly value="ra1ny#TEC"><div class="hint">Lido do jogo. Confira se é o seu.</div></div>
+      <div class="f"><label for="ax-srv">Servidor</label><input type="text" id="ax-srv" list="ax-srv-l" value="localhost:5100"><datalist id="ax-srv-l"><option value="localhost:5100"></datalist><div class="hint">O mesmo endereço que o observador usa.</div></div>
+      <div class="grid" style="gap:10px">
+        <div class="f c12"><label class="tg"><input type="checkbox" checked><i></i><span>Fechar para a bandeja</span></label></div>
+        <div class="f c12"><label class="tg"><input type="checkbox"><i></i><span>Abrir com o Windows</span></label></div>
+        <div class="f c12"><label class="tg"><input type="checkbox"><i></i><span>Abrir minimizado</span></label></div>
+      </div>
+      <button class="btn small" type="button" data-dev="obs" style="justify-self:start">Voltar para o modo observador</button>
+    </div>
+    <div class="stat">
+      <svg viewBox="0 0 26 26" aria-hidden="true"><path d="M3 4h20l-4 7H7z" fill="#38d6ae"/><path d="M7 15h12l-6 8z" fill="#ef3a5d"/></svg>
+      <b>Capturador auxiliar</b>
+      <span class="big" id="ax-st"><i></i>Enviando dados</span>
+      <span>Pode jogar normalmente. Esta janela pode ficar minimizada.</span>
+    </div>
+  </div>
+</div>
+
+<div class="loading" id="loading" role="status" aria-live="polite">
+  <div class="box">
+    <svg viewBox="0 0 26 26" aria-hidden="true"><path d="M3 4h20l-4 7H7z" fill="#38d6ae"/><path d="M7 15h12l-6 8z" fill="#ef3a5d"/></svg>
+    <h2>Iniciando o capturador</h2>
+    <p id="loading-p">Carregando o Overwolf</p>
+    <div class="bar"><i></i></div>
+  </div>
+</div>
+
+<dialog id="dlg-extras">
+  <h3>Extras</h3>
+  <p>Ferramentas do serviço oficial do Spectra. No seu servidor elas ficam desligadas.</p>
+  <div style="display:grid;gap:8px">
+    <button class="btn" type="button" data-official disabled>Copiar o link do overlay</button>
+    <button class="btn" type="button" data-official disabled>Abrir a prévia do overlay</button>
+    <button class="btn" type="button" data-official disabled>Iniciar o banimento de mapas</button>
+  </div>
+  <p class="official" id="extras-note" style="margin:12px 0 0">Só funciona no servidor oficial do Spectra, com a chave validada.</p>
+  <div class="row"><button class="btn" type="button" id="extras-x">Fechar</button></div>
+</dialog>
 
 <div class="toast" id="toast" role="status"></div>
 <dialog id="dlg"><h3 id="dlg-t"></h3><p id="dlg-p"></p><div class="row"><button class="btn" type="button" id="dlg-no">Voltar</button><button class="btn go" type="button" id="dlg-yes">Continuar</button></div></dialog>
@@ -427,7 +551,8 @@ body.wait .connecting { display: inline; }
     rName: "Titan Esports Club", rTri: "TEC", rLogo: "Resources/Logos/logo2.png", start: "r",
     serOn: true, fmt: 2, wonL: 0, wonR: 0, seedL: "", seedR: "",
     maps: [{ type: "present", map: "Bind", pick: "l", sl: "", sr: "" }, { type: "future", map: "Sunset", pick: "r", sl: "", sr: "" }, { type: "future", map: "Ascent", pick: "dec", sl: "", sr: "" }],
-    stage: "Chave inferior, rodada 1", toN: 2, toD: 60, tLogo: "", tBack: "", rw: "tour", wmText: "",
+    stage: "Chave inferior, rodada 1", toN: 2, toD: 60, tLogo: "", tBack: "", rw: "tour", wmOn: false, wmText: "", keyOk: false,
+    rws: [{ logo: "Resources/Sponsors/Sponsor1.png", back: "", team: "all", when: ["all"] }],
     spOn: true, spD: 6, sponsors: ["Resources/Sponsors/Sponsor1.png", "Resources/Sponsors/Sponsor2.png", "Resources/Sponsors/Sponsor3.png"],
     keys: { leftTimeout: ["Ctrl", "F1"], rightTimeout: ["Ctrl", "F2"], techPause: ["Ctrl", "F3"], spikePlanted: ["Ctrl", "F4"], switchKdaCredits: ["Ctrl", "F5"], showToast: ["Ctrl", "F6"] },
     keysOn: { leftTimeout: true, rightTimeout: true, techPause: true, spikePlanted: true, switchKdaCredits: true, showToast: true },
@@ -458,7 +583,16 @@ body.wait .connecting { display: inline; }
     update(); toast("Times trocados de lado");
   });
   $("gen").addEventListener("click", () => { const c = Array.from({ length: 6 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join(""); S.code = c; $("code").value = c; update(); });
-  $("srv-mode").addEventListener("change", () => { if (S.srvMode === "local") { S.srv = "localhost:5100"; $("srv").value = S.srv; } update(); });
+  $("srv-mode").addEventListener("change", () => {
+    if (S.srvMode === "local") S.srv = "localhost:5100";
+    if (S.srvMode === "official") S.srv = "ingest.valospectra.com";
+    $("srv").value = S.srv; S.keyOk = false; update();
+  });
+  $("key").addEventListener("input", () => { S.keyOk = false; update(false); });
+  $("key-val").addEventListener("click", () => {
+    const b = $("key-val"); b.disabled = true; b.textContent = "Validando…";
+    setTimeout(() => { S.keyOk = S.key.trim().length >= 8; b.textContent = "Validar"; update(false); toast(S.keyOk ? "Chave aceita" : "Chave recusada pelo servidor"); }, 900);
+  });
 
   // ---------- mapas da série ----------
   const TYPES = [["past", "Já jogado"], ["present", "Atual"], ["future", "Próximo"], ["off", "Não mostrar"]];
@@ -519,10 +653,10 @@ body.wait .connecting { display: inline; }
   const logoOk = (u) => !u || /^(https?:|file:|Resources\/)/i.test(u.trim());
   function checks() {
     const c = {};
-    c.conexao = S.code.trim().length >= 3 && S.srv.trim() ? "ok" : "need";
+    c.conexao = S.code.trim().length >= 3 && S.srv.trim() && (S.srvMode !== "official" || S.keyOk) ? "ok" : "need";
     c.times = S.lName.trim() && S.rName.trim() && S.lTri.trim() && S.rTri.trim() && logoOk(S.lLogo) && logoOk(S.rLogo) ? "ok" : "need";
     c.serie = !S.serOn ? "opt" : S.wonL < S.fmt && S.wonR < S.fmt ? "ok" : "need";
-    c.torneio = S.toN >= 0 && S.toD >= 15 ? "ok" : "need";
+    c.torneio = S.toN >= 0 && S.toD >= 15 && (S.rw !== "spons" || S.rws.some((r) => r.logo.trim())) && (!S.wmOn || S.wmText.trim()) ? "ok" : "need";
     c.patrocinio = !S.spOn ? "opt" : S.sponsors.filter((x) => x.trim()).length ? "ok" : "need";
     c.atalhos = "ok";
     c.cameras = !S.camOn ? "opt" : S.camId.trim() && S.camS.trim() ? "ok" : "need";
@@ -554,6 +688,15 @@ body.wait .connecting { display: inline; }
     $("code-h").innerHTML = S.code.length >= 3 ? `Na HUD: <b>codigo: "${esc(S.code)}"</b> no config.js.` : '<span style="color:#ff9aac">Use pelo menos 3 letras ou números.</span>';
     $("code-h").classList.toggle("err", S.code.length < 3);
     document.querySelectorAll("#cam-f input:not([type=checkbox])").forEach((i) => (i.disabled = !S.camOn));
+    const off = S.srvMode === "official";
+    $("key-opt").textContent = off ? "(obrigatória no servidor oficial)" : "(opcional)";
+    $("key-val").disabled = !off || S.key.trim().length < 3;
+    $("key-h").innerHTML = !off ? "No seu próprio servidor ela não é usada." : S.keyOk ? '<span style="color:var(--ok)">Chave validada.</span>' : "Valide a chave antes de conectar. Ela é conseguida no Discord do Spectra.";
+    $("key").classList.toggle("bad", off && !S.keyOk && S.key.length > 0);
+    $("wm-text").disabled = !S.wmOn;
+    $("rws-box").hidden = S.rw !== "spons";
+    document.querySelectorAll("[data-official]").forEach((b) => { b.disabled = !(off && S.keyOk); });
+    $("extras-note").hidden = off && S.keyOk;
     if (full) renderMaps();
     // conferência no menu
     const c = checks();
@@ -660,7 +803,8 @@ body.wait .connecting { display: inline; }
   $("msg-send").addEventListener("click", () => {
     const t = $("msg-b").value.trim();
     if (t.length < 3) { $("msg-b").focus(); toast("Escreva pelo menos 3 letras"); return; }
-    log(`Mensagem na tela: “${esc(t)}”`); toast("Mensagem enviada para a HUD"); $("msg-b").value = ""; $("msg-t").value = "";
+    const d = Math.min(30, Math.max(3, Number($("msg-d").value) || 8));
+    log(`Mensagem na tela por ${d} s${$("msg-ev").checked ? ", com o logo do evento" : ""}: “${esc(t)}”`); toast("Mensagem enviada para a HUD"); $("msg-b").value = ""; $("msg-t").value = "";
   });
   document.querySelectorAll("[data-fix]").forEach((b) => b.addEventListener("click", () => {
     const ad = b.dataset.fix === "ad";
@@ -670,7 +814,71 @@ body.wait .connecting { display: inline; }
     });
   }));
 
+  // ---------- patrocinadores do quadro de vitória ----------
+  const WHEN = [["all", "Todas"], ["normal", "Normal"], ["ace", "Ace"], ["clutch", "Clutch"], ["teamAce", "Ace do time"], ["flawless", "Perfeita"], ["thrifty", "Econômica"]];
+  function renderRws() {
+    $("rws").innerHTML = S.rws.map((r, i) => `
+      <div class="rws-item" data-i="${i}">
+        <div class="pv" style="background-image:url('${esc(r.logo)}')"></div>
+        <div class="f"><label for="rw-lg-${i}">Logo</label><input type="text" id="rw-lg-${i}" data-r="logo" value="${esc(r.logo)}" placeholder="link ou Resources/..."></div>
+        <div class="f"><label for="rw-bk-${i}">Fundo (opcional)</label><input type="text" id="rw-bk-${i}" data-r="back" value="${esc(r.back)}" placeholder="875 × 200"></div>
+        <div class="f"><label for="rw-tm-${i}">Aparece quando vence</label><select id="rw-tm-${i}" data-r="team"><option value="all"${r.team === "all" ? " selected" : ""}>Qualquer time</option><option value="left"${r.team === "left" ? " selected" : ""}>${esc(S.lTri || "Esquerda")}</option><option value="right"${r.team === "right" ? " selected" : ""}>${esc(S.rTri || "Direita")}</option></select></div>
+        <div class="f full"><label>Em que rodadas</label><div class="chips" role="group">${WHEN.map(([v, t]) => `<button type="button" class="chip" data-when="${v}" aria-pressed="${r.when.includes(v)}">${t}</button>`).join("")}</div></div>
+        <button class="btn small del" type="button" data-rw-del="${i}" style="grid-column:-2">Remover</button>
+      </div>`).join("");
+  }
+  $("rws").addEventListener("input", (e) => { const el = e.target, it = el.closest(".rws-item"); if (!it || !el.dataset.r) return; const r = S.rws[it.dataset.i]; r[el.dataset.r] = el.value; if (el.dataset.r === "logo") it.querySelector(".pv").style.backgroundImage = `url('${el.value}')`; update(false); });
+  $("rws").addEventListener("click", (e) => {
+    const del = e.target.closest("[data-rw-del]"); if (del) { S.rws.splice(Number(del.dataset.rwDel), 1); renderRws(); update(false); return; }
+    const ch = e.target.closest("[data-when]"); if (!ch) return;
+    const r = S.rws[ch.closest(".rws-item").dataset.i], v = ch.dataset.when;
+    if (v === "all") r.when = ["all"];
+    else { r.when = r.when.filter((x) => x !== "all"); r.when = r.when.includes(v) ? r.when.filter((x) => x !== v) : [...r.when, v]; if (!r.when.length) r.when = ["all"]; }
+    renderRws(); update(false);
+  });
+  $("rws-add").addEventListener("click", () => { S.rws.push({ logo: "", back: "", team: "all", when: ["all"] }); renderRws(); $("rws").lastElementChild.querySelector("input").focus(); });
+  $("rw").addEventListener("click", () => setTimeout(() => update(false)));
+
+  // ---------- extras (servidor oficial) ----------
+  $("extras").addEventListener("click", () => $("dlg-extras").showModal());
+  $("extras-x").addEventListener("click", () => $("dlg-extras").close());
+
+  // ---------- aviso do Overwolf ----------
+  const EVENTS = {
+    2: ["warn", "<b>Dados do Valorant instáveis no Overwolf.</b> Algumas informações podem não chegar à HUD."],
+    3: ["bad", "<b>Dados do Valorant indisponíveis no Overwolf.</b> O capturador provavelmente não vai funcionar agora."],
+    4: ["bad", "<b>Dados do Valorant desligados pelo Overwolf.</b> O capturador não vai funcionar até eles voltarem."],
+  };
+  const showEvent = (n) => {
+    const b = $("banner"), ev = EVENTS[n];
+    b.className = "banner" + (ev ? " on " + ev[0] : ""); document.body.classList.toggle("has-banner", !!ev);
+    if (ev) $("banner-t").innerHTML = ev[1];
+  };
+  $("banner-x").addEventListener("click", () => showEvent(0));
+
+  // ---------- tela de carregamento ----------
+  const showLoading = (ms) => {
+    const l = $("loading"); l.classList.add("on"); $("loading-p").textContent = "Carregando o Overwolf";
+    const slow = setTimeout(() => ($("loading-p").textContent = "Está demorando mais que o normal, ainda carregando"), Math.min(ms - 400, 2500));
+    setTimeout(() => { l.classList.remove("on"); clearTimeout(slow); }, ms);
+  };
+
+  // ---------- ver as outras telas (só na prévia) ----------
+  let evN = 1;
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-dev]"); if (!b) return;
+    const d = b.dataset.dev;
+    if (d === "aux") { document.body.classList.add("aux"); $("ver").textContent = "modo auxiliar"; }
+    if (d === "obs") { document.body.classList.remove("aux"); $("ver").textContent = "baseado no Spectra Client"; }
+    if (d === "ev") { evN = evN >= 4 ? 2 : evN + 1; showEvent(evN); }
+    if (d === "load") showLoading(3600);
+    if (d === "close") ask("Fechar o capturador?", "A conexão com o servidor cai e a HUD para de receber dados. Para reconectar, abra o capturador antes do Valorant.", () => toast("O programa fecharia agora"));
+  });
+  if (new URLSearchParams(location.search).has("aux")) document.body.classList.add("aux");
+
   // primeira pintura
+  renderRws();
+  showLoading(1300);
   renderSponsors(); renderKeys(); update();
   const _u = update; // as ações ao vivo usam as siglas atuais
   document.addEventListener("input", () => renderActs());
