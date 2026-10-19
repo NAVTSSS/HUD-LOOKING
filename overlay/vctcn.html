@@ -102,6 +102,13 @@ img { display: block; }
 .bug .seed { position: absolute; top: 48px; width: 120px; font: 700 11px/1 var(--f-num); letter-spacing: 1px; color: rgba(255,255,255,.8); white-space: nowrap; }
 .bug .seed.l { left: 640px; text-align: left; }
 .bug .seed.r { left: 1160px; text-align: right; }
+.rwin { left: 649px; top: 190px; width: 914px; height: 338px; transform: scale(.68); transform-origin: 0 0; opacity: 0; clip-path: inset(0 50% 0 50%); transition: clip-path 420ms cubic-bezier(.2,.8,.2,1), opacity 120ms; pointer-events: none; }
+.rwin.on { opacity: 1; clip-path: inset(0 0 0 0); }
+.rwin img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.rwin .rr, .rwin .rt { position: absolute; left: 0; width: 942px; text-align: center; white-space: nowrap; font: 800 35px/1 var(--f-num); letter-spacing: .5px; text-transform: uppercase; }
+.rwin .rr { top: 17px; color: #fff; }
+.rwin .rt { top: 80px; color: #5e00c5; }
+.rwin .rt span { display: inline-block; transform-origin: 50% 50%; }
 .toast { left: 510px; top: 104px; width: 900px; height: 104px; display: flex; align-items: center; gap: 26px; padding: 0 34px; background: rgba(6, 12, 18, 0.92); border-left: 4px solid var(--l-hi); border-right: 4px solid var(--r-hi); opacity: 0; transform: translateY(-10px); transition: opacity var(--t-mid), transform var(--t-mid); pointer-events: none; }
 .toast.on { opacity: 1; transform: none; }
 .toast.t-l { border-right-color: var(--l-hi); }
@@ -366,6 +373,8 @@ img { display: block; }
     trocaPublicidade: 8,       // segundos entre a faixa publicitária e o painel de estatísticas na compra
     corPorLado: true,          // como no VCT CN: defesa verde, ataque vermelho (false: esquerda sempre verde)
     trocaPatrocinio: 6,        // segundos entre as artes do bloco do evento (quando o Spectra não manda o tempo)
+    quadroVitoria: true,       // quadro "ROUND WIN" no fim de cada rodada (artes em Resources/RoundWin)
+    quadroVitoriaSeg: 6,       // segundos na tela
     patrocinadoresLocais: false, // true: sem patrocinadores no Spectra, usa as artes de Resources/Sponsors
     armasParaDireita: false,   // as imagens de Armas/ apontam o cano para a direita? (false: apontam para a esquerda, como na pasta Resources)
     duracao: { compra: 30, combate: 100, spike: 45 },
@@ -474,6 +483,7 @@ img { display: block; }
       <img class="logo r" id="logo-r" alt="">
       <div class="seed l" id="seed-l"></div><div class="seed r" id="seed-r"></div>
     </div>
+    <div class="abs rwin" id="rwin"><img id="rwin-bg" alt=""><div class="rr" id="rwin-r"></div><div class="rt" id="rwin-t"></div></div>
     <div class="abs toast" id="toast"><img id="toast-logo" alt=""><div class="tx"><b id="toast-t"></b><span id="toast-m"></span></div></div>
 
     <div class="abs cards l combat" id="cards-l"></div>
@@ -649,6 +659,7 @@ img { display: block; }
     overrides(d);
     SHOW_CREDITS = !!d.showAliveKDA;
     renderToast(d, phase);
+    renderRoundWin(d, phase);
     updateBrand(d);
     stage.classList.toggle("l-att", !!(CONFIG.corPorLado && d.teams[0].isAttacking));
 
@@ -841,6 +852,60 @@ img { display: block; }
     h.innerHTML = html;
   }
 
+  // ---------- quadro de vitória da rodada (mesma lógica do front do Spectra/nobii) ----------
+  // clutch: o time ficou com 1 vivo contra 2 ou mais em algum momento da rodada
+  const RW = { clutch: [0, 0], shown: -1, load: [0, 0], loadRound: -1, timer: null, armed: false };
+  const RW_ART = { normal: "normal", ace: "ace", clutch: "clutch", flawless: "flawless", thrifty: "economico", teamAce: "normal" };
+  const loadOf = (t) => (t.players || []).reduce((a, p) => a + (COST[p.highestWeapon] || 0) + (COST[p.armorName] || 0), 0);
+  function trackRound(d, phase) {
+    const [A, B] = d.teams, alive = (t) => (t.players || []).filter((p) => p.isAlive).length;
+    if (phase === "shopping") RW.clutch = [0, 0];
+    if (phase === "combat") {
+      const a = alive(A), b = alive(B);
+      if (a === 1 && b >= 2) RW.clutch[0] = 1;
+      if (b === 1 && a >= 2) RW.clutch[1] = 1;
+      if (RW.loadRound !== d.roundNumber) { RW.loadRound = d.roundNumber; RW.load = [loadOf(A), loadOf(B)]; }
+    }
+  }
+  function ceremony(d, won) {
+    const W = d.teams[won], Lt = d.teams[1 - won];
+    const lostNames = new Set((Lt.players || []).map((p) => p.name));
+    let ace = false, flawless = !(Lt.players || []).some((p) => p.isAlive), teamAce = (W.players || []).length > 0;
+    for (const p of W.players || []) {
+      const k = new Set((p.killedPlayerNames || []).filter((n) => lostNames.has(n)));
+      if (k.size >= 5) ace = true;
+      if ((p.deathsThisRound || 0) >= 1 || !p.isAlive) flawless = false;
+      if (!((p.killsThisRound || 0) >= 1)) teamAce = false;
+    }
+    // econômico: venceu com equipamento bem mais barato que o do adversário
+    const thrifty = RW.loadRound === d.roundNumber && RW.load[1 - won] >= 8000 && RW.load[won] <= RW.load[1 - won] * 0.6;
+    if (ace) return "ace";
+    if (RW.clutch[won]) return "clutch";
+    if (teamAce) return "teamAce";
+    if (flawless) return "flawless";
+    if (thrifty) return "thrifty";
+    return "normal";
+  }
+  function renderRoundWin(d, phase) {
+    if (!CONFIG.quadroVitoria) return;
+    trackRound(d, phase);
+    const el = $("rwin");
+    if (phase !== "end") { if (phase !== RW.lastPhase) { RW.armed = true; } RW.lastPhase = phase; return; }
+    RW.lastPhase = phase;
+    // só mostra se viu a rodada acontecer (não dispara ao abrir a HUD no meio do fim de rodada)
+    if (d.roundNumber === RW.shown || !RW.armed) return;
+    RW.shown = d.roundNumber; RW.armed = false;
+    const won = d.attackersWon ? (d.teams[0].isAttacking ? 0 : 1) : (d.teams[0].isAttacking ? 1 : 0);
+    const kind = ceremony(d, won), T = d.teams[won];
+    $("rwin-bg").src = A(`RoundWin/${RW_ART[kind] || "normal"}.png`);
+    setText($("rwin-r"), `ROUND ${d.roundNumber}`);
+    const t = $("rwin-t"); t.innerHTML = `<span>${esc(OVR.map.get(T.teamName) || T.teamName || T.teamTricode || "")}</span>`;
+    const sp = t.firstChild; sp.style.transform = ""; const w = sp.scrollWidth; if (w > 600) sp.style.transform = `scaleX(${(600 / w).toFixed(3)})`;
+    clearTimeout(RW.timer);
+    el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
+    RW.timer = setTimeout(() => el.classList.remove("on"), CONFIG.quadroVitoriaSeg * 1000);
+  }
+
   // mensagem na tela (toastInfo do capturador); como no Spectra, só aparece na compra
   function renderToast(d, phase) {
     const ti = d.toastInfo || {}, el = $("toast");
@@ -1026,7 +1091,7 @@ img { display: block; }
     const d = sim.d; d.roundPhase = "shopping"; sim.at = sim.t; sim.plan = [];
     d.spikeState = { planted: false, defused: false, detonated: false };
     d.teams.forEach((t) => t.players.forEach((p) => {
-      p.isAlive = true; p.health = 100; p.killsThisRound = 0; p.moneySpent = 0; p.isObserved = false; p.hasSpike = false;
+      p.isAlive = true; p.health = 100; p.killsThisRound = 0; p.deathsThisRound = 0; p.killedPlayerNames = []; p.moneySpent = 0; p.isObserved = false; p.hasSpike = false;
       p.abilities = { grenade: 1, ability1: 1, ability2: 0 };
       let w = p.highestWeapon, a = p.armorName;
       if (p.money >= 3900) { w = pick(["Vandal", "Phantom"]); a = "Heavy"; } else if (p.money >= 2400) { w = pick(["Spectre", "Bulldog"]); a = "Light"; } else if (p.money >= 1100 && w === "Classic") { w = pick(["Sheriff", "Ghost"]); }
@@ -1054,7 +1119,7 @@ img { display: block; }
     if (Math.random() < 0.5) { const k = pick(["grenade", "ability1", "ability2"]); s.abilities[k] = Math.max(0, s.abilities[k] - 1); }
     v.health = Math.max(0, v.health - (Math.random() < 0.55 ? 999 : Math.round(rnd(15, 70))));
     if (!v.health) {
-      v.isAlive = false; v.deaths++; s.kills++; s.killsThisRound++;
+      v.isAlive = false; v.deaths++; v.deathsThisRound = 1; s.kills++; s.killsThisRound++; (s.killedPlayerNames = s.killedPlayerNames || []).push(v.name);
       if (v.hasSpike) v.hasSpike = false;
       const h = alive(st).find((p) => p !== s); if (h && Math.random() < 0.4) h.assists++;
       s.currUltPoints = Math.min(s.maxUltPoints, s.currUltPoints + 1); s.ultReady = s.currUltPoints >= s.maxUltPoints;
