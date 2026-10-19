@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veto de mapas</title>
+<script src="config.js"></script>
+<script src="socket.io.min.js"></script>
+<script>window.io || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"><\/script>');</script>
+<style>
+/* =====================================================================
+   VETO DE MAPAS — overlay 1920×1080 para OBS (fonte de navegador separada)
+   Dados: site de veto do Spectra (mapban-socket.valospectra.com, ?sessionId=)
+   Cores, fontes e texturas iguais às da HUD in-game (vctcn.html).
+   ===================================================================== */
+:root {
+  /* mesmas cores do vctcn.html: time da esquerda usa a paleta da defesa, o da direita a do ataque */
+  --def-main: #3a2271; --def-plate: #361f8a; --def-hi: #6238d6; --def-text: #6a45d1; --def-band: #210f4a; --def-band2: rgba(33, 14, 64, 0.95);
+  --att-main: #8f3c23; --att-plate: #a5371b; --att-hi: #e05924; --att-text: #e87040; --att-band: #4a1f12; --att-band2: rgba(66, 36, 18, 0.95);
+  --brand-a: #4826c3; --brand-b: #1c060b;
+  --ink: #f4f7f8; --mute: #8a939c;
+  --f-num: "HUDGridnik", "Segoe UI", "Chakra Petch", "Rajdhani", sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+body { font-family: var(--f-num); color: var(--ink); -webkit-font-smoothing: antialiased; }
+img { display: block; }
+.viewport { position: fixed; inset: 0; }
+.stage { position: absolute; width: 1920px; height: 1080px; transform: scale(var(--s, 1)); transform-origin: 0 0; overflow: hidden; }
+.abs { position: absolute; }
+/* cada time tem a sua paleta (t0 = esquerda, t1 = direita) */
+.t0 { --hi: var(--def-hi); --main: var(--def-main); --plate: var(--def-plate); --band: var(--def-band); --band2: var(--def-band2); --tx: var(--def-text); }
+.t1 { --hi: var(--att-hi); --main: var(--att-main); --plate: var(--att-plate); --band: var(--att-band); --band2: var(--att-band2); --tx: var(--att-text); }
+/* texturas do in-game: pontinhos + listras finas */
+.dots { background-image: radial-gradient(rgba(255, 255, 255, 0.16) 0.9px, transparent 1.3px); background-size: 5px 5px; }
+
+/* ---------- moldura escura de fundo ---------- */
+.frame { left: 70px; top: 610px; width: 1780px; height: 440px; border-radius: 8px; background: rgba(14, 16, 20, 0.94); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  opacity: 0; transform: translateY(30px); transition: opacity 300ms ease, transform 300ms cubic-bezier(.2, .8, .2, 1); }
+.on .frame { opacity: 1; transform: none; }
+
+/* ---------- cabeçalho: time A | VETO DE MAPAS | time B ---------- */
+.hdr { left: 80px; top: 620px; width: 1760px; height: 92px; }
+.hdr .tm { position: absolute; top: 0; width: 700px; height: 92px; display: flex; align-items: center; gap: 22px; padding: 0 30px; overflow: hidden;
+  clip-path: inset(0 0 0 100%); transition: clip-path 420ms cubic-bezier(.2, .8, .2, 1) 120ms; }
+.hdr .tm.l { left: 0; justify-content: flex-end; background: radial-gradient(rgba(255, 255, 255, 0.14) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(90deg, var(--band) 0%, var(--main) 70%, var(--plate) 100%); clip-path: inset(0 0 0 100%); }
+.hdr .tm.r { right: 0; justify-content: flex-start; background: radial-gradient(rgba(255, 255, 255, 0.14) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(270deg, var(--band) 0%, var(--main) 70%, var(--plate) 100%); clip-path: inset(0 100% 0 0); }
+.on .hdr .tm { clip-path: inset(0 0 0 0); }
+.hdr .tm img { width: 64px; height: 64px; object-fit: contain; flex: none; }
+.hdr .tm b { font: 800 34px/1 var(--f-num); color: #fff; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hdr .tm i { font: 700 18px/1 var(--f-num); font-style: normal; color: rgba(255, 255, 255, 0.7); letter-spacing: 1px; }
+.hdr .edge { position: absolute; top: 0; width: 3px; height: 92px; box-shadow: 0 0 10px var(--hi); background: var(--hi); transform: scaleY(0); transition: transform 300ms ease 260ms; }
+.hdr .edge.l { left: 700px; }
+.hdr .edge.r { left: 1057px; }
+.on .hdr .edge { transform: none; }
+.hdr .mid { position: absolute; left: 703px; top: 0; width: 354px; height: 92px; background: linear-gradient(180deg, #2b343b 0%, #20272d 100%); transform: scaleX(0); transition: transform 320ms cubic-bezier(.2, .8, .2, 1); }
+.on .hdr .mid { transform: none; }
+.hdr .mid .flag { position: absolute; left: 67px; top: 0; width: 220px; height: 40px; background: linear-gradient(160deg, var(--brand-a) 0%, #38147a 45%, var(--brand-b) 100%); clip-path: polygon(0 0, 100% 0, 100% 62%, 88% 100%, 12% 100%, 0 62%); display: grid; place-items: center; }
+.hdr .mid .flag img { max-width: 150px; max-height: 24px; margin-top: -3px; }
+.hdr .mid .flag b { font: 800 18px/1 var(--f-num); letter-spacing: 3px; }
+.hdr .mid .ears { position: absolute; top: 0; height: 8px; width: 67px; background: #4a5359; }
+.hdr .mid .ears.l { left: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%); }
+.hdr .mid .ears.r { right: 0; clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+.hdr .mid .tt { position: absolute; left: 0; right: 0; top: 50px; text-align: center; font: 800 24px/1 var(--f-num); letter-spacing: 2px; }
+.hdr .mid > * { opacity: 0; transition: opacity 200ms ease 200ms; }
+.on .hdr .mid > * { opacity: 1; }
+
+/* ---------- cartões dos mapas ---------- */
+.row { left: 80px; top: 724px; width: 1760px; height: 316px; display: flex; justify-content: center; gap: 8px; }
+.card { position: relative; width: 244px; height: 316px; flex: none; background: rgba(10, 16, 22, 0.92); overflow: hidden;
+  clip-path: inset(100% 0 0 0); transition: clip-path 420ms cubic-bezier(.2, .8, .2, 1); transition-delay: calc(300ms + var(--i) * 90ms); }
+.on .card { clip-path: inset(0 0 0 0); }
+/* cabeçalho do cartão: quem fez e o quê */
+.card .top { position: absolute; left: 0; top: 0; width: 100%; height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 14px;
+  background: radial-gradient(rgba(255, 255, 255, 0.14) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(180deg, var(--plate) 0%, var(--main) 100%); }
+.card .top img { width: 34px; height: 34px; object-fit: contain; flex: none; }
+.card .top .tx { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.card .top .tx b { font: 800 19px/1 var(--f-num); color: #fff; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .top .tx span { font: 700 13px/1 var(--f-num); color: rgba(255, 255, 255, 0.78); letter-spacing: 1.5px; text-transform: uppercase; }
+.card.dec .top { background: radial-gradient(rgba(255, 255, 255, 0.12) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(160deg, var(--brand-a) 0%, #38147a 45%, var(--brand-b) 100%); justify-content: center; }
+.card.dec .top .tx { align-items: center; }
+/* imagem do mapa */
+.card .pic { position: absolute; left: 0; top: 56px; width: 100%; height: 204px; overflow: hidden; background: #0b1016; }
+.card .pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: filter 400ms ease, opacity 300ms ease, transform 600ms ease; }
+.card .pic img.b { opacity: 0; }
+.card .pic::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 0%, transparent 55%); }
+.card .pic .nm { position: absolute; left: 0; right: 0; bottom: 16px; z-index: 2; text-align: center; font: 800 32px/1 var(--f-num); color: #fff; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8); }
+.card .pic .q { position: absolute; inset: 0; display: grid; place-items: center; font: 800 72px/1 var(--f-num); color: rgba(255, 255, 255, 0.12); }
+/* rodapé: lado escolhido */
+.card .bot { position: absolute; left: 0; bottom: 0; width: 100%; height: 56px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 12px;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 3px), rgba(6, 10, 14, 0.96); }
+.card .bot .sd { display: flex; align-items: center; gap: 9px; transform: translateY(100%); opacity: 0; transition: transform 300ms cubic-bezier(.2, .8, .2, 1), opacity 300ms ease; }
+.card.has-side .bot .sd { transform: none; opacity: 1; }
+.card .bot .chip { width: 6px; height: 30px; background: var(--shi, #fff); }
+.card .bot .sd div { display: flex; flex-direction: column; gap: 4px; }
+.card .bot .sd span { font: 700 12px/1 var(--f-num); color: rgba(255, 255, 255, 0.72); letter-spacing: 1.5px; text-transform: uppercase; }
+.card .bot .sd b { font: 800 18px/1 var(--f-num); color: var(--stx, #fff); text-transform: uppercase; letter-spacing: 1px; }
+.card .bot .wait { position: absolute; font: 700 13px/1 var(--f-num); color: var(--mute); letter-spacing: 2px; text-transform: uppercase; }
+.card .bot .sc { position: absolute; right: 12px; font: 800 18px/1 var(--f-num); color: #fff; }
+.card .bot .sc:empty { display: none; }
+/* vetado */
+.card.ban .pic img { filter: grayscale(1) brightness(0.42); }
+.card .stamp { position: absolute; left: 50%; top: 158px; z-index: 3; transform: translate(-50%, -50%) scale(1.8) rotate(-8deg); opacity: 0; padding: 8px 18px; border: 3px solid var(--hi); background: rgba(8, 10, 14, 0.75);
+  font: 800 26px/1 var(--f-num); color: #fff; letter-spacing: 4px; text-transform: uppercase; transition: transform 260ms cubic-bezier(.3, 1.6, .5, 1), opacity 160ms ease; }
+.card.ban .stamp { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-8deg); }
+.card.ban .pic .nm { color: rgba(255, 255, 255, 0.6); }
+/* escolhido / decisivo: contorno na cor do time */
+.card .ring { position: absolute; inset: 0; z-index: 4; border: 3px solid var(--hi); opacity: 0; pointer-events: none; transition: opacity 300ms ease; box-shadow: inset 0 0 22px color-mix(in srgb, var(--hi) 45%, transparent); }
+.card.pick .ring { opacity: 1; }
+.card.dec .ring { border-color: #8d6cf0; box-shadow: inset 0 0 22px rgba(141, 108, 240, 0.45); }
+.card.dec.has-side .ring, .card.dec.cur .ring { opacity: 1; }
+/* a vez de quem age agora: pisca devagar */
+.card.cur .ring { opacity: 1; animation: curPulse 1.4s ease-in-out infinite; }
+@keyframes curPulse { 50% { opacity: 0.35; } }
+.card.fut { background: rgba(10, 16, 22, 0.8); }
+.card.fut .top { filter: saturate(0.35) brightness(0.65); }
+/* revelação do mapa quando a escolha chega */
+.card.reveal .pic img.a { animation: picIn 520ms cubic-bezier(.2, .8, .2, 1); }
+@keyframes picIn { from { clip-path: inset(0 0 100% 0); transform: scale(1.08); } to { clip-path: inset(0 0 0 0); transform: scale(1); } }
+.card.reveal .pic .nm { animation: nmIn 420ms ease 200ms both; }
+@keyframes nmIn { from { opacity: 0; transform: translateY(10px); } }
+/* status de conexão (some quando os dados chegam) */
+.status { left: 24px; top: 24px; padding: 8px 14px; border-radius: 4px; background: rgba(0, 0, 0, 0.75); font: 700 15px/1.3 var(--f-num); color: #fff; }
+.status:empty { display: none; }
+</style>
+</head>
+<body>
+<div class="viewport">
+  <div class="stage" id="stage">
+    <i class="abs frame"></i>
+    <div class="abs hdr">
+      <div class="tm l t0" id="tm0"><i id="tm0-tri"></i><b id="tm0-n"></b><img id="tm0-l" alt=""></div>
+      <i class="edge l t0"></i>
+      <div class="mid">
+        <i class="ears l"></i><i class="ears r"></i>
+        <div class="flag" id="flag"><b>LOOKING</b></div>
+        <div class="tt" id="title">VETO DE MAPAS</div>
+      </div>
+      <i class="edge r t1"></i>
+      <div class="tm r t1" id="tm1"><img id="tm1-l" alt=""><b id="tm1-n"></b><i id="tm1-tri"></i></div>
+    </div>
+    <div class="abs row" id="row"></div>
+    <div class="abs status" id="status"></div>
+  </div>
+</div>
+<script>
+(() => {
+  const CONFIG = Object.assign({ recursos: "Resources/", mapbanServidor: "https://mapban-socket.valospectra.com" }, window.HUD_CONFIG || {});
+  const params = new URLSearchParams(location.search);
+  const SESSION = params.get("sessionId") || params.get("sessao") || "";
+  const SERVER = params.get("server") || CONFIG.mapbanServidor || "https://mapban-socket.valospectra.com";
+  const DEMO = params.has("demo") || !SESSION;
+  let BASE = params.get("assets") || CONFIG.recursos || "Resources/";
+  if (!BASE.endsWith("/")) BASE += "/";
+  const A = (p) => BASE + p.split("/").map(encodeURIComponent).join("/");
+  const $ = (id) => document.getElementById(id);
+  const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const has = (v) => v !== undefined && v !== null;
+  const L = { ban: "vetou", pick: "escolheu", banning: "vetando…", picking: "escolhendo…", nextBan: "veta", nextPick: "escolhe", dec: "Decisivo", decSub: "mapa que sobrou",
+    atk: "Ataque", def: "Defesa", sidePick: "escolheu", sideWait: "escolhendo lado…", ban2: "Vetado", title: "Veto de mapas", fmt: { bo1: "MD1", bo3: "MD3", bo5: "MD5" } };
+  // nomes internos do jogo -> nome do mapa (o site de veto já manda o nome normal; isto é só reserva)
+  const MAP_NAMES = { Triad: "Haven", Bonsai: "Split", Duality: "Bind", Port: "Icebox", Foxtrot: "Breeze", Canyon: "Fracture", Pitt: "Pearl", Jam: "Lotus", Juliett: "Sunset", Infinity: "Abyss", Rook: "Corrode" };
+  const mapName = (m) => MAP_NAMES[m] || m || "";
+  const mapImg = (m) => A(`Maps/${mapName(m)}.png`);
+
+  // ---------- palco escalado ----------
+  const stage = $("stage");
+  const fit = () => { const s = Math.min(innerWidth / 1920, innerHeight / 1080); stage.style.setProperty("--s", s); stage.style.left = Math.round((innerWidth - 1920 * s) / 2) + "px"; stage.style.top = Math.round((innerHeight - 1080 * s) / 2) + "px"; };
+  addEventListener("resize", fit); fit();
+
+  // ---------- fontes (as mesmas da HUD) ----------
+  const fontsReady = (async () => {
+    const fonts = [["HUDGridnik", "FoundryGridnik-Regular.otf", "400"], ["HUDGridnik", "FoundryGridnik-Bold.otf", "700"], ["HUDGridnik", "FoundryGridnik-ExtraBold.otf", "800"]];
+    await Promise.all(fonts.map(async ([fam, file, w]) => { try { const f = new FontFace(fam, `url("${A(file)}")`, { weight: w, unicodeRange: "U+0020-007E, U+00B7, U+2013-2014, U+2022, U+2026" }); document.fonts.add(await f.load()); } catch (e) { /* usa a reserva */ } }));
+  })();
+  // logo da Looking no topo (Resources/Logos/looking.png)
+  (() => { const im = new Image(); im.onload = () => { $("flag").innerHTML = ""; $("flag").appendChild(im); }; im.src = A("Logos/looking.png"); })();
+
+  // ---------- regras de formato (mesma lógica do nobii) ----------
+  const SEQ = { bo1: ["ban", "ban", "ban", "ban", "ban", "ban", "decider"], bo3: ["ban", "ban", "pick", "pick", "ban", "ban", "decider"], bo5: ["ban", "ban", "pick", "pick", "pick", "pick", "decider"] };
+  function plan(d, total) {
+    let base = SEQ[d.format];
+    const cf = d.customFormatData;
+    if (!base && cf && cf.pickBanStates && cf.pickBanStates.length) base = cf.pickBanStates;
+    if (!base) { // personalizado sem lista: monta pelos números
+      const out = []; let b = (cf && cf.banAmount) || 0, p = (cf && cf.pickAmount) || 0;
+      (d.selectedMaps || []).forEach((m) => { if (has(m.bannedBy)) { out.push("ban"); b--; } else if (has(m.pickedBy)) { out.push("pick"); p--; } });
+      const hd = cf ? cf.hasDecider !== false : true;
+      while (out.length < total - (hd ? 1 : 0)) { if (b > 0) { out.push("ban"); b--; } else if (p > 0) { out.push("pick"); p--; } else out.push(d.stage === "pick" ? "pick" : "ban"); }
+      if (hd) out.push("decider");
+      return out.slice(0, total);
+    }
+    const hd = base.includes("decider"), nd = base.filter((s) => s !== "decider");
+    const out = [];
+    for (let i = 0; i < total - (hd ? 1 : 0); i++) out.push(nd[i] || (d.format === "bo5" ? "pick" : "ban"));
+    if (hd) out.push("decider");
+    return out.slice(0, total);
+  }
+  const selectors = (d, n) => { const c = (d.customFormatData && d.customFormatData.selectorTeam) || []; return Array.from({ length: n }, (_, i) => (c[i] === 0 || c[i] === 1 ? c[i] : i % 2)); };
+
+  // monta a lista de cartões a partir dos dados do site de veto
+  function build(d) {
+    const sel = (d.selectedMaps || []).map((m) => Object.assign({}, m)), av = (d.availableMaps || []).map((m) => m.name);
+    let total = sel.length + av.length;
+    const states = plan(d, total), who = selectors(d, states.length);
+    let cards = sel;
+    // fim do veto: alguns servidores devolvem os vetados em availableMaps — reconstrói a ordem
+    const expBans = states.filter((s) => s === "ban").length, selBans = sel.filter((m) => has(m.bannedBy)).length;
+    if (selBans < expBans && av.length >= expBans - selBans && sel.length + (expBans - selBans) === states.length) {
+      const playable = sel.filter((m) => !has(m.bannedBy)); let bi = 0, pi = 0; cards = [];
+      states.forEach((s, i) => { if (s === "ban") cards.push({ name: (d.availableMaps[bi++] || {}).name, bannedBy: who[i] }); else cards.push(playable[pi++] || {}); });
+      total = cards.length;
+    } else {
+      for (let i = 0; i < av.length; i++) cards.push({ name: "", upcoming: true });
+    }
+    const curIdx = cards.findIndex((m) => m.upcoming);
+    return cards.map((m, i) => {
+      const s = states[i] || "ban";
+      const team = has(m.bannedBy) ? m.bannedBy : has(m.pickedBy) ? m.pickedBy : who[i] ?? 0;
+      const kind = has(m.bannedBy) ? "ban" : has(m.pickedBy) ? "pick" : s === "decider" ? "decider" : m.upcoming ? "fut" : s;
+      let sidePicker = has(m.sidePickedBy) ? m.sidePickedBy : has(m.pickedBy) ? 1 - m.pickedBy : undefined;
+      return { name: m.name || "", kind, plannedAction: s, team, cur: i === curIdx && (d.stage === "ban" || d.stage === "pick"), sidePicker, pickedAttack: has(m.pickedAttack) ? !!m.pickedAttack : undefined,
+        sideWait: has(m.sidePickedBy) && !has(m.pickedAttack), score: m.score || [] };
+    });
+  }
+
+  // ---------- desenho ----------
+  let CARDS = [], shown = false, rot = null;
+  function card(i) {
+    const c = document.createElement("div");
+    c.className = "card"; c.style.setProperty("--i", i);
+    c.innerHTML = `<div class="top"><img alt=""><div class="tx"><b></b><span></span></div></div>
+      <div class="pic"><img class="a" alt=""><img class="b" alt=""><div class="q">?</div><div class="nm"></div></div>
+      <div class="stamp"></div>
+      <div class="bot"><div class="sd"><i class="chip"></i><div><span></span><b></b></div></div><div class="wait"></div><div class="sc"></div></div>
+      <i class="ring"></i>`;
+    const q = (s) => c.querySelector(s);
+    return { el: c, logo: q(".top img"), who: q(".top b"), act: q(".top span"), a: q(".pic img.a"), b: q(".pic img.b"), qm: q(".pic .q"), nm: q(".pic .nm"), stamp: q(".stamp"), sd: q(".bot .sd"), sdl: q(".bot .sd span"), sdv: q(".bot .sd b"), wait: q(".bot .wait"), sc: q(".bot .sc"), st: {} };
+  }
+  function render(d) {
+    $("status").textContent = "";
+    const teams = d.teams || [];
+    [0, 1].forEach((t) => {
+      const T = teams[t] || {};
+      $("tm" + t + "-n").textContent = T.name || T.tricode || (t ? "Time B" : "Time A");
+      $("tm" + t + "-tri").textContent = T.tricode && T.name && T.tricode !== T.name ? T.tricode : "";
+      const lg = $("tm" + t + "-l"); if (T.url) { if (lg.getAttribute("src") !== T.url) lg.src = T.url; lg.style.visibility = ""; } else lg.style.visibility = "hidden";
+    });
+    $("title").textContent = (L.fmt[d.format] ? L.fmt[d.format] + " · " : "") + L.title.toUpperCase();
+    const list = build(d), row = $("row");
+    while (CARDS.length < list.length) { const k = card(CARDS.length); row.appendChild(k.el); CARDS.push(k); }
+    while (CARDS.length > list.length) CARDS.pop().el.remove();
+    const avail = (d.availableMaps || []).map((m) => m.name);
+    let rotTarget = null;
+    // na fase de lado, quem está escolhendo é o último mapa escolhido/decisivo ainda sem lado
+    let lastPlayable = -1; list.forEach((m, i) => { if (m.name && m.kind !== "ban") lastPlayable = i; });
+    list.forEach((m, i) => {
+      const k = CARDS[i], T = teams[m.team] || {}, prev = k.st;
+      const isDec = m.kind === "decider" || (m.plannedAction === "decider" && m.kind !== "ban" && m.kind !== "pick");
+      k.el.className = `card t${m.team}` + (m.kind === "ban" ? " ban" : "") + (m.kind === "pick" ? " pick" : "") + (isDec ? " dec" : "") + (m.kind === "fut" && !m.cur ? " fut" : "") + (m.cur ? " cur" : "") + (m.pickedAttack !== undefined ? " has-side" : "");
+      // cabeçalho
+      if (isDec) { k.logo.style.display = "none"; k.who.textContent = L.dec; k.act.textContent = L.decSub; }
+      else {
+        k.logo.style.display = T.url ? "" : "none"; if (T.url && k.logo.getAttribute("src") !== T.url) k.logo.src = T.url;
+        k.who.textContent = T.tricode || T.name || "";
+        k.act.textContent = m.kind === "ban" ? L.ban : m.kind === "pick" ? L.pick : m.cur ? (m.plannedAction === "pick" ? L.picking : L.banning) : (m.plannedAction === "pick" ? L.nextPick : L.nextBan);
+      }
+      // mapa
+      const nm = mapName(m.name);
+      if (nm && prev.name !== nm) {
+        k.a.src = mapImg(nm); k.a.style.visibility = ""; k.a.onerror = () => (k.a.style.visibility = "hidden");
+        k.nm.textContent = nm; k.qm.style.display = "none";
+        if (shown) { k.el.classList.remove("reveal"); void k.el.offsetWidth; } k.el.classList.add("reveal");
+      } else if (!nm && !m.cur) { k.a.removeAttribute("src"); k.a.style.visibility = "hidden"; k.nm.textContent = ""; k.qm.style.display = ""; }
+      if (m.cur && !nm) { k.qm.style.display = "none"; rotTarget = k; }
+      if (nm && m.kind !== "ban") k.el.classList.remove("cur");
+      k.stamp.textContent = L.ban2;
+      // lado
+      if (m.pickedAttack !== undefined && has(m.sidePicker)) {
+        const sp = teams[m.sidePicker] || {};
+        k.sdl.textContent = `${sp.tricode || sp.name || ""} ${L.sidePick}`;
+        k.sdv.textContent = m.pickedAttack ? L.atk : L.def;
+        k.sd.style.setProperty("--shi", `var(--${m.sidePicker ? "att" : "def"}-hi)`);
+        k.sd.style.setProperty("--stx", "#fff");
+        k.wait.textContent = "";
+      } else {
+        const waiting = m.sideWait || (d.stage === "side" && !!nm && (isDec || m.kind === "pick") && i === lastPlayable);
+        k.wait.textContent = waiting ? L.sideWait : "";
+        if (waiting) k.el.classList.add("cur");
+      }
+      const sc = m.score || []; k.sc.textContent = has(sc[0]) && has(sc[1]) ? `${sc[0]}–${sc[1]}` : "";
+      k.st = { name: nm };
+    });
+    // vez atual sem mapa: gira entre os mapas que sobraram (igual ao nobii)
+    if (rotTarget && avail.length) startRot(rotTarget, avail); else stopRot();
+    if (!shown) { shown = true; fontsReady.then(() => requestAnimationFrame(() => requestAnimationFrame(() => stage.classList.add("on")))); }
+  }
+  function startRot(k, names) {
+    if (rot && rot.k === k && rot.names.join() === names.join()) return;
+    stopRot();
+    rot = { k, names, i: 0, front: k.a };
+    const show = () => {
+      const nm = mapName(rot.names[rot.i % rot.names.length]); rot.i++;
+      const back = rot.front === k.a ? k.b : k.a;
+      back.src = mapImg(nm); back.style.visibility = ""; back.style.opacity = "0.55"; back.style.filter = "grayscale(.5) brightness(.7)"; rot.front.style.opacity = "0"; rot.front = back;
+      k.nm.textContent = nm; k.nm.style.opacity = "0.55";
+    };
+    show(); rot.t = setInterval(show, 900);
+  }
+  function stopRot() {
+    if (!rot) return;
+    clearInterval(rot.t);
+    [rot.k.a, rot.k.b].forEach((im) => { im.style.opacity = ""; im.style.filter = ""; });
+    rot.k.b.style.opacity = "0"; rot.k.nm.style.opacity = "";
+    if (!rot.k.st.name) { rot.k.nm.textContent = ""; rot.k.a.style.visibility = "hidden"; }
+    rot = null;
+  }
+
+  // ---------- ao vivo: site de veto do Spectra ----------
+  if (!DEMO) {
+    $("status").textContent = "Conectando ao veto do Spectra…";
+    const sock = io(SERVER, { reconnection: true });
+    const logon = () => sock.emit("logon", { sessionId: SESSION });
+    sock.on("connect", logon);
+    sock.on("logon_fail", (e) => ($("status").textContent = "Sessão de veto não encontrada: " + SESSION + (e && e.message ? " (" + e.message + ")" : "")));
+    sock.onAny((ev, payload) => {
+      if (ev === "logon_fail") return;
+      const d = Array.isArray(payload) ? payload[0] : payload;
+      if (d && (d.selectedMaps || d.availableMaps)) render(d);
+    });
+    sock.on("connect_error", () => ($("status").textContent = "Sem conexão com " + SERVER));
+    return;
+  }
+
+  // ---------- prévia (sem sessionId ou com ?demo): um veto MD3 completo em loop ----------
+  const POOL = ["Ascent", "Bind", "Haven", "Lotus", "Sunset", "Abyss", "Corrode"];
+  const fmt = params.get("formato") || "bo3";
+  const STEPS = { bo3: ["ban0", "ban1", "pick0", "side1", "pick1", "side0", "ban0", "ban1", "dec", "sideD"], bo1: ["ban0", "ban1", "ban0", "ban1", "ban0", "ban1", "dec", "sideD"], bo5: ["ban0", "ban1", "pick0", "side1", "pick1", "side0", "pick0", "side1", "pick1", "side0", "dec", "sideD"] }[fmt] || [];
+  const order = ["Haven", "Abyss", "Lotus", "Ascent", "Corrode", "Bind", "Sunset"];
+  const S = { sessionIdentifier: "DEMO", teams: [{ name: "Jaguares", tricode: "JGD", url: A("Logos/logo1.png") }, { name: "Caatinga Club", tricode: "CTG", url: A("Logos/logo2.png") }], format: fmt,
+    availableMaps: POOL.map((name) => ({ name })), selectedMaps: [], stage: "ban", actingTeam: 0 };
+  let step = 0;
+  const take = (n) => { S.availableMaps = S.availableMaps.filter((m) => m.name !== n); };
+  function next() {
+    const st = STEPS[step++];
+    if (!st) { setTimeout(() => location.reload(), 4000); return; }
+    const used = S.selectedMaps.length, n = order[used];
+    if (st.startsWith("ban")) { take(n); S.selectedMaps.push({ name: n, bannedBy: +st[3] }); }
+    else if (st.startsWith("pick")) { take(n); S.selectedMaps.push({ name: n, pickedBy: +st[4] }); S.stage = "side"; }
+    else if (st.startsWith("side") && st !== "sideD") { const m = S.selectedMaps[used - 1]; m.sidePickedBy = +st[4]; m.pickedAttack = Math.random() < 0.5; }
+    else if (st === "dec") { take(n); S.selectedMaps.push({ name: n }); S.stage = "side"; }
+    else if (st === "sideD") { const m = S.selectedMaps[used - 1]; m.sidePickedBy = 0; m.pickedAttack = false; S.stage = "done"; }
+    const nx = STEPS[step] || "";
+    if (nx.startsWith("ban")) S.stage = "ban"; else if (nx.startsWith("pick")) S.stage = "pick";
+    render(JSON.parse(JSON.stringify(S)));
+    setTimeout(next, st.startsWith("side") ? 1800 : 2200);
+  }
+  render(JSON.parse(JSON.stringify(S)));
+  const freeze = params.get("passo"); // ?demo&passo=N congela depois de N ações (para prints)
+  if (freeze) { for (let i = 0; i < +freeze; i++) { const st = STEPS[step]; if (!st) break; step++; const used = S.selectedMaps.length, n = order[used];
+    if (st.startsWith("ban")) { take(n); S.selectedMaps.push({ name: n, bannedBy: +st[3] }); } else if (st.startsWith("pick")) { take(n); S.selectedMaps.push({ name: n, pickedBy: +st[4] }); }
+    else if (st.startsWith("side") && st !== "sideD") { const m = S.selectedMaps[used - 1]; m.sidePickedBy = +st[4]; m.pickedAttack = i % 2 === 0; } else if (st === "dec") { take(n); S.selectedMaps.push({ name: n }); } else { const m = S.selectedMaps[used - 1]; m.sidePickedBy = 0; m.pickedAttack = false; }
+    const nx = STEPS[step] || ""; S.stage = nx.startsWith("ban") ? "ban" : nx.startsWith("pick") ? "pick" : nx.startsWith("side") ? "side" : "done"; }
+    render(JSON.parse(JSON.stringify(S)));
+  } else setTimeout(next, 2600);
+})();
+</script>
+</body>
+</html>
