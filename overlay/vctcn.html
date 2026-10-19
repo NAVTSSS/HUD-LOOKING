@@ -102,8 +102,8 @@ img { display: block; }
 .bug .seed { position: absolute; top: 48px; width: 120px; font: 700 11px/1 var(--f-num); letter-spacing: 1px; color: rgba(255,255,255,.8); white-space: nowrap; }
 .bug .seed.l { left: 640px; text-align: left; }
 .bug .seed.r { left: 1160px; text-align: right; }
-.rwin { left: 649px; top: 190px; width: 914px; height: 338px; transform: scale(.68); transform-origin: 0 0; opacity: 0; clip-path: inset(0 50% 0 50%); transition: clip-path 420ms cubic-bezier(.2,.8,.2,1), opacity 120ms; pointer-events: none; }
-.rwin.on { opacity: 1; clip-path: inset(0 0 0 0); }
+.rwin { left: 649px; top: 190px; width: 914px; height: 338px; transform: scale(.68); transform-origin: 0 0; opacity: 0; clip-path: inset(0 50% 0 50%); transition: clip-path 380ms cubic-bezier(.6,0,.8,.4), opacity 0s linear 380ms; pointer-events: none; }
+.rwin.on { opacity: 1; clip-path: inset(0 0 0 0); transition: clip-path 480ms cubic-bezier(.2,.8,.2,1), opacity 0s; }
 .rwin img { position: absolute; inset: 0; width: 100%; height: 100%; }
 .rwin .rr, .rwin .rt { position: absolute; left: 0; width: 942px; text-align: center; white-space: nowrap; font: 800 35px/1 var(--f-num); letter-spacing: .5px; text-transform: uppercase; }
 .rwin .rr { top: 17px; color: #fff; }
