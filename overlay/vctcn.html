@@ -234,6 +234,36 @@ img { display: block; }
 .pc.dead .face { background: #15191d; }
 .pc.dead .face img { filter: grayscale(1) brightness(0.8); }
 
+/* jogador observado: contorno dourado com brilho (vale no 5x5 e no 1x1) */
+.pc .obsg { position: absolute; top: 9px; height: 47px; width: 222px; opacity: 0; transition: opacity var(--t-fast); pointer-events: none; }
+.cards.l .pc .obsg { left: 69px; background: linear-gradient(90deg, rgba(182, 159, 88, 0) 0%, rgba(182, 159, 88, 0.1) 55%, rgba(182, 159, 88, 0.38) 100%); clip-path: polygon(0 0, 211px 0, 100% 11px, 100% 100%, 0 100%); }
+.cards.r .pc .obsg { left: 0; background: linear-gradient(270deg, rgba(182, 159, 88, 0) 0%, rgba(182, 159, 88, 0.1) 55%, rgba(182, 159, 88, 0.38) 100%); clip-path: polygon(11px 0, 100% 0, 100% 100%, 0 100%, 0 11px); }
+.pc.obs .obsg { opacity: 1; }
+.pc.obs { filter: drop-shadow(1.5px 0 0 #eadeae) drop-shadow(-1.5px 0 0 #eadeae) drop-shadow(0 1.5px 0 #eadeae) drop-shadow(0 -1.5px 0 #eadeae) drop-shadow(0 0 7px rgba(233, 208, 109, 0.85)); }
+.pc.obs .eye { display: none; } /* o contorno dourado já marca quem está sendo observado */
+
+/* destaque de 1x1: sobra um de cada lado — os mortos saem, o vivo sobe para o topo */
+.cards .pc { transition: opacity 260ms ease, transform 300ms cubic-bezier(.2, .8, .2, 1), filter var(--t-fast); }
+.cards.duel .pc.out { opacity: 0; pointer-events: none; }
+.cards.l.duel .pc.out { transform: translateX(-60px); }
+.cards.r.duel .pc.out { transform: translateX(60px); }
+.cards .glow { position: absolute; top: -70px; width: 420px; height: 240px; opacity: 0; transition: opacity 400ms ease; pointer-events: none; }
+.cards.l .glow { left: -60px; background: radial-gradient(closest-side, color-mix(in srgb, var(--l-hi) 45%, transparent), transparent); }
+.cards.r .glow { left: -70px; background: radial-gradient(closest-side, color-mix(in srgb, var(--r-hi) 45%, transparent), transparent); }
+.cards.duel .glow { opacity: 1; }
+.cards .ddead { position: absolute; top: 104px; width: 291px; height: 52px; display: flex; align-items: center; justify-content: space-evenly; background: linear-gradient(0deg, rgba(13, 16, 28, 0.92), rgba(34, 37, 51, 0.35)); opacity: 0; transform: translateY(14px); transition: opacity 220ms ease, transform 220ms ease; pointer-events: none; }
+.cards.duel .ddead { opacity: 1; transform: none; transition-delay: 300ms; }
+.cards .ddead .di { width: 46px; height: 46px; position: relative; overflow: hidden; -webkit-mask: linear-gradient(0deg, rgba(0,0,0,.55), #000); mask: linear-gradient(0deg, rgba(0,0,0,.55), #000); }
+.cards .ddead .di img { position: absolute; left: 50%; top: 0; height: 100%; transform: translateX(-50%); filter: grayscale(1) brightness(.75); }
+.cards.r .ddead .di img { transform: translateX(-50%) scaleX(-1); }
+.cards .ddead .di .ph { position: absolute; inset: 0; display: grid; place-items: center; font: 700 9px var(--f-num); color: var(--mute); }
+.duelb { left: 610px; top: 96px; width: 700px; height: 46px; display: grid; grid-template-columns: 1fr 120px 1fr; align-items: center; opacity: 0; transform: translateY(-12px); transition: opacity 260ms ease, transform 260ms cubic-bezier(.2, .8, .2, 1); pointer-events: none; }
+.duelb.on { opacity: 1; transform: none; }
+.duelb .dv { height: 46px; display: grid; place-items: center; font: 800 26px/1 var(--f-num); color: #fff; letter-spacing: 2px; background: rgba(6, 10, 14, 0.94); clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%); }
+.duelb .dn { height: 36px; display: flex; align-items: center; font: 700 18px/1 var(--f-num); color: #fff; white-space: nowrap; overflow: hidden; padding: 0 22px; }
+.duelb .dn.l { justify-content: flex-end; background: linear-gradient(270deg, var(--l-band) 0%, var(--l-band2) 55%, transparent 100%); border-right: 4px solid var(--l-hi); margin-right: -6px; }
+.duelb .dn.r { justify-content: flex-start; background: linear-gradient(90deg, var(--r-band) 0%, var(--r-band2) 55%, transparent 100%); border-left: 4px solid var(--r-hi); margin-left: -6px; }
+
 /* anel da ultimate */
 .ultring { position: relative; width: 100%; height: 100%; }
 .ultring svg { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -400,6 +430,7 @@ img { display: block; }
     trocaPatrocinio: 6,        // segundos entre as artes do bloco do evento (quando o Spectra não manda o tempo)
     quadroVitoria: true,       // quadro "ROUND WIN" no fim de cada rodada (artes em Resources/RoundWin)
     quadroVitoriaSeg: 6,       // segundos na tela
+    destaque1x1: true,         // 1x1: some com os mortos, sobe o vivo de cada lado e mostra "nome 1 x 1 nome"
     patrocinadoresLocais: false, // true: sem patrocinadores no Spectra, usa as artes de Resources/Sponsors
     armasParaDireita: false,   // as imagens de Armas/ apontam o cano para a direita? (false: apontam para a esquerda, como na pasta Resources)
     duracao: { compra: 30, combate: 100, spike: 45 },
@@ -530,6 +561,7 @@ img { display: block; }
 
     <div class="abs cards l combat" id="cards-l"></div>
     <div class="abs cards r combat" id="cards-r"></div>
+    <div class="abs duelb combat" id="duel"><div class="dn l" id="duel-l"></div><div class="dv">1 x 1</div><div class="dn r" id="duel-r"></div></div>
     <div class="abs cam combat" id="cam">
       <div class="frame"><svg viewBox="0 0 320 180" preserveAspectRatio="none" aria-hidden="true">
         <path d="M1 1h86l6 4h134l6-4h86v178h-86l-6-4H93l-6 4H1z" fill="none" stroke="#1b2531" stroke-width="2.5"/>
@@ -604,7 +636,7 @@ img { display: block; }
       const c = document.createElement("div");
       c.className = "pc";
       c.style.top = i * 100 + "px";
-      c.innerHTML = `<i class="bgt"></i><i class="band"></i><i class="dbase"></i>
+      c.innerHTML = `<i class="bgt"></i><i class="obsg"></i><i class="band"></i><i class="dbase"></i>
         <div class="face" data-k="face"></div>
         <div class="name" data-k="name"></div><div class="kda" data-k="kda"></div>
         <div class="shd">${SHIELD_SVG}<b data-k="sh">0</b></div>
@@ -620,6 +652,9 @@ img { display: block; }
       el.appendChild(c);
       out.push(k);
     }
+    const g = document.createElement("i"); g.className = "glow"; el.prepend(g);
+    const dd = document.createElement("div"); dd.className = "ddead"; el.appendChild(dd);
+    out.ddead = dd; out.box = el;
     return out;
   }
   // tabela econômica: colunas medidas no frame 00:02
@@ -742,6 +777,7 @@ img { display: block; }
 
     // placar e times
     const need = series.needed >= 1 ? Math.min(4, series.needed) : 0;
+    const duelOn = trackDuel(d, phase);
     [[TL, 0], [TR, 1]].forEach(([t, i]) => {
       const s = sideOf(i);
       const tn = $("tn-" + s); setText(tn, tri(t)); fitText(tn, 88);
@@ -754,7 +790,7 @@ img { display: block; }
       const won = i ? series.wonRight || 0 : series.wonLeft || 0;
       const pg = $("pips-" + s); const ph = pipsSVG(s, need, won); if (pg._k !== ph) { pg._k = ph; pg.innerHTML = ph; }
 
-      renderCards(cards[s], t, s, phase);
+      renderCards(cards[s], t, s, phase, duelOn ? DUEL.idx[i] : -1);
       renderRows(rows[s], t, s);
 
       // cabeçalho da compra
@@ -792,10 +828,29 @@ img { display: block; }
   }
   const shownName = (p) => OVR.map.get(p.fullName) || OVR.map.get(p.name) || p.name || p.fullName || "";
   let SHOW_CREDITS = false;
-  function renderCards(list, team, s, phase) {
+  // 1x1 (mesma regra do nobii): liga quando sobra 1 vivo de cada lado e só desliga
+  // quando um time volta a ter 2+ vivos (nova rodada). Guarda quem eram os dois.
+  const DUEL = { on: false, idx: [-1, -1] };
+  function trackDuel(d, phase) {
+    const alive = d.teams.map((t) => (t.players || []).slice(0, 5).filter((p) => p.isAlive).length);
+    if (alive[0] === 1 && alive[1] === 1) { DUEL.on = true; DUEL.idx = d.teams.map((t) => (t.players || []).slice(0, 5).findIndex((p) => p.isAlive)); }
+    if (DUEL.on && (alive[0] >= 2 || alive[1] >= 2)) DUEL.on = false;
+    const show = CONFIG.destaque1x1 !== false && DUEL.on && (phase === "combat" || phase === "end");
+    $("duel").classList.toggle("on", show);
+    if (show) d.teams.forEach((t, i) => { const p = (t.players || [])[DUEL.idx[i]]; setText($("duel-" + sideOf(i)), p ? shownName(p) : ""); });
+    return show;
+  }
+  function renderCards(list, team, s, phase, duelIdx) {
     const ps = (team.players || []).slice(0, 5);
+    const duel = duelIdx >= 0;
+    list.box.classList.toggle("duel", duel);
+    const dk = duel ? ps.map((p, i) => (i !== duelIdx && !p.isAlive ? p.agentInternal : "")).filter(Boolean).join() : "";
+    if (list.ddead._k !== dk) { list.ddead._k = dk; list.ddead.innerHTML = dk ? dk.split(",").map((a) => `<div class="di">${faceHTML(a)}</div>`).join("") : ""; }
     list.forEach((k, i) => {
       const p = ps[i];
+      const out = duel && i !== duelIdx, mv = duel && i === duelIdx ? `translateY(${-i * 100}px)` : "";
+      k.el.classList.toggle("out", out);
+      if (k.el.style.transform !== mv) k.el.style.transform = mv;
       k.el.classList.toggle("hidden", !p); if (!p) return;
       const dead = !p.isAlive;
       k.el.classList.toggle("dead", dead);
@@ -1226,6 +1281,10 @@ img { display: block; }
       if (freeze === "plant") d.spikeState.planted = true;
       d.teams.forEach((t) => t.players.forEach((p) => (p.isObserved = false))); Y.players[3].isObserved = true;
     } else if (freeze === "combat") d.teams[0].players[4].isObserved = true;
+    else if (freeze === "1x1") {
+      d.teams.forEach((t, ti) => t.players.forEach((p, i) => { if (i !== (ti ? 1 : 3)) { p.isAlive = false; p.health = 0; p.deaths = 1; } p.isObserved = false; }));
+      d.teams[1].players[1].isObserved = true; d.teams[1].players[1].kills = 3; d.teams[0].players[3].kills = 2; d.teams[0].players[3].health = 41;
+    }
     if (window.HUD_FIXTURE_PATCH) window.HUD_FIXTURE_PATCH(d);
   }
   let last = performance.now();
