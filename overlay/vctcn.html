@@ -297,6 +297,7 @@ img { display: block; }
 .hist .hc.att { background: var(--att-cell); }
 .hist .hc.def { background: var(--def-cell); }
 .hist .hc svg { width: 24px; height: 24px; }
+.hist .otl { font-size: 13px !important; letter-spacing: .5px; color: #9fb0c0 !important; }
 .hist .hn { position: absolute; top: 0; width: 50px; height: 102px; display: grid; place-items: center; font: 700 29px/1 var(--f-num); color: #fff; }
 .hist .hn.old { color: #6f7c88; }
 .hist .mk { position: absolute; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; }
@@ -364,7 +365,8 @@ img { display: block; }
     faixaPublicidade: false,   // true: na compra, alterna o painel de estatísticas com as artes Logos/bannerN.png
     trocaPublicidade: 8,       // segundos entre a faixa publicitária e o painel de estatísticas na compra
     corPorLado: true,          // como no VCT CN: defesa verde, ataque vermelho (false: esquerda sempre verde)
-    trocaPatrocinio: 6,        // segundos entre as artes do bloco do evento
+    trocaPatrocinio: 6,        // segundos entre as artes do bloco do evento (quando o Spectra não manda o tempo)
+    patrocinadoresLocais: false, // true: sem patrocinadores no Spectra, usa as artes de Resources/Sponsors
     armasParaDireita: false,   // as imagens de Armas/ apontam o cano para a direita? (false: apontam para a esquerda, como na pasta Resources)
     duracao: { compra: 30, combate: 100, spike: 45 },
   };
@@ -384,7 +386,7 @@ img { display: block; }
   // =====================================================================
 
   // textos da HUD (todos em português)
-  const L10N = { cur: "Mapa atual", next: "Próximo", dec: "Decisivo", round: "Rodada ", tac: "Pausa tática", eq: "Equipamento", def: "Vitórias na defesa", att: "Vitórias no ataque", rate: "Aproveitamento", pause: "Pausa", tech: "Pausa técnica" };
+  const L10N = { cur: "Mapa atual", next: "Próximo", dec: "Decisivo", round: "Rodada ", tac: "Pausa tática", eq: "Equipamento", def: "Vitórias na defesa", att: "Vitórias no ataque", rate: "Aproveitamento", pause: "Pausa", tech: "Pausa técnica", ot: "Prorrogação", otShort: "PRORR." };
   const MAP_NAMES = { Triad: "Haven", Bonsai: "Split", Duality: "Bind", Port: "Icebox", Foxtrot: "Breeze", Canyon: "Fracture", Pitt: "Pearl", Jam: "Lotus", Juliett: "Sunset", Infinity: "Abyss", Rook: "Corrode", Ascent: "Ascent" };
   const AGENTS = {
     AggroBot: "Gekko", BountyHunter: "Fade", Breach: "Breach", Cable: "Deadlock", Cashew: "Tejo", Clay: "Raze", Deadeye: "Chamber",
@@ -424,10 +426,14 @@ img { display: block; }
   const SWAP_SVG = '<svg viewBox="0 0 22 30"><path d="M1 2h11L6.5 11z" fill="#fff"/><path d="M10 28h11l-5.5-9z" fill="#fff"/></svg>';
   const WIN_TYPES = { kills: 1, defused: 1, detonated: 1, timeout: 1 };
   const REASON_SVG = {
-    kills: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="12" cy="12" r="7.2"/><path d="M8.6 8.6l6.8 6.8M15.4 8.6l-6.8 6.8M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg>',
-    defused: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.2 3.5 12 10.5 13.8 3.5"/><path d="M12 10.5 7 21M12 10.5 17 21"/><circle cx="12" cy="11.5" r="1.4" fill="#fff"/></svg>',
-    detonated: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M12.6 1.8c.5 3.7 4.9 5.9 4.9 11.4a5.6 5.6 0 0 1-11.2 0c0-2.9 1.7-4.6 2.4-7.2 1.5 1.3 2 3.2 1.9 4.9 1.6-1.8 2.4-5.6 2-9.1z"/></svg>',
-    timeout: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"><path d="M6 2.5h12M6 21.5h12M7.5 2.5c0 5.5 9 5.5 9 9.5s-9 4-9 9.5M16.5 2.5c0 5.5-9 5.5-9 9.5s9 4 9 9.5"/></svg>',
+    // eliminação: círculo com X saindo pelas pontas
+    kills: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round"><circle cx="12" cy="12" r="6.6"/><path d="M4.5 4.5l15 15M19.5 4.5l-15 15"/></svg>',
+    // spike desarmada: alicate
+    defused: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 8.8C8.3 7.3 7.6 4.6 9.6 2.2M13 8.8c2.7-1.5 3.4-4.2 1.4-6.6"/><path d="M11 11.3C8.9 14.2 7 17.5 5.6 21.6M13 11.3c2.1 2.9 4 6.2 5.4 10.3"/><circle cx="12" cy="10" r="2.1" fill="#fff" stroke="none"/></svg>',
+    // spike detonada: explosão
+    detonated: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M1.5 18.5 4.3 13l1.6 2.2L7.6 8.6l2.6 4.3L12 4.5l1.9 8.2 2.5-4.3 1.7 6.6 1.7-2.2 2.7 5.7c-3.4 1.5-6.9 2-10.5 2s-7.1-.5-10.1-2z"/></svg>',
+    // acabou o tempo: relógio
+    timeout: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8.2"/><path d="M12 8.3V13l3.2 2.2M9.5 2.5h5"/></svg>',
   };
   const KILL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg>';
   let CREDIT = CREDIT_SVG; // trocado pela imagem Escudos/CV.png quando ela existir
@@ -643,6 +649,7 @@ img { display: block; }
     overrides(d);
     SHOW_CREDITS = !!d.showAliveKDA;
     renderToast(d, phase);
+    updateBrand(d);
     stage.classList.toggle("l-att", !!(CONFIG.corPorLado && d.teams[0].isAttacking));
 
     // cronômetro: o servidor não manda o tempo; conta a partir da mudança de fase
@@ -656,7 +663,8 @@ img { display: block; }
     $("bug").classList.toggle("paused", paused);
     setText($("time"), paused ? (ts.techPause ? L10N.tech : L10N.pause) : phase === "shopping" || phase === "combat" ? fmtTime(rem) : "0:00");
     fitText($("time"), 150);
-    setText($("rnd"), L10N.round + (d.roundNumber || 1));
+    const otStart = d.firstOtRound || 25, rn = d.roundNumber || 1;
+    setText($("rnd"), rn >= otStart ? L10N.ot + " " + (Math.floor((rn - otStart) / 2) + 1) : L10N.round + rn);
     // dentro da prévia do capturador: avisa a janela de fora como está a partida, para os números baterem
     if (window.parent !== window && now - (render._post || -9) > 0.3) {
       render._post = now;
@@ -796,8 +804,13 @@ img { display: block; }
     const h = $("hist");
     if (h._k === key) return;
     h._k = key;
+    const ot = d.firstOtRound || 25;
     let cols = [];
-    if (cur < sw) {
+    if (cur >= ot) {
+      // prorrogação: os times trocam de lado a cada rodada até alguém abrir 2 de vantagem
+      for (let n = Math.max(ot, cur - 12); n <= cur; n++) cols.push(n);
+      cols.unshift("ot");
+    } else if (cur < sw) {
       for (let n = 1; n < sw && cols.length < 12; n++) cols.push(n);
       cols.push("swap", "dot");
     } else {
@@ -813,6 +826,7 @@ img { display: block; }
     cols.forEach((c, j) => {
       const x = j * 51;
       if (c === "swap") { html += `<div class="sw" style="left:${x}px"><i class="a"></i><i class="z"></i></div>`; return; }
+      if (c === "ot") { html += `<div class="hn otl" style="left:${x}px">${L10N.otShort}</div>`; return; }
       if (c === "dot") { html += `<i class="dot" style="left:${x + 22}px"></i>`; return; }
       if (c === cur) { html += `<div class="hn" style="left:${x}px">${nn(c)}</div><i class="mk t" style="left:${x + 19}px"></i><i class="mk b" style="left:${x + 19}px"></i>`; return; }
       if (c > cur) { html += `<div class="hn" style="left:${x}px">${nn(c)}</div>`; return; }
@@ -880,26 +894,39 @@ img { display: block; }
   const probe = (src, ms = 2500) => new Promise((ok) => { const im = new Image(); const t = setTimeout(() => ok(false), ms); im.onload = () => { clearTimeout(t); ok(true); }; im.onerror = () => { clearTimeout(t); ok(false); }; im.src = src; });
   async function listImages(prefix, max = 12) { const out = []; for (let i = 1; i <= max; i++) { const s = A(`${prefix}${i}.png`); if (await probe(s, 1500)) out.push(s); else break; } return out; }
   function rotate(imgA, imgB, list, secs) {
-    if (!list.length) return;
+    imgA.style.opacity = "0"; imgB.style.opacity = "0";
+    if (!list.length) { imgA.removeAttribute("src"); imgB.removeAttribute("src"); return null; }
     let n = 0, front = imgA, back = imgB;
     front.src = list[0]; front.style.opacity = "1";
-    if (list.length < 2) return;
-    setInterval(() => {
+    if (list.length < 2) return null;
+    return setInterval(() => {
       n = (n + 1) % list.length;
       back.src = list[n];
       back.style.opacity = "1"; front.style.opacity = "0";
       [front, back] = [back, front];
     }, secs * 1000);
   }
-  async function startMedia(d0) {
-    // bloco do evento: Sponsors/SponsorN.png (ou os patrocinadores configurados no capturador)
-    const si = d0 && d0.tools && d0.tools.sponsorInfo;
-    const remote = si && si.enabled && Array.isArray(si.sponsors) ? si.sponsors.filter(Boolean) : [];
-    let list = remote.length ? remote : await listImages("Sponsors/Sponsor");
-    const tlogo = d0 && d0.tools && d0.tools.tournamentInfo && d0.tools.tournamentInfo.logoUrl;
+  // bloco do evento (canto superior direito): patrocinadores ligados no Spectra Client;
+  // sem eles, o logo do torneio do Client. As artes da pasta Resources/Sponsors só entram na prévia
+  // (ou com patrocinadoresLocais: true). Atualiza sozinho quando o Client manda outra lista.
+  let brandKey = null, brandTimer = null, brandBusy = false;
+  async function updateBrand(d) {
+    const tools = (d && d.tools) || {}, si = tools.sponsorInfo || {};
+    const remote = si.enabled && Array.isArray(si.sponsors) ? si.sponsors.filter(Boolean) : [];
+    const tlogo = (tools.tournamentInfo && tools.tournamentInfo.logoUrl) || "";
+    const key = JSON.stringify([remote, si.duration, tlogo]);
+    if (key === brandKey || brandBusy) return;
+    brandBusy = true; brandKey = key;
+    let list = remote;
     if (!list.length && tlogo) list = [tlogo];
-    const dur = Number(si && si.duration) || 0; // o Spectra manda em milissegundos (ex.: 5000)
-    rotate($("brand-a"), $("brand-b"), list, dur ? (dur > 100 ? dur / 1000 : dur) : CONFIG.trocaPatrocinio);
+    if (!list.length && (MODE !== "live" || CONFIG.patrocinadoresLocais)) list = await listImages("Sponsors/Sponsor");
+    const dur = Number(si.duration) || 0; // o Spectra manda em milissegundos (ex.: 5000)
+    clearInterval(brandTimer);
+    brandTimer = rotate($("brand-a"), $("brand-b"), list, dur ? (dur > 100 ? dur / 1000 : dur) : CONFIG.trocaPatrocinio);
+    brandBusy = false;
+  }
+  async function startMedia(d0) {
+    updateBrand(d0);
     // faixa da compra: Logos/bannerN.png, alternando com o painel de estatísticas
     const banners = CONFIG.faixaPublicidade ? await listImages("Logos/banner", 6) : [];
     const ad = $("ad"), st = $("stat"), adImg = $("ad-img");
