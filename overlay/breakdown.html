@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resumo da partida</title>
+<script src="config.js"></script>
+<style>
+/* =====================================================================
+   RESUMO PÓS-MAPA — 1920×1080, fundo transparente (a imagem de fundo fica no OBS)
+   ?tipo=times  -> desempenho dos jogadores (MVP + os outros 4 de cada lado)
+   ?tipo=mapa   -> desempenho dos times no mapa + rodada a rodada
+   Dados: estatísticas do Spectra (stats.valospectra.com) pelo mesmo groupCode da partida.
+   Cores, fontes e texturas iguais às da HUD in-game.
+   ===================================================================== */
+:root {
+  --def-main: #3a2271; --def-plate: #361f8a; --def-hi: #6238d6; --def-text: #8f6cf0; --def-band: #210f4a;
+  --att-main: #8f3c23; --att-plate: #a5371b; --att-hi: #e05924; --att-text: #ef7a48; --att-band: #4a1f12;
+  --brand-a: #4826c3; --brand-b: #1c060b;
+  --panel: rgba(10, 16, 22, 0.9); --panel2: rgba(16, 22, 30, 0.92);
+  --ink: #f4f7f8; --mute: #8a939c; --gold: #e9d06d;
+  --f-num: "HUDGridnik", "Segoe UI", "Chakra Petch", "Rajdhani", sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+body { font-family: var(--f-num); color: var(--ink); -webkit-font-smoothing: antialiased; }
+img { display: block; }
+.viewport { position: fixed; inset: 0; }
+.stage { position: absolute; width: 1920px; height: 1080px; transform: scale(var(--s, 1)); transform-origin: 0 0; overflow: hidden; }
+.abs { position: absolute; }
+.t0 { --hi: var(--def-hi); --main: var(--def-main); --plate: var(--def-plate); --band: var(--def-band); --tx: var(--def-text); }
+.t1 { --hi: var(--att-hi); --main: var(--att-main); --plate: var(--att-plate); --band: var(--att-band); --tx: var(--att-text); }
+.dots { background-image: radial-gradient(rgba(255, 255, 255, 0.15) 0.9px, transparent 1.3px); background-size: 5px 5px; }
+.lines { background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 3px); }
+.hidden { display: none !important; }
+
+/* ---------- entrada (e saída) ---------- */
+.rv { opacity: 0; transform: translateY(26px); transition: opacity 380ms ease, transform 460ms cubic-bezier(.2, .8, .2, 1); transition-delay: calc(var(--d, 0) * 1ms); }
+.on .rv { opacity: 1; transform: none; }
+.wipe { clip-path: inset(0 0 0 100%); transition: clip-path 520ms cubic-bezier(.2, .8, .2, 1); transition-delay: calc(var(--d, 0) * 1ms); }
+.wipe.fromL { clip-path: inset(0 100% 0 0); }
+.on .wipe { clip-path: inset(0 0 0 0); }
+.stage:not(.on) .rv, .stage:not(.on) .wipe { transition-delay: calc(var(--x, 0) * 1ms); transition-duration: 260ms; }
+
+/* ---------- topo: times e placar ---------- */
+.top { left: 40px; top: 36px; width: 1840px; height: 150px; }
+.tp { position: absolute; top: 0; width: 720px; height: 150px; display: flex; align-items: center; gap: 26px; padding: 0 36px; overflow: hidden; }
+.tp.l { left: 0; background: radial-gradient(rgba(255, 255, 255, 0.14) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(90deg, var(--band) 0%, var(--main) 60%, var(--plate) 100%); }
+.tp.r { right: 0; flex-direction: row-reverse; background: radial-gradient(rgba(255, 255, 255, 0.14) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(270deg, var(--band) 0%, var(--main) 60%, var(--plate) 100%); }
+.tp img { width: 96px; height: 96px; object-fit: contain; flex: none; }
+.tp .nm { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1; }
+.tp.r .nm { align-items: flex-end; text-align: right; }
+.tp .nm b { font: 800 46px/1 var(--f-num); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tp .nm span { font: 700 20px/1 var(--f-num); letter-spacing: 3px; text-transform: uppercase; color: rgba(255, 255, 255, 0.75); }
+.tp .nm span.win { color: var(--gold); }
+.tp .sc { font: 800 104px/1 var(--f-num); min-width: 130px; text-align: center; }
+.top .edge { position: absolute; top: 0; width: 3px; height: 150px; background: var(--hi); box-shadow: 0 0 12px var(--hi); }
+.top .edge.l { left: 720px; } .top .edge.r { left: 1117px; }
+.top .mid { position: absolute; left: 723px; top: 0; width: 394px; height: 150px; background: linear-gradient(180deg, #2b343b 0%, #20272d 100%); }
+.top .mid .flag { position: absolute; left: 77px; top: 0; width: 240px; height: 48px; background: linear-gradient(160deg, var(--brand-a) 0%, #38147a 45%, var(--brand-b) 100%); clip-path: polygon(0 0, 100% 0, 100% 62%, 88% 100%, 12% 100%, 0 62%); display: grid; place-items: center; }
+.top .mid .flag img { max-width: 168px; max-height: 30px; margin-top: -3px; }
+.top .mid .flag b { font: 800 20px/1 var(--f-num); letter-spacing: 3px; }
+.top .mid .ears { position: absolute; top: 0; height: 9px; width: 77px; background: #4a5359; }
+.top .mid .ears.l { left: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 9px 100%); }
+.top .mid .ears.r { right: 0; clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 100%, 0 100%); }
+.top .mid .mp { position: absolute; left: 0; right: 0; top: 66px; text-align: center; font: 800 34px/1 var(--f-num); text-transform: uppercase; letter-spacing: 2px; }
+.top .mid .ti { position: absolute; left: 0; right: 0; top: 112px; text-align: center; font: 700 16px/1 var(--f-num); color: var(--mute); letter-spacing: 3px; text-transform: uppercase; }
+
+/* ---------- TIMES: MVP ---------- */
+.mvp { top: 206px; width: 760px; height: 330px; background: var(--panel); overflow: hidden; }
+.mvp.l { left: 40px; } .mvp.r { left: 1120px; }
+.mvp .bg { position: absolute; inset: 0; }
+.mvp.l .bg { background: radial-gradient(rgba(255, 255, 255, 0.12) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(90deg, var(--main) 0%, rgba(10, 16, 22, 0) 75%); }
+.mvp.r .bg { background: radial-gradient(rgba(255, 255, 255, 0.12) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(270deg, var(--main) 0%, rgba(10, 16, 22, 0) 75%); }
+.mvp .por { position: absolute; bottom: 0; height: 330px; width: auto; }
+.mvp.l .por { left: 150px; } .mvp.r .por { right: 150px; }
+.mvp .tag { position: absolute; top: 0; padding: 10px 22px; font: 800 26px/1 var(--f-num); letter-spacing: 3px; background: var(--hi); }
+.mvp.l .tag { left: 0; } .mvp.r .tag { right: 0; }
+.mvp .who { position: absolute; bottom: 26px; display: flex; flex-direction: column; gap: 8px; }
+.mvp.l .who { left: 26px; } .mvp.r .who { right: 26px; align-items: flex-end; }
+.mvp .who span { font: 700 20px/1 var(--f-num); letter-spacing: 2px; text-transform: uppercase; color: rgba(255, 255, 255, 0.8); }
+.mvp .who b { font: 800 46px/1 var(--f-num); text-shadow: 0 3px 8px rgba(0, 0, 0, 0.8); white-space: nowrap; }
+.mvp .vals { position: absolute; top: 34px; display: flex; flex-direction: column; gap: 32px; }
+.mvp.l .vals { right: 30px; align-items: flex-end; } .mvp.r .vals { left: 30px; }
+.mvp .vals b { font: 800 56px/1 var(--f-num); text-shadow: 0 3px 8px rgba(0, 0, 0, 0.7); }
+.mvp .edge { position: absolute; top: 0; width: 3px; height: 100%; background: var(--hi); box-shadow: 0 0 10px var(--hi); }
+.mvp.l .edge { right: 0; } .mvp.r .edge { left: 0; }
+.lab { left: 800px; width: 320px; display: flex; flex-direction: column; align-items: center; background: linear-gradient(180deg, #252d33, #1d2329); }
+.lab span { font: 700 22px/1 var(--f-num); letter-spacing: 3px; color: #dfe6ea; text-transform: uppercase; }
+.lab.big { top: 206px; height: 330px; padding-top: 57px; gap: 66px; }
+/* ---------- TIMES: os outros 4 ---------- */
+.rows { top: 552px; width: 760px; height: 492px; display: flex; flex-direction: column; gap: 8px; }
+.rows.l { left: 40px; } .rows.r { left: 1120px; }
+.pr { position: relative; height: 117px; background: var(--panel); display: flex; align-items: center; overflow: hidden; }
+.rows.r .pr { flex-direction: row-reverse; }
+.pr .fc { width: 117px; height: 117px; flex: none; position: relative; overflow: hidden; }
+.rows.l .pr .fc { background: radial-gradient(rgba(255, 255, 255, 0.14) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(180deg, var(--plate), var(--band)); }
+.rows.r .pr .fc { background: radial-gradient(rgba(255, 255, 255, 0.14) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(180deg, var(--plate), var(--band)); }
+.pr .fc img { width: 100%; height: 100%; object-fit: cover; }
+.pr .who { display: flex; flex-direction: column; gap: 9px; padding: 0 22px; flex: 1; min-width: 0; }
+.rows.r .pr .who { align-items: flex-end; }
+.pr .who span { font: 700 15px/1 var(--f-num); letter-spacing: 2px; color: var(--mute); text-transform: uppercase; }
+.pr .who b { font: 800 28px/1 var(--f-num); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.pr .vals { display: flex; flex-direction: column; gap: 14px; padding: 0 26px; }
+.rows.l .pr .vals { align-items: flex-end; }
+.pr .vals b { font: 800 34px/1 var(--f-num); }
+.pr::after { content: ""; position: absolute; top: 0; bottom: 0; width: 3px; background: var(--hi); opacity: 0.85; }
+.rows.l .pr::after { right: 0; } .rows.r .pr::after { left: 0; }
+.lab.sm { top: 552px; height: 492px; gap: 8px; background: none; }
+.lab.sm div { width: 100%; height: 117px; background: linear-gradient(180deg, #252d33, #1d2329); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
+.lab.sm span { font-size: 18px; }
+
+/* ---------- MAPA ---------- */
+.mapc { left: 40px; top: 206px; width: 330px; height: 838px; overflow: hidden; background: #0b1016; }
+.mapc img { width: 100%; height: 100%; object-fit: cover; }
+.mapc::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0, 0, 0, 0.75), transparent 40%); }
+.mapc b { position: absolute; left: 0; right: 0; bottom: 28px; z-index: 2; text-align: center; font: 800 42px/1 var(--f-num); text-transform: uppercase; letter-spacing: 2px; }
+.brandc { left: 1550px; top: 206px; width: 330px; height: 838px; background: radial-gradient(rgba(255, 255, 255, 0.1) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(170deg, var(--brand-a) 0%, #38147a 40%, var(--brand-b) 100%); display: grid; place-items: center; }
+.brandc img { max-width: 250px; }
+.brandc b { font: 800 34px/1 var(--f-num); letter-spacing: 4px; }
+.stats { left: 386px; top: 206px; width: 1148px; height: 640px; background: var(--panel); display: flex; flex-direction: column; justify-content: space-evenly; padding: 10px 0; }
+.st { position: relative; display: grid; grid-template-columns: 1fr 300px 1fr; align-items: center; height: 92px; padding: 0 60px; }
+.st .v { font: 800 62px/1 var(--f-num); }
+.st .v.l { text-align: right; color: var(--def-text); } .st .v.r { text-align: left; color: var(--att-text); }
+.st .v.best { color: #fff; text-shadow: 0 0 18px var(--hi); }
+.st .v small { font-size: 30px; color: var(--mute); }
+.st .c { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.st .c svg { width: 34px; height: 34px; color: var(--gold); }
+.st .c span { font: 700 19px/1 var(--f-num); letter-spacing: 3px; text-transform: uppercase; }
+.st .bar { position: absolute; left: 60px; right: 60px; bottom: -4px; height: 5px; display: flex; gap: 4px; }
+.st .bar i { height: 100%; transition: flex-grow 900ms cubic-bezier(.2, .8, .2, 1) 500ms; flex-basis: 0; flex-grow: 1; }
+.st .bar i.l { background: var(--def-hi); } .st .bar i.r { background: var(--att-hi); }
+.tl { left: 386px; top: 862px; width: 1148px; height: 182px; background: var(--panel); padding: 22px 30px 0; }
+.tl h4 { font: 700 16px/1 var(--f-num); letter-spacing: 3px; color: var(--mute); text-transform: uppercase; margin-bottom: 18px; text-align: center; }
+.tl .rr { display: flex; justify-content: center; gap: 4px; }
+.tl .rd { width: 40px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.tl .rd span { font: 700 13px/1 var(--f-num); color: var(--mute); }
+.tl .rd i { width: 40px; height: 64px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 4px 0; background: rgba(255, 255, 255, 0.04); }
+.tl .rd i em { width: 26px; height: 26px; display: block; }
+.tl .rd i em svg { width: 100%; height: 100%; }
+.tl .rd.w0 i em.a { background: var(--def-hi); border-radius: 3px; padding: 3px; }
+.tl .rd.w1 i em.b { background: var(--att-hi); border-radius: 3px; padding: 3px; }
+.tl .rd.half { margin-left: 14px; }
+.tl .side { position: absolute; left: 30px; top: 74px; display: flex; flex-direction: column; gap: 14px; font: 800 14px/1 var(--f-num); }
+.tl .side .a { color: var(--def-text); margin-top: 6px; } .tl .side .b { color: var(--att-text); margin-top: 14px; }
+.status { left: 24px; top: 1040px; font: 700 15px/1 var(--f-num); color: #fff; background: rgba(0, 0, 0, 0.7); padding: 6px 12px; }
+.status:empty { display: none; }
+</style>
+</head>
+<body>
+<div class="viewport"><div class="stage" id="stage">
+  <div class="abs top">
+    <div class="tp l t0 wipe fromL" style="--d:100;--x:300"><img id="lg0" alt=""><div class="nm"><b id="nm0"></b><span id="rs0"></span></div><div class="sc" id="sc0"></div></div>
+    <i class="edge l t0 rv" style="--d:300"></i>
+    <div class="mid rv" style="--d:0;--x:420"><i class="ears l"></i><i class="ears r"></i><div class="flag" id="flag"><b>LOOKING</b></div><div class="mp" id="map"></div><div class="ti" id="ttl"></div></div>
+    <i class="edge r t1 rv" style="--d:300"></i>
+    <div class="tp r t1 wipe" style="--d:100;--x:300"><img id="lg1" alt=""><div class="nm"><b id="nm1"></b><span id="rs1"></span></div><div class="sc" id="sc1"></div></div>
+  </div>
+  <div id="vTimes" class="hidden"></div>
+  <div id="vMapa" class="hidden"></div>
+  <div class="abs status" id="status"></div>
+</div></div>
+<script>
+(() => {
+  const CONFIG = Object.assign({ recursos: "Resources/" }, window.HUD_CONFIG || {});
+  const P = new URLSearchParams(location.search);
+  const TIPO = (P.get("tipo") || "times").toLowerCase().startsWith("m") ? "mapa" : "times";
+  const CODE = (P.get("groupCode") || P.get("codigo") || "").toUpperCase();
+  const DEMO = P.has("demo") || !CODE;
+  const DEBUG = P.has("debug") || DEMO;
+  const STATS = P.get("stats") || CONFIG.statsServidor || "https://stats.valospectra.com";
+  const EXTRAS = P.get("extras") || CONFIG.extrasServidor || "https://eu-extras.valospectra.com";
+  let BASE = P.get("assets") || CONFIG.recursos || "Resources/"; if (!BASE.endsWith("/")) BASE += "/";
+  const A = (p) => BASE + p.split("/").map(encodeURIComponent).join("/");
+  const $ = (id) => document.getElementById(id);
+  const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const stage = $("stage");
+  const fit = () => { const s = Math.min(innerWidth / 1920, innerHeight / 1080); stage.style.setProperty("--s", s); stage.style.left = Math.round((innerWidth - 1920 * s) / 2) + "px"; stage.style.top = Math.round((innerHeight - 1080 * s) / 2) + "px"; };
+  addEventListener("resize", fit); fit();
+  const status = (t) => { if (DEBUG) $("status").textContent = t; };
+
+  // fontes da HUD
+  const fontsReady = Promise.all([["FoundryGridnik-Regular.otf", "400"], ["FoundryGridnik-Bold.otf", "700"], ["FoundryGridnik-ExtraBold.otf", "800"]].map(async ([f, w]) => {
+    try { const ff = new FontFace("HUDGridnik", `url("${A(f)}")`, { weight: w, unicodeRange: "U+0020-007E, U+00B7, U+2013-2014, U+2022" }); document.fonts.add(await ff.load()); } catch (e) { /* reserva */ }
+  }));
+  (() => { const im = new Image(); im.onload = () => { $("flag").innerHTML = ""; $("flag").appendChild(im); }; im.src = A("Logos/looking.png"); })();
+
+  const FOLDER = { "KAY/O": "Kayo" };
+  const agentFolder = (n) => FOLDER[n] || n || "";
+  const face = (n) => A(`Agentes/${agentFolder(n)}/${agentFolder(n)}.png`);
+  const bust = (n) => A(`Agentes/${agentFolder(n)}/retrato.png`);
+  const imgFb = (src, fb, cls) => `<img class="${cls || ""}" src="${esc(src)}" onerror="${fb ? `this.onerror=null;this.src='${esc(fb)}'` : "this.style.visibility='hidden'"}" alt="">`;
+  const L = { win: "Vitória", loss: "Derrota", mvp: "MVP", kda: "K / D / A", acs: "ACS", fk: "First kills", times: "Resumo dos jogadores", mapa: "Resumo do mapa",
+    fkL: "First kills", acsL: "ACS médio", thr: "Rodadas econômicas", pp: "Pós-plant vencidos", cl: "Clutches", tr: "Trocas (até 5s)", rounds: "Rodada a rodada" };
+  const REASON = {
+    kills: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round"><circle cx="12" cy="12" r="6.6"/><path d="M4.5 4.5l15 15M19.5 4.5l-15 15"/></svg>',
+    defused: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 8.8C8.3 7.3 7.6 4.6 9.6 2.2M13 8.8c2.7-1.5 3.4-4.2 1.4-6.6"/><path d="M11 11.3C8.9 14.2 7 17.5 5.6 21.6M13 11.3c2.1 2.9 4 6.2 5.4 10.3"/><circle cx="12" cy="10" r="2.1" fill="#fff" stroke="none"/></svg>',
+    detonated: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M1.5 18.5 4.3 13l1.6 2.2L7.6 8.6l2.6 4.3L12 4.5l1.9 8.2 2.5-4.3 1.7 6.6 1.7-2.2 2.7 5.7c-3.4 1.5-6.9 2-10.5 2s-7.1-.5-10.1-2z"/></svg>',
+    timeout: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8.2"/><path d="M12 8.3V13l3.2 2.2M9.5 2.5h5"/></svg>',
+  };
+  const ICON = {
+    fk: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/></svg>',
+    acs: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="13" width="4" height="8"/><rect x="10" y="8" width="4" height="13"/><rect x="17" y="3" width="4" height="18"/></svg>',
+    thr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M4 4l16 16M20 4 4 20"/><circle cx="12" cy="12" r="5" fill="#111820"/></svg>',
+    pp: '<svg viewBox="0 0 100 92"><path d="M10 9h80L50 83z" fill="currentColor" stroke="currentColor" stroke-width="14" stroke-linejoin="round"/><circle cx="50" cy="38" r="22" fill="#111820"/><circle cx="50" cy="38" r="15" fill="currentColor"/></svg>',
+    cl: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 14.6 9h6.9l-5.6 4.2 2.1 6.8L12 15.9 6 20l2.1-6.8L2.5 9h6.9z"/></svg>',
+    tr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg>',
+  };
+
+  // ---------- cálculos (mesma lógica do nobii) ----------
+  function compute(S, info) {
+    const rounds = S.rounds || [], played = rounds.length || 1;
+    const win = (S.teams || []).find((t) => t.won) || (S.teams || [])[0] || { team_id: "Red" };
+    const other = win.team_id === "Red" ? "Blue" : "Red";
+    // como no nobii: o time da esquerda no Spectra fica à esquerda; higherScore diz se foi ele quem venceu
+    const leftWon = !info || info.higherScore !== 1;
+    const ids = leftWon ? [win.team_id, other] : [other, win.team_id];
+    const teamOf = (id) => (S.teams || []).find((t) => t.team_id === id) || { rounds: { won: 0 }, won: false };
+    const fk = {}; let cur = -1;
+    [...(S.kills || [])].sort((a, b) => a.round - b.round || a.time_in_round_in_ms - b.time_in_round_in_ms).forEach((k) => { if (k.round !== cur) { cur = k.round; fk[k.killer.puuid] = (fk[k.killer.puuid] || 0) + 1; } });
+    const players = (S.players || []).map((p) => Object.assign({}, p, { acs: Math.round((p.stats.score || 0) / played), fk: fk[p.puuid] || 0 }));
+    const side = ids.map((id, i) => {
+      const ps = players.filter((p) => p.team_id === id).sort((a, b) => b.acs - a.acs);
+      const T = teamOf(id), meta = info ? (i ? info.rightTeam : info.leftTeam) : null;
+      return { id, ps, won: !!T.won, score: (T.rounds && T.rounds.won) || 0, name: (meta && meta.name) || T.name || (i ? "Time B" : "Time A"), tri: (meta && meta.tricode) || T.tricode || "", url: (meta && meta.url) || T.url || "",
+        fk: ps.reduce((s, p) => s + p.fk, 0), acs: Math.round(ps.reduce((s, p) => s + p.acs, 0) / (ps.length || 1)), thr: 0, cl: 0, ace: 0, pp: 0, ppTot: 0, trd: 0, trdOf: 0 };
+    });
+    const idx = (id) => (id === ids[0] ? 0 : id === ids[1] ? 1 : -1);
+    const reasons = [];
+    rounds.forEach((r) => {
+      const w = idx(r.winning_team);
+      if (w >= 0) {
+        if (r.ceremony === "CeremonyThrifty") side[w].thr++;
+        if (r.ceremony === "CeremonyClutch") side[w].cl++;
+        if (r.ceremony === "CeremonyAce") side[w].ace++;
+      }
+      if (r.plant) { const pt = idx(r.plant.player && r.plant.player.team); if (pt >= 0) { side[pt].ppTot++; if (w === pt) side[pt].pp++; } }
+      reasons.push({ w, why: r.result === "Defuse" ? "defused" : r.result === "Detonate" ? "detonated" : r.result === "Elimination" ? "kills" : "timeout" });
+    });
+    // trocas: uma kill conta como "trocada" se o time da vítima matar quem matou em até 5s
+    const ks = [...(S.kills || [])].sort((a, b) => a.round - b.round || a.time_in_round_in_ms - b.time_in_round_in_ms);
+    ks.forEach((k, i) => {
+      const s = idx(k.victim && k.victim.team); if (s < 0 || k.killer.team === k.victim.team) return;
+      side[s].trdOf++;
+      for (let j = i + 1; j < ks.length && ks[j].round === k.round && ks[j].time_in_round_in_ms - k.time_in_round_in_ms <= 5000; j++) if (ks[j].victim.puuid === k.killer.puuid) { side[s].trd++; break; }
+    });
+    return { side, map: (S.metadata && S.metadata.map && S.metadata.map.name) || "", reasons };
+  }
+
+  // ---------- desenho ----------
+  function header(R) {
+    R.side.forEach((s, i) => {
+      $("nm" + i).textContent = s.name;
+      const rs = $("rs" + i); rs.textContent = s.won ? L.win : L.loss; rs.className = s.won ? "win" : "";
+      $("sc" + i).textContent = s.score;
+      const lg = $("lg" + i); if (s.url) { lg.src = s.url; lg.style.visibility = ""; } else lg.style.visibility = "hidden";
+    });
+    $("map").textContent = R.map;
+    $("ttl").textContent = TIPO === "mapa" ? L.mapa : L.times;
+  }
+  function viewTimes(R) {
+    const v = $("vTimes"); v.classList.remove("hidden");
+    const mvpHTML = (s, i) => {
+      const p = s.ps[0] || { name: "", agent: {}, stats: {}, acs: 0, fk: 0 }, ag = (p.agent && p.agent.name) || "";
+      return `<div class="abs mvp ${i ? "r" : "l"} t${i} wipe ${i ? "" : "fromL"}" style="--d:${250};--x:150"><i class="bg"></i>${ag ? imgFb(bust(ag), face(ag), "por") : ""}
+        <div class="tag">${L.mvp}</div><div class="who"><span>${esc(ag)}</span><b>${esc(p.name)}</b></div>
+        <div class="vals"><b>${p.stats.kills ?? 0}/${p.stats.deaths ?? 0}/${p.stats.assists ?? 0}</b><b>${p.acs}</b><b>${p.fk}</b></div><i class="edge"></i></div>`;
+    };
+    const rowsHTML = (s, i) => `<div class="abs rows ${i ? "r" : "l"} t${i}">` + s.ps.slice(1, 5).map((p, j) => {
+      const ag = (p.agent && p.agent.name) || "";
+      return `<div class="pr rv" style="--d:${450 + j * 90};--x:${(3 - j) * 40}"><div class="fc">${ag ? imgFb(face(ag), "", "") : ""}</div><div class="who"><span>${esc(ag)}</span><b>${esc(p.name)}</b></div><div class="vals"><b>${p.stats.kills ?? 0}/${p.stats.deaths ?? 0}/${p.stats.assists ?? 0}</b><b>${p.acs}</b></div></div>`;
+    }).join("") + `</div>`;
+    v.innerHTML = mvpHTML(R.side[0], 0) + mvpHTML(R.side[1], 1)
+      + `<div class="abs lab big rv" style="--d:350;--x:120"><span>${L.kda}</span><span>${L.acs}</span><span>${L.fk}</span></div>`
+      + rowsHTML(R.side[0], 0) + rowsHTML(R.side[1], 1)
+      + `<div class="abs lab sm">` + [0, 1, 2, 3].map((j) => `<div class="rv" style="--d:${450 + j * 90};--x:${(3 - j) * 40}"><span>${L.kda}</span><span>${L.acs}</span></div>`).join("") + `</div>`;
+  }
+  function viewMapa(R) {
+    const v = $("vMapa"); v.classList.remove("hidden");
+    const [a, b] = R.side;
+    const row = (key, la, ra, fmt, num, i) => {
+      const best = la === ra ? -1 : (la > ra ? 0 : 1);
+      const tot = Math.max(1, la + ra);
+      return `<div class="st rv" style="--d:${350 + i * 80};--x:${(5 - i) * 30}"><div class="v l t0${best === 0 ? " best" : ""}">${fmt[0]}</div><div class="c">${ICON[key]}<span>${num}</span></div><div class="v r t1${best === 1 ? " best" : ""}">${fmt[1]}</div>
+        <div class="bar"><i class="l" style="flex-grow:${la / tot}"></i><i class="r" style="flex-grow:${ra / tot}"></i></div></div>`;
+    };
+    const pct = (x, y) => Math.round((x / (y || 1)) * 100);
+    const stats = [
+      ["fk", a.fk, b.fk, [a.fk, b.fk], L.fkL],
+      ["acs", a.acs, b.acs, [a.acs, b.acs], L.acsL],
+      ["pp", pct(a.pp, a.ppTot), pct(b.pp, b.ppTot), [`${a.pp}<small>/${a.ppTot}</small>`, `${b.pp}<small>/${b.ppTot}</small>`], L.pp],
+      ["thr", a.thr, b.thr, [a.thr, b.thr], L.thr],
+      ["cl", a.cl, b.cl, [a.cl, b.cl], L.cl],
+      ["tr", pct(a.trd, a.trdOf), pct(b.trd, b.trdOf), [pct(a.trd, a.trdOf) + "<small>%</small>", pct(b.trd, b.trdOf) + "<small>%</small>"], L.tr],
+    ];
+    const half = 12;
+    const tl = R.reasons.map((r, i) => `<div class="rd w${r.w}${i === half ? " half" : ""}"><span>${i + 1}</span><i><em class="a">${r.w === 0 ? REASON[r.why] : ""}</em><em class="b">${r.w === 1 ? REASON[r.why] : ""}</em></i></div>`).join("");
+    v.innerHTML = `<div class="abs mapc wipe fromL" style="--d:200;--x:200">${imgFb(A("Maps/" + R.map + ".png"))}<b>${esc(R.map)}</b></div>
+      <div class="abs brandc wipe" style="--d:200;--x:200"><b>LOOKING</b></div>
+      <div class="abs stats rv" style="--d:250;--x:100">${stats.map((s, i) => row(s[0], s[1], s[2], s[3], s[4], i)).join("")}</div>
+      <div class="abs tl rv" style="--d:800;--x:0"><h4>${L.rounds}</h4><div class="side"><span class="a">${esc(a.tri || a.name)}</span><span class="b">${esc(b.tri || b.name)}</span></div><div class="rr">${tl}</div></div>`;
+    const im = new Image(); im.onload = () => { const bc = v.querySelector(".brandc"); bc.innerHTML = ""; bc.appendChild(im); }; im.src = A("Logos/looking.png");
+  }
+  function show(S, info) {
+    const R = compute(S, info);
+    header(R);
+    if (TIPO === "mapa") viewMapa(R); else viewTimes(R);
+    $("status").textContent = "";
+    fontsReady.then(() => requestAnimationFrame(() => requestAnimationFrame(() => stage.classList.add("on"))));
+  }
+  // OBS: ao voltar para a cena, a entrada toca de novo
+  addEventListener("obsSourceActiveChanged", (e) => { if (e.detail && e.detail.active && stage.classList.contains("on")) { stage.classList.remove("on"); void stage.offsetWidth; requestAnimationFrame(() => stage.classList.add("on")); } });
+  window.resumoSair = () => stage.classList.remove("on");
+
+  // ---------- ao vivo: estatísticas do Spectra (só aparecem depois que o mapa termina) ----------
+  if (!DEMO) {
+    let done = false;
+    const get = async () => {
+      if (done) return;
+      try {
+        status("Buscando estatísticas de " + CODE + "…");
+        const r = await fetch(`${STATS}/getStats?code=${encodeURIComponent(CODE)}`);
+        if (!r.ok) { status("Ainda sem estatísticas para " + CODE + " (o mapa precisa terminar). Tentando de novo em 15s."); return; }
+        const j = await r.json(); const S = j.data || j;
+        if (!S || !S.players || !S.players.length) return;
+        let info = null;
+        try { const r2 = await fetch(`${EXTRAS}/getTeamInfoForCode?groupCode=${encodeURIComponent(CODE)}`); if (r2.ok) info = await r2.json(); } catch (e) { /* sem nomes extras */ }
+        done = true; show(S, info);
+      } catch (e) { status("Sem conexão com as estatísticas do Spectra."); }
+    };
+    get(); setInterval(get, 15000);
+    return;
+  }
+
+  // ---------- prévia com dados inventados (mesmo formato do Spectra) ----------
+  const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const T0 = [["kaiaque", "Jett"], ["mareh", "Omen"], ["tucunare", "Sova"], ["ventosul", "Killjoy"], ["cajuzin", "Breach"]];
+  const T1 = [["xique", "Raze"], ["mandacaru", "Viper"], ["lampiao", "Fade"], ["seriema", "Cypher"], ["aboio", "Astra"]];
+  const players = [...T0.map(([n, a], i) => ({ puuid: "a" + i, name: n, team_id: "Red", agent: { name: a } })), ...T1.map(([n, a], i) => ({ puuid: "b" + i, name: n, team_id: "Blue", agent: { name: a } }))];
+  players.forEach((p) => (p.stats = { score: 0, kills: 0, deaths: 0, assists: 0 }));
+  const winners = "RRBRRBRBRRBRBRRBRBRBRR".split("").map((c) => (c === "R" ? "Red" : "Blue"));
+  const rounds = [], kills = [];
+  winners.forEach((w, id) => {
+    const lose = w === "Red" ? "Blue" : "Red", W = players.filter((p) => p.team_id === w), Lp = players.filter((p) => p.team_id === lose);
+    let t = R(8000, 25000); const nk = 5 + R(0, 3);
+    for (let k = 0; k < nk; k++) { const winK = k < 5 ? Math.random() < 0.72 : false; const killer = winK ? W[R(0, 4)] : Lp[R(0, 4)], victim = winK ? Lp[k % 5] : W[R(0, 4)];
+      killer.stats.kills++; victim.stats.deaths++; killer.stats.score += 200 + R(0, 120); (winK ? W : Lp)[R(0, 4)].stats.assists += Math.random() < 0.5 ? 1 : 0;
+      kills.push({ round: id, time_in_round_in_ms: t, killer: { puuid: killer.puuid, team: killer.team_id }, victim: { puuid: victim.puuid, team: victim.team_id } }); t += R(800, 9000); }
+    const planted = Math.random() < 0.55, why = planted ? (Math.random() < 0.6 ? "Detonate" : "Defuse") : Math.random() < 0.1 ? "" : "Elimination";
+    const plantTeam = why === "Detonate" ? w : why === "Defuse" ? lose : (id % 2 ? "Red" : "Blue");
+    rounds.push({ id, result: why, winning_team: w, ceremony: Math.random() < 0.12 ? "CeremonyThrifty" : Math.random() < 0.12 ? "CeremonyClutch" : "CeremonyDefault", plant: planted ? { player: { team: plantTeam } } : null });
+  });
+  const S = { metadata: { map: { name: "Lotus" } }, players, kills, rounds, teams: [{ team_id: "Red", won: true, rounds: { won: 13 } }, { team_id: "Blue", won: false, rounds: { won: 9 } }] };
+  const info = { higherScore: 0, leftTeam: { name: "Jaguares", tricode: "JGD", url: A("Logos/logo1.png") }, rightTeam: { name: "Caatinga Club", tricode: "CTG", url: A("Logos/logo2.png") } };
+  setTimeout(() => show(S, info), 300);
+})();
+</script>
+</body>
+</html>
