@@ -17,10 +17,10 @@
 :root {
   /* No VCT CN a cor segue o LADO: defesa = verde-petróleo, ataque = carmim.
      As variáveis --l-* / --r-* (time da esquerda / direita) apontam para a paleta do lado de cada time. */
-  --def-main: #22715c; --def-plate: #1f8a6e; --def-plate2: #126151; --def-hi: #38d6ae; --def-hp: #14f0bc; --def-text: #45d1aa;
-  --def-band: #0f4a3e; --def-band2: rgba(14, 64, 54, 0.95); --def-band3: rgba(6, 20, 22, 0.92); --def-cell: #2d7869;
-  --att-main: #8f2337; --att-plate: #a51b2a; --att-plate2: #6d1222; --att-hi: #e0244f; --att-hp: #f0103f; --att-text: #e8404f;
-  --att-band: #4a1220; --att-band2: rgba(66, 18, 30, 0.95); --att-band3: rgba(24, 10, 15, 0.92); --att-cell: #73272f;
+  --def-main: #3a2271; --def-plate: #361f8a; --def-plate2: #341261; --def-hi: #6238d6; --def-hp: #6114f0; --def-text: #6a45d1;
+  --def-band: #210f4a; --def-band2: rgba(33, 14, 64, 0.95); --def-band3: rgba(6, 20, 22, 0.92); --def-cell: #4a2d78;
+  --att-main: #8f3c23; --att-plate: #a5371b; --att-plate2: #6d2c12; --att-hi: #e05924; --att-hp: #f04410; --att-text: #e87040;
+  --att-band: #4a1f12; --att-band2: rgba(66, 36, 18, 0.95); --att-band3: rgba(24, 10, 15, 0.92); --att-cell: #733d27;
   /* neutros */
   --ink: #f4f7f8;
   --ink-2: #c9d0d6;
@@ -32,7 +32,7 @@
   --panel-dead: rgba(28, 32, 37, 0.84);
   --row: rgba(14, 21, 29, 0.93);
   --rule: #24303c;
-  --brand-a: #c3263f;
+  --brand-a: #4826c3;
   --brand-b: #1c060b;
   /* fontes: a pasta Resources traz Foundry Gridnik e Tungsten; os outros nomes são reserva */
   --f-num: "HUDGridnik", "Segoe UI", "Chakra Petch", "Rajdhani", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
@@ -64,7 +64,7 @@ img { display: block; }
 .hidden { display: none !important; }
 
 /* ---------- Faixa informativa (y 0–34) ---------- */
-.info-band { left: 0; top: 0; width: 1920px; height: 34px; background: linear-gradient(180deg, rgba(3, 9, 15, 0.9), rgba(5, 12, 19, 0.78)); }
+.info-band { left: 0; top: 0; width: 1920px; height: 34px; background: linear-gradient(180deg, rgba(0, 0, 0, 0.97), rgba(2, 4, 6, 0.92)); }
 .info { top: 0; height: 34px; display: flex; align-items: center; font: 800 16px/1 var(--f-num); color: var(--ink); white-space: nowrap; letter-spacing: 0.2px; }
 .info.l { left: 10px; gap: 0; }
 .info .it { display: flex; align-items: center; gap: 8px; }
@@ -74,7 +74,7 @@ img { display: block; }
 .info.r { left: 1365px; width: 232px; justify-content: center; }
 
 /* ---------- Bloco do evento (canto superior direito) ---------- */
-.brand { left: 1627px; top: 0; width: 293px; height: 90px; clip-path: polygon(0 0, 100% 0, 100% 100%, 15px 100%, 0 75px); background: linear-gradient(160deg, var(--brand-a) 0%, #7a1427 38%, var(--brand-b) 100%); box-shadow: inset 2px 0 0 rgba(0, 0, 0, 0.55); display: grid; place-items: center; overflow: hidden; }
+.brand { left: 1627px; top: 0; width: 293px; height: 90px; clip-path: polygon(0 0, 100% 0, 100% 100%, 15px 100%, 0 75px); background: linear-gradient(160deg, var(--brand-a) 0%, #38147a 38%, var(--brand-b) 100%); box-shadow: inset 2px 0 0 rgba(0, 0, 0, 0.55); display: grid; place-items: center; overflow: hidden; }
 .brand img { position: absolute; left: 50%; top: 50%; max-width: 190px; max-height: 70px; transform: translate(-50%, -50%); transition: opacity 400ms ease; }
 
 /* ---------- Placar ---------- */
