@@ -102,6 +102,14 @@ img { display: block; }
 .bug .seed { position: absolute; top: 48px; width: 120px; font: 700 11px/1 var(--f-num); letter-spacing: 1px; color: rgba(255,255,255,.8); white-space: nowrap; }
 .bug .seed.l { left: 640px; text-align: left; }
 .bug .seed.r { left: 1160px; text-align: right; }
+.acc { position: relative; display: inline-block; }
+.acc::before { content: ""; position: absolute; left: 50%; background: currentColor; }
+.acc.ac::before { width: .24em; height: .085em; top: -.2em; transform: translateX(-30%) rotate(-30deg); }
+.acc.gr::before { width: .24em; height: .085em; top: -.2em; transform: translateX(-70%) rotate(30deg); }
+.acc.ci::before { width: .2em; height: .2em; top: -.2em; background: none; border-left: .085em solid currentColor; border-top: .085em solid currentColor; transform: translateX(-50%) rotate(45deg); }
+.acc.ti::before { width: .34em; height: .14em; top: -.24em; transform: translateX(-50%); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 12'%3E%3Cpath d='M2 9C5 3 9 3 13 6s8 3 11-3' fill='none' stroke='%23000' stroke-width='3.6' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 12'%3E%3Cpath d='M2 9C5 3 9 3 13 6s8 3 11-3' fill='none' stroke='%23000' stroke-width='3.6' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
+.acc.ce::before { width: .1em; height: .2em; top: auto; bottom: -.18em; transform: translateX(-50%) skewX(-15deg); }
+.acc.lw::before { margin-top: .26em; }
 .pause { left: 566px; top: 215px; width: 788px; height: 178px; --pz-c: #6b7680; --pz-h: #c9d0d6; opacity: 0; transform: translateY(40px); transition: opacity 300ms ease, transform 300ms cubic-bezier(.2,.8,.2,1); pointer-events: none; }
 .pause.on { opacity: 1; transform: none; }
 .pause.t-l { --pz-c: var(--l-main); --pz-h: var(--l-hi); }
@@ -258,7 +266,7 @@ img { display: block; }
 .combat { transition: opacity var(--t-mid) ease; }
 
 /* faixa publicitária / painel de estatísticas (522–1397 × 441–577) */
-.adwrap { left: 522px; top: 441px; width: 876px; height: 137px; }
+.adwrap { left: 522px; top: 441px; width: 876px; height: 137px; display: none; } /* painel de aproveitamento: desligado (o Spectra não manda esse dado) */
 .adwrap > div { position: absolute; inset: 0; transition: opacity 300ms ease; }
 .ad img { width: 100%; height: 100%; object-fit: cover; }
 .stat { display: grid; grid-template-columns: 290px 1fr 290px; background: rgba(6, 12, 18, 0.94); }
@@ -507,8 +515,6 @@ img { display: block; }
           <linearGradient id="pz-wl" x1="0" x2="1"><stop offset="0" stop-color="#0a0f14" stop-opacity="0"/><stop offset="1" stop-color="#0a0f14" stop-opacity=".95"/></linearGradient>
           <linearGradient id="pz-wr" x1="1" x2="0"><stop offset="0" stop-color="#0a0f14" stop-opacity="0"/><stop offset="1" stop-color="#0a0f14" stop-opacity=".95"/></linearGradient>
         </defs>
-        <path d="M0 0H87V51L96 67V108L87 123V178H0Z" fill="url(#pz-wl)"/>
-        <path d="M788 0H701V51L692 67V108L701 123V178H788Z" fill="url(#pz-wr)"/>
         <path d="M87 0H701V51L692 67V108L701 123V178H87V123L96 108V67L87 51Z" fill="url(#pz-team)"/>
         <path d="M87 0H701V51L692 67V108L701 123V178H87V123L96 108V67L87 51Z" fill="url(#dots)"/>
         <path d="M87 0H701V4H87Z" style="fill:var(--pz-h)"/>
@@ -936,12 +942,18 @@ img { display: block; }
     const kind = ceremony(d, won), T = d.teams[won];
     $("rwin-bg").src = A(`RoundWin/${RW_ART[kind] || "normal"}.png`);
     setText($("rwin-r"), `ROUND ${d.roundNumber}`);
-    const t = $("rwin-t"); t.innerHTML = `<span>${esc(OVR.map.get(T.teamName) || T.teamName || T.teamTricode || "")}</span>`;
+    const t = $("rwin-t"); t.innerHTML = `<span>${accHTML(OVR.map.get(T.teamName) || T.teamName || T.teamTricode || "", true)}</span>`;
     const sp = t.firstChild; sp.style.transform = ""; const w = sp.scrollWidth; if (w > 600) sp.style.transform = `scaleX(${(600 / w).toFixed(3)})`;
     clearTimeout(RW.timer);
     el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
     RW.timer = setTimeout(() => el.classList.remove("on"), CONFIG.quadroVitoriaSeg * 1000);
   }
+
+  // letras acentuadas: a fonte só tem A–Z sem acento; desenha o acento por cima da letra base,
+  // assim tudo fica do mesmo tamanho (sem a fonte de reserva do Windows aparecer maior)
+  const ACC = { "Á": "A ac", "À": "A gr", "Â": "A ci", "Ã": "A ti", "É": "E ac", "Ê": "E ci", "Í": "I ac", "Ó": "O ac", "Ô": "O ci", "Õ": "O ti", "Ú": "U ac", "Ç": "C ce",
+    "á": "a ac lw", "à": "a gr lw", "â": "a ci lw", "ã": "a ti lw", "é": "e ac lw", "ê": "e ci lw", "í": "ı ac lw", "ó": "o ac lw", "ô": "o ci lw", "õ": "o ti lw", "ú": "u ac lw", "ç": "c ce" };
+  const accHTML = (t, upper) => { t = String(t ?? ""); if (upper) t = t.toUpperCase(); return esc(t).replace(/[ÁÀÂÃÉÊÍÓÔÕÚÇáàâãéêíóôõúç]/g, (c) => { const [b, ...k] = ACC[c].split(" "); return `<span class="acc ${k.join(" ")}">${b === "ı" ? "i" : b}</span>`; }); };
 
   // ---------- tela de pausa (como a do front do nobii, com as texturas e cores desta HUD) ----------
   function renderPause(d) {
@@ -954,14 +966,14 @@ img { display: block; }
     el.classList.toggle("t-l", !tech && !!ts.leftTeam);
     el.classList.toggle("t-r", !tech && !ts.leftTeam && !!ts.rightTeam);
     setText($("pz-wm"), "PAUSA");
-    if (tech) setText($("pz-t"), L10N.tech);
+    if (tech) setHTML($("pz-t"), `<span>${accHTML(L10N.tech, true)}</span>`);
     else {
       const i = ts.leftTeam ? 0 : 1, T = d.teams[i];
-      setHTML($("pz-t"), `<span>${esc(L10N.tac)} · ${esc(T.teamTricode || T.teamName || "")}</span>`);
+      setHTML($("pz-t"), `<span>${accHTML(L10N.tac, true)} · ${accHTML(T.teamTricode || T.teamName || "", true)}</span>`);
       const sp = $("pz-t").firstChild; if (sp) { sp.style.transform = ""; if (sp.scrollWidth > 590) sp.style.transform = `scaleX(${(590 / sp.scrollWidth).toFixed(3)})`; }
       setText($("pz-side"), T.isAttacking ? "ATAQUE" : "DEFESA");
       setSrc($("pz-logo"), T.teamUrl || A(`Logos/logo${i + 1}.png`));
-      setText($("pz-tri"), OVR.map.get(T.teamName) || T.teamName || T.teamTricode || "");
+      setHTML($("pz-tri"), accHTML(OVR.map.get(T.teamName) || T.teamName || T.teamTricode || "", true));
     }
     const dur = Number(d.tools && d.tools.timeoutDuration) || 60, rem = Math.max(0, Math.round(Number(ts.timeRemaining) || 0));
     el.classList.toggle("notimer", !rem);
@@ -974,7 +986,7 @@ img { display: block; }
     const on = !!ti.active && phase === "shopping" && !!(ti.title || ti.message);
     el.classList.toggle("on", on);
     if (!on) return;
-    setText($("toast-t"), ti.title || ""); setText($("toast-m"), ti.message || "");
+    setHTML($("toast-t"), accHTML(ti.title || "", true)); setText($("toast-m"), ti.message || "");
     const sel = ti.selectedTeam === "left" ? 0 : ti.selectedTeam === "right" ? 1 : -1;
     el.classList.toggle("t-l", sel === 0); el.classList.toggle("t-r", sel === 1);
     const tinfo = (d.tools && d.tools.tournamentInfo) || {};
