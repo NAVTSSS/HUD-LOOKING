@@ -120,6 +120,19 @@ img { display: block; }
 .card.reveal .pic .nm { animation: nmIn 420ms ease 200ms both; }
 @keyframes nmIn { from { opacity: 0; transform: translateY(10px); } }
 /* status de conexão (some quando os dados chegam) */
+/* saída: o contrário da entrada — cartões descem do último para o primeiro, depois o topo fecha e a moldura some */
+.stage:not(.on) .card { transition-delay: calc((var(--n, 7) - 1 - var(--i)) * 60ms); }
+.on .card { transition-delay: calc(300ms + var(--i) * 90ms); }
+.stage:not(.on) .hdr .edge { transition-delay: calc(var(--n, 7) * 60ms + 60ms); }
+.stage:not(.on) .hdr .tm { transition-delay: calc(var(--n, 7) * 60ms + 100ms); }
+.stage:not(.on) .hdr .mid > * { transition-delay: calc(var(--n, 7) * 60ms + 150ms); }
+.stage:not(.on) .hdr .mid { transition-delay: calc(var(--n, 7) * 60ms + 420ms); }
+.stage:not(.on) .frame { transition-delay: calc(var(--n, 7) * 60ms + 700ms); }
+.on .hdr .tm { transition-delay: 120ms; }
+.on .hdr .edge { transition-delay: 260ms; }
+.on .hdr .mid { transition-delay: 0ms; }
+.on .hdr .mid > * { transition-delay: 200ms; }
+.on .frame { transition-delay: 0ms; }
 .status { left: 24px; top: 24px; padding: 8px 14px; border-radius: 4px; background: rgba(0, 0, 0, 0.75); font: 700 15px/1.3 var(--f-num); color: #fff; }
 .status:empty { display: none; }
 </style>
@@ -150,6 +163,8 @@ img { display: block; }
   const SESSION = params.get("sessionId") || params.get("sessao") || "";
   const SERVER = params.get("server") || CONFIG.mapbanServidor || "https://mapban-socket.valospectra.com";
   const DEMO = params.has("demo") || !SESSION;
+  // segundos depois do veto terminar (todos os lados escolhidos) até a animação de saída; 0 = nunca sai sozinho
+  const SAIDA = Number(params.get("saida") ?? CONFIG.vetoSaida ?? 15);
   let BASE = params.get("assets") || CONFIG.recursos || "Resources/";
   if (!BASE.endsWith("/")) BASE += "/";
   const A = (p) => BASE + p.split("/").map(encodeURIComponent).join("/");
@@ -293,8 +308,21 @@ img { display: block; }
     });
     // vez atual sem mapa: gira entre os mapas que sobraram (igual ao nobii)
     if (rotTarget && avail.length) startRot(rotTarget, avail); else stopRot();
+    stage.style.setProperty("--n", list.length);
     if (!shown) { shown = true; fontsReady.then(() => requestAnimationFrame(() => requestAnimationFrame(() => stage.classList.add("on")))); }
+    // veto terminado: nenhum mapa por vir e todo mapa jogável já tem lado
+    const done = list.length > 0 && list.every((m) => m.kind === "ban" || (m.name && m.pickedAttack !== undefined));
+    const key = JSON.stringify(list.map((m) => [m.name, m.kind, m.pickedAttack]));
+    if (key !== render._key) { render._key = key; clearTimeout(exitTimer); if (!stage.classList.contains("on") && shown && !render._first) enter(); render._first = false;
+      if (done && SAIDA > 0) exitTimer = setTimeout(leave, SAIDA * 1000); }
   }
+  let exitTimer = null;
+  const leave = () => stage.classList.remove("on");
+  const enter = () => { stage.classList.remove("on"); void stage.offsetWidth; requestAnimationFrame(() => stage.classList.add("on")); };
+  render._first = true;
+  window.vetoSair = leave; window.vetoEntrar = enter;
+  // no OBS: quando a cena com o veto volta a ficar ativa, a entrada toca de novo (e a saída é reagendada)
+  addEventListener("obsSourceActiveChanged", (e) => { if (e.detail && e.detail.active) { enter(); if (render._key && SAIDA > 0 && exitTimer) { clearTimeout(exitTimer); exitTimer = setTimeout(leave, SAIDA * 1000); } } });
   function startRot(k, names) {
     if (rot && rot.k === k && rot.names.join() === names.join()) return;
     stopRot();
@@ -343,7 +371,7 @@ img { display: block; }
   const take = (n) => { S.availableMaps = S.availableMaps.filter((m) => m.name !== n); };
   function next() {
     const st = STEPS[step++];
-    if (!st) { setTimeout(() => location.reload(), 4000); return; }
+    if (!st) { setTimeout(() => location.reload(), (SAIDA > 0 ? SAIDA * 1000 : 0) + 2500); return; }
     const used = S.selectedMaps.length, n = order[used];
     if (st.startsWith("ban")) { take(n); S.selectedMaps.push({ name: n, bannedBy: +st[3] }); }
     else if (st.startsWith("pick")) { take(n); S.selectedMaps.push({ name: n, pickedBy: +st[4] }); S.stage = "side"; }
