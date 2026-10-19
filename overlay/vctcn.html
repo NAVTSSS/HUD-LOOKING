@@ -432,12 +432,9 @@ img { display: block; }
 .asc .bg { position: absolute; inset: 0; }
 .side.l .asc .bg { background: radial-gradient(rgba(255, 255, 255, 0.16) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(180deg, var(--l-plate) 0%, var(--l-main) 45%, var(--l-band) 100%); }
 .side.r .asc .bg { background: radial-gradient(rgba(255, 255, 255, 0.16) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(180deg, var(--r-plate) 0%, var(--r-main) 45%, var(--r-band) 100%); }
-.asc .ag { position: absolute; left: 50%; bottom: 0; height: 206px; width: auto; max-width: none; transform: translateX(-50%); transition: opacity 200ms ease, filter 200ms ease; }
-.side.r .asc .ag { transform: translateX(-50%) scaleX(-1); }
+.asc .ag { position: absolute; left: 50%; bottom: 0; height: 218px; width: auto; max-width: none; transform: translateX(-50%); transition: opacity 200ms ease, filter 200ms ease; }
 .asc .ag.sw { animation: asSwap 220ms ease-out; }
 @keyframes asSwap { from { opacity: 0; transform: translateX(-50%) translateY(10px); } }
-.side.r .asc .ag.sw { animation-name: asSwapR; }
-@keyframes asSwapR { from { opacity: 0; transform: translateX(-50%) translateY(10px) scaleX(-1); } }
 .asc.hov .ag { opacity: 0.55; filter: grayscale(0.6) brightness(0.85); }
 .asc .none { position: absolute; inset: 0; display: grid; place-items: center; font: 800 54px/1 var(--f-num); color: rgba(255, 255, 255, 0.16); }
 .asc .shade { position: absolute; left: 0; right: 0; bottom: 0; height: 70px; background: linear-gradient(0deg, rgba(0, 0, 0, 0.78), transparent); }
@@ -445,7 +442,7 @@ img { display: block; }
 .asc .role { position: absolute; left: 7px; top: 7px; width: 27px; height: 27px; display: grid; place-items: center; border-radius: 2px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); transition: opacity 200ms ease; }
 .side.l .asc .role { background: var(--l-hi); }
 .side.r .asc .role { background: var(--r-hi); }
-.asc .role svg { width: 19px; height: 19px; color: #fff; }
+.asc .role img { width: 21px; height: 21px; }
 .asc.hov .role { opacity: 0.55; }
 .asc .role:empty { display: none; }
 .asc .flash { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0)); opacity: 0; }
@@ -914,16 +911,11 @@ img { display: block; }
 
   // ---------- seleção de agentes ----------
   // Aparece sozinha na fase LOBBY do Spectra (quando os jogadores já chegaram) e sai quando a compra começa.
+  // funções dos agentes (mesma tabela do nobii) — ícones em Resources/Funcoes
   const ROLE = {};
-  [["due", "Jett Reyna Phoenix Raze Yoru Neon Iso Waylay"], ["ini", "Sova Breach Skye KAY/O Fade Gekko Tejo"],
-   ["con", "Brimstone Viper Omen Astra Harbor Clove"], ["sen", "Sage Cypher Killjoy Chamber Deadlock Vyse Veto"]]
+  [["Duelista", "Jett Reyna Phoenix Raze Yoru Neon Iso Waylay"], ["Iniciador", "Sova Breach Skye KAY/O Fade Gekko Tejo"],
+   ["Controlador", "Brimstone Viper Omen Astra Harbor Clove Miks"], ["Sentinela", "Sage Cypher Killjoy Chamber Deadlock Vyse Veto"]]
     .forEach(([r, s]) => s.split(" ").forEach((n) => (ROLE[n] = r)));
-  const ROLE_SVG = {
-    con: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7.6"/><path d="M5.6 7.4h8.8L10 14.6z" fill="currentColor" stroke="none"/></svg>',
-    ini: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.6" y="2.6" width="14.8" height="14.8" rx="2.4"/><path d="M6.6 6.6l6.8 6.8M13.4 6.6l-6.8 6.8" stroke-width="2.4"/></svg>',
-    sen: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 7.6A6.6 6.6 0 0 0 4.2 6.4M4 12.4a6.6 6.6 0 0 0 11.8 1.2"/><path d="M4 2.6v4.2h4.2M16 17.4v-4.2h-4.2" stroke-linejoin="round"/></svg>',
-    due: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"><path d="M3.6 10.4L10 4.6l6.4 5.8"/><path d="M3.6 16L10 10.2 16.4 16"/></svg>',
-  };
   function buildAsel(el, side) {
     const out = [];
     for (let i = 0; i < 5; i++) {
@@ -965,10 +957,12 @@ img { display: block; }
         const name = p.agentInternal ? agentName(p.agentInternal) : "";
         if (name !== k.agent) {
           k.agent = name;
-          if (name) { k.ag.style.visibility = ""; k.ag.src = agentImg(p.agentInternal); k.ag.classList.remove("sw"); void k.ag.offsetWidth; k.ag.classList.add("sw"); }
+          // retrato de busto (Agentes/<nome>/retrato.png); se não existir, usa o rosto normal
+          const bust = agentImg(p.agentInternal, "retrato"), face = agentImg(p.agentInternal);
+          if (name) { k.ag.style.visibility = ""; k.ag.src = bust; k.ag.classList.remove("sw"); void k.ag.offsetWidth; k.ag.classList.add("sw"); }
           else { k.ag.style.visibility = "hidden"; k.ag.removeAttribute("src"); }
-          k.ag.onerror = () => (k.ag.style.visibility = "hidden");
-          k.role.innerHTML = ROLE_SVG[ROLE[name]] || "";
+          k.ag.onerror = () => { if (face && !k.ag.src.endsWith(encodeURI(face.split("/").pop()))) k.ag.src = face; else k.ag.style.visibility = "hidden"; };
+          k.role.innerHTML = ROLE[name] ? `<img src="${A("Funcoes/" + ROLE[name] + ".webp")}" alt="">` : "";
           k.none.style.display = name ? "none" : "";
         }
         const locked = !!p.locked && !!name;
