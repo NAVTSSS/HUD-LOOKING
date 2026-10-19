@@ -525,7 +525,7 @@ img { display: block; }
     Stealth: "Yoru", Terra: "Waylay", Thorne: "Sage", Vampire: "Reyna", Wraith: "Omen", Wushu: "Jett",
   };
   const FOLDER = { "KAY/O": "Kayo" };
-  const COST = { Classic: 0, Shorty: 150, Frenzy: 450, Ghost: 500, Sheriff: 800, Stinger: 1100, Spectre: 1600, Bucky: 850, Judge: 1850, Bulldog: 2050, Guardian: 2250, Phantom: 2900, Vandal: 2900, Marshal: 950, Outlaw: 2400, Operator: 4700, Ares: 1600, Odin: 3200, Bandit: 0, Heavy: 1000, Light: 400, Regen: 650 };
+  const COST = { Classic: 0, Shorty: 150, Frenzy: 450, Ghost: 500, Sheriff: 800, Stinger: 1100, Spectre: 1600, Bucky: 850, Judge: 1850, Bulldog: 2050, Guardian: 2250, Phantom: 2900, Vandal: 2900, Warden: 2900, Marshal: 950, Outlaw: 2400, Operator: 4700, Ares: 1600, Odin: 3200, Bandit: 0, Heavy: 1000, Light: 400, Regen: 650 };
   const ARMOR = { Heavy: 50, Light: 25, Regen: 25 };
   const SHIELD_IMG = { Heavy: "Escudo50.png", Light: "Escudo100.png", Regen: "EscudoReg.png" };
 
@@ -1367,7 +1367,7 @@ img { display: block; }
       p.isAlive = true; p.health = 100; p.killsThisRound = 0; p.deathsThisRound = 0; p.killedPlayerNames = []; p.moneySpent = 0; p.isObserved = false; p.hasSpike = false;
       p.abilities = { grenade: 1, ability1: 1, ability2: 0 };
       let w = p.highestWeapon, a = p.armorName;
-      if (p.money >= 3900) { w = pick(["Vandal", "Phantom"]); a = "Heavy"; } else if (p.money >= 2400) { w = pick(["Spectre", "Bulldog"]); a = "Light"; } else if (p.money >= 1100 && w === "Classic") { w = pick(["Sheriff", "Ghost"]); }
+      if (p.money >= 3900) { w = pick(["Vandal", "Phantom", "Warden"]); a = "Heavy"; } else if (p.money >= 2400) { w = pick(["Spectre", "Bulldog"]); a = "Light"; } else if (p.money >= 1100 && w === "Classic") { w = pick(["Sheriff", "Ghost"]); }
       const cost = Math.min(p.money, (w !== p.highestWeapon ? COST[w] : 0) + (a !== p.armorName ? COST[a] || 0 : 0) + 200);
       sim.plan.push({ p, cost, w, a, at: rnd(2, 14) });
     }));
