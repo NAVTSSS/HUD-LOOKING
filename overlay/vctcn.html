@@ -102,6 +102,23 @@ img { display: block; }
 .bug .seed { position: absolute; top: 48px; width: 120px; font: 700 11px/1 var(--f-num); letter-spacing: 1px; color: rgba(255,255,255,.8); white-space: nowrap; }
 .bug .seed.l { left: 640px; text-align: left; }
 .bug .seed.r { left: 1160px; text-align: right; }
+.pause { left: 566px; top: 215px; width: 788px; height: 178px; --pz-c: #6b7680; --pz-h: #c9d0d6; opacity: 0; transform: translateY(40px); transition: opacity 300ms ease, transform 300ms cubic-bezier(.2,.8,.2,1); pointer-events: none; }
+.pause.on { opacity: 1; transform: none; }
+.pause.t-l { --pz-c: var(--l-main); --pz-h: var(--l-hi); }
+.pause.t-r { --pz-c: var(--r-main); --pz-h: var(--r-hi); }
+.pause svg { position: absolute; inset: 0; }
+.pause .wm { position: absolute; left: 87px; width: 614px; top: 6px; text-align: center; font: 400 150px/1 var(--f-cond); letter-spacing: 6px; color: rgba(255,255,255,.06); text-transform: uppercase; white-space: nowrap; overflow: hidden; }
+.pause .pt { position: absolute; left: 87px; width: 614px; top: 44px; text-align: center; font: 800 46px/1 var(--f-num); color: #fff; text-transform: uppercase; white-space: nowrap; letter-spacing: .5px; }
+.pause .pt span { display: inline-block; }
+.pause .pl { position: absolute; left: 87px; width: 614px; top: 104px; display: flex; justify-content: center; align-items: center; gap: 22px; font: 800 26px/1 var(--f-num); color: rgba(255,255,255,.92); text-transform: uppercase; }
+.pause .pl img { height: 34px; max-width: 70px; object-fit: contain; }
+.pause .pl #pz-side { color: var(--pz-h); }
+.pause.tech .pl { display: none; }
+.pause.tech .pt { top: 66px; }
+.pause .pb { position: absolute; left: 230px; width: 328px; top: 150px; height: 5px; background: rgba(255,255,255,.14); }
+.pause .pb i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: var(--pz-h); transition: width 1s linear; }
+.pause .ps { position: absolute; left: 568px; top: 143px; font: 700 18px/1 var(--f-num); color: rgba(255,255,255,.85); }
+.pause.notimer .pb, .pause.notimer .ps { display: none; }
 .rwin { left: 649px; top: 190px; width: 914px; height: 338px; transform: scale(.68); transform-origin: 0 0; opacity: 0; clip-path: inset(0 50% 0 50%); transition: clip-path 380ms cubic-bezier(.6,0,.8,.4), opacity 0s linear 380ms; pointer-events: none; }
 .rwin.on { opacity: 1; clip-path: inset(0 0 0 0); transition: clip-path 480ms cubic-bezier(.2,.8,.2,1), opacity 0s; }
 .rwin img { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -483,6 +500,25 @@ img { display: block; }
       <img class="logo r" id="logo-r" alt="">
       <div class="seed l" id="seed-l"></div><div class="seed r" id="seed-r"></div>
     </div>
+    <div class="abs pause" id="pause">
+      <svg width="788" height="178" viewBox="0 0 788 178" aria-hidden="true">
+        <defs>
+          <radialGradient id="pz-team" cx="50%" cy="135%" r="95%"><stop offset="0" style="stop-color:var(--pz-c);stop-opacity:.95"/><stop offset="1" stop-color="#0a0f14" stop-opacity=".94"/></radialGradient>
+          <linearGradient id="pz-wl" x1="0" x2="1"><stop offset="0" stop-color="#0a0f14" stop-opacity="0"/><stop offset="1" stop-color="#0a0f14" stop-opacity=".95"/></linearGradient>
+          <linearGradient id="pz-wr" x1="1" x2="0"><stop offset="0" stop-color="#0a0f14" stop-opacity="0"/><stop offset="1" stop-color="#0a0f14" stop-opacity=".95"/></linearGradient>
+        </defs>
+        <path d="M0 0H87V51L96 67V108L87 123V178H0Z" fill="url(#pz-wl)"/>
+        <path d="M788 0H701V51L692 67V108L701 123V178H788Z" fill="url(#pz-wr)"/>
+        <path d="M87 0H701V51L692 67V108L701 123V178H87V123L96 108V67L87 51Z" fill="url(#pz-team)"/>
+        <path d="M87 0H701V51L692 67V108L701 123V178H87V123L96 108V67L87 51Z" fill="url(#dots)"/>
+        <path d="M87 0H701V4H87Z" style="fill:var(--pz-h)"/>
+        <path d="M300 178L312 170H476L488 178Z" style="fill:var(--pz-h)"/>
+      </svg>
+      <div class="wm" id="pz-wm"></div>
+      <div class="pt" id="pz-t"></div>
+      <div class="pl" id="pz-l"><span id="pz-side"></span><img id="pz-logo" alt=""><span id="pz-tri"></span></div>
+      <div class="pb"><i id="pz-bar"></i></div><div class="ps" id="pz-s"></div>
+    </div>
     <div class="abs rwin" id="rwin"><img id="rwin-bg" alt=""><div class="rr" id="rwin-r"></div><div class="rt" id="rwin-t"></div></div>
     <div class="abs toast" id="toast"><img id="toast-logo" alt=""><div class="tx"><b id="toast-t"></b><span id="toast-m"></span></div></div>
 
@@ -660,6 +696,7 @@ img { display: block; }
     SHOW_CREDITS = !!d.showAliveKDA;
     renderToast(d, phase);
     renderRoundWin(d, phase);
+    renderPause(d);
     updateBrand(d);
     stage.classList.toggle("l-att", !!(CONFIG.corPorLado && d.teams[0].isAttacking));
 
@@ -904,6 +941,31 @@ img { display: block; }
     clearTimeout(RW.timer);
     el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
     RW.timer = setTimeout(() => el.classList.remove("on"), CONFIG.quadroVitoriaSeg * 1000);
+  }
+
+  // ---------- tela de pausa (como a do front do nobii, com as texturas e cores desta HUD) ----------
+  function renderPause(d) {
+    const ts = d.timeoutState || {}, el = $("pause");
+    const on = !!(ts.techPause || ts.leftTeam || ts.rightTeam);
+    el.classList.toggle("on", on);
+    if (!on) return; // ao sair, mantém o conteúdo para a animação de saída
+    const tech = !!ts.techPause && !ts.leftTeam && !ts.rightTeam;
+    el.classList.toggle("tech", tech);
+    el.classList.toggle("t-l", !tech && !!ts.leftTeam);
+    el.classList.toggle("t-r", !tech && !ts.leftTeam && !!ts.rightTeam);
+    setText($("pz-wm"), "PAUSA");
+    if (tech) setText($("pz-t"), L10N.tech);
+    else {
+      const i = ts.leftTeam ? 0 : 1, T = d.teams[i];
+      setHTML($("pz-t"), `<span>${esc(L10N.tac)} · ${esc(T.teamTricode || T.teamName || "")}</span>`);
+      const sp = $("pz-t").firstChild; if (sp) { sp.style.transform = ""; if (sp.scrollWidth > 590) sp.style.transform = `scaleX(${(590 / sp.scrollWidth).toFixed(3)})`; }
+      setText($("pz-side"), T.isAttacking ? "ATAQUE" : "DEFESA");
+      setSrc($("pz-logo"), T.teamUrl || A(`Logos/logo${i + 1}.png`));
+      setText($("pz-tri"), OVR.map.get(T.teamName) || T.teamName || T.teamTricode || "");
+    }
+    const dur = Number(d.tools && d.tools.timeoutDuration) || 60, rem = Math.max(0, Math.round(Number(ts.timeRemaining) || 0));
+    el.classList.toggle("notimer", !rem);
+    if (rem) { $("pz-bar").style.width = Math.min(100, (rem / dur) * 100).toFixed(1) + "%"; setText($("pz-s"), fmtTime(rem)); }
   }
 
   // mensagem na tela (toastInfo do capturador); como no Spectra, só aparece na compra
