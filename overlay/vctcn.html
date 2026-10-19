@@ -407,6 +407,74 @@ img { display: block; }
 .status { left: 16px; top: 44px; padding: 6px 10px; background: rgba(0, 0, 0, 0.7); font: 600 14px var(--f-num); color: #ffd36b; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* =====================================================================
+   SELEÇÃO DE AGENTES (fase LOBBY do Spectra) — faixa inferior estilo VCT CN
+   esquerda/direita: 5 cartões por time na cor do lado; centro: logo, mapa, times e lados
+   ===================================================================== */
+.asel { left: 0; top: 832px; width: 1920px; height: 232px; pointer-events: none; visibility: hidden; }
+.asel { transition: visibility 0s linear 700ms; }
+.asel.on { visibility: visible; transition-delay: 0s; }
+.asel .frame { position: absolute; left: 6px; top: -8px; width: 1908px; height: 234px; border-radius: 8px; background: rgba(14, 16, 20, 0.94); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45); opacity: 0; transform: translateY(24px); transition: opacity 260ms ease 380ms, transform 260ms ease 380ms; }
+.asel.on .frame { opacity: 1; transform: none; transition-delay: 0ms; }
+.asel .side { position: absolute; top: 0; width: 770px; height: 218px; display: flex; overflow: hidden; }
+.asel .side.l { left: 14px; }
+.asel .side.r { left: 1136px; }
+.asel .edge { position: absolute; top: 0; width: 3px; height: 218px; transform: scaleY(0); transition: transform 300ms cubic-bezier(.2, .8, .2, 1) 0ms; }
+.asel .edge.l { left: 784px; background: var(--l-hi); box-shadow: 0 0 10px var(--l-hi); }
+.asel .edge.r { left: 1133px; background: var(--r-hi); box-shadow: 0 0 10px var(--r-hi); }
+.asel.on .edge { transform: none; transition-delay: 120ms; }
+/* cartão do jogador */
+.asc { position: relative; width: 154px; height: 218px; flex: none; overflow: hidden;
+  clip-path: inset(100% 0 0 0); transition: clip-path 380ms cubic-bezier(.2, .8, .2, 1); transition-delay: calc(var(--i) * 55ms); }
+.asel.on .asc { clip-path: inset(0 0 0 0); transition-delay: calc(240ms + var(--i) * 70ms); }
+.asc + .asc { border-left: 1px solid rgba(0, 0, 0, 0.55); }
+.asc .bg { position: absolute; inset: 0; }
+.side.l .asc .bg { background: radial-gradient(rgba(255, 255, 255, 0.16) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(180deg, var(--l-plate) 0%, var(--l-main) 45%, var(--l-band) 100%); }
+.side.r .asc .bg { background: radial-gradient(rgba(255, 255, 255, 0.16) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(180deg, var(--r-plate) 0%, var(--r-main) 45%, var(--r-band) 100%); }
+.asc .ag { position: absolute; left: 50%; bottom: 0; height: 206px; width: auto; max-width: none; transform: translateX(-50%); transition: opacity 200ms ease, filter 200ms ease; }
+.side.r .asc .ag { transform: translateX(-50%) scaleX(-1); }
+.asc .ag.sw { animation: asSwap 220ms ease-out; }
+@keyframes asSwap { from { opacity: 0; transform: translateX(-50%) translateY(10px); } }
+.side.r .asc .ag.sw { animation-name: asSwapR; }
+@keyframes asSwapR { from { opacity: 0; transform: translateX(-50%) translateY(10px) scaleX(-1); } }
+.asc.hov .ag { opacity: 0.55; filter: grayscale(0.6) brightness(0.85); }
+.asc .none { position: absolute; inset: 0; display: grid; place-items: center; font: 800 54px/1 var(--f-num); color: rgba(255, 255, 255, 0.16); }
+.asc .shade { position: absolute; left: 0; right: 0; bottom: 0; height: 70px; background: linear-gradient(0deg, rgba(0, 0, 0, 0.78), transparent); }
+.asc .nm { position: absolute; left: 4px; right: 4px; bottom: 13px; text-align: center; font: 700 18px/1 var(--f-num); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8); }
+.asc .role { position: absolute; left: 7px; top: 7px; width: 27px; height: 27px; display: grid; place-items: center; border-radius: 2px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); transition: opacity 200ms ease; }
+.side.l .asc .role { background: var(--l-hi); }
+.side.r .asc .role { background: var(--r-hi); }
+.asc .role svg { width: 19px; height: 19px; color: #fff; }
+.asc.hov .role { opacity: 0.55; }
+.asc .role:empty { display: none; }
+.asc .flash { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0)); opacity: 0; }
+.asc.lockfx .flash { animation: asLock 520ms ease-out; }
+@keyframes asLock { 0% { opacity: 1; } 100% { opacity: 0; } }
+/* centro */
+.asel .mid { position: absolute; left: 787px; top: 0; width: 346px; height: 218px; background: linear-gradient(180deg, #2b343b 0%, #20272d 100%); transform: scaleX(0); transition: transform 320ms cubic-bezier(.2, .8, .2, 1) 260ms; }
+.asel.on .mid { transform: none; transition-delay: 0ms; }
+.asel .mid > * { opacity: 0; transition: opacity 200ms ease 0ms; }
+.asel.on .mid > * { opacity: 1; transition-delay: 260ms; }
+.asel .mid .flag { position: absolute; left: 63px; top: 0; width: 220px; height: 48px; background: linear-gradient(160deg, var(--brand-a) 0%, #38147a 45%, var(--brand-b) 100%); clip-path: polygon(0 0, 100% 0, 100% 62%, 88% 100%, 12% 100%, 0 62%); display: grid; place-items: center; }
+.asel .mid .flag img { max-width: 150px; max-height: 34px; }
+.asel .mid .flag b { font: 800 20px/1 var(--f-num); letter-spacing: 3px; color: #fff; }
+.asel .mid .ears { position: absolute; top: 0; height: 9px; width: 63px; background: #4a5359; }
+.asel .mid .ears.l { left: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 9px 100%); }
+.asel .mid .ears.r { right: 0; clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 100%, 0 100%); }
+.asel .mid .map { position: absolute; left: 0; right: 0; top: 64px; text-align: center; font: 700 19px/1 var(--f-num); color: #fff; letter-spacing: 1px; text-transform: uppercase; }
+.asel .mid .vs { position: absolute; left: 16px; right: 16px; top: 103px; display: grid; grid-template-columns: 1fr 44px 1fr; align-items: center; }
+.asel .mid .vs .tn { font: 800 40px/1 var(--f-num); color: #fff; white-space: nowrap; overflow: hidden; }
+.asel .mid .vs .tn.l { text-align: left; }
+.asel .mid .vs .tn.r { text-align: right; }
+.asel .mid .vs i { font: 700 20px/1 var(--f-num); font-style: normal; color: #fff; text-align: center; }
+.asel .mid .sd { position: absolute; top: 172px; font: 700 18px/1 var(--f-num); letter-spacing: 1px; }
+.asel .mid .sd.l { left: 22px; color: var(--l-text); }
+.asel .mid .sd.r { right: 22px; color: var(--r-text); }
+/* durante a seleção o resto da HUD sai de cena */
+.asel { z-index: 5; }
+.stage > .abs:not(.asel) { transition: opacity 300ms ease 650ms; } /* volta só depois da faixa sair */
+.stage.asel-on > .abs:not(.asel) { opacity: 0 !important; transition-delay: 0ms; }
 </style>
 </head>
 <body>
@@ -451,7 +519,7 @@ img { display: block; }
   // =====================================================================
 
   // textos da HUD (todos em português)
-  const L10N = { cur: "Mapa atual", next: "Próximo", dec: "Decisivo", round: "Rodada ", tac: "Pausa tática", eq: "Equipamento", def: "Vitórias na defesa", att: "Vitórias no ataque", rate: "Aproveitamento", pause: "Pausa", tech: "Pausa técnica", ot: "Prorrogação", otShort: "PRORR." };
+  const L10N = { cur: "Mapa atual", next: "Próximo", dec: "Decisivo", round: "Rodada ", tac: "Pausa tática", eq: "Equipamento", def: "Vitórias na defesa", att: "Vitórias no ataque", rate: "Aproveitamento", pause: "Pausa", tech: "Pausa técnica", ot: "Prorrogação", otShort: "PRORR.", atk: "ATAQUE", dfs: "DEFESA" };
   const MAP_NAMES = { Triad: "Haven", Bonsai: "Split", Duality: "Bind", Port: "Icebox", Foxtrot: "Breeze", Canyon: "Fracture", Pitt: "Pearl", Jam: "Lotus", Juliett: "Sunset", Infinity: "Abyss", Rook: "Corrode", Ascent: "Ascent" };
   const AGENTS = {
     AggroBot: "Gekko", BountyHunter: "Fade", Breach: "Breach", Cable: "Deadlock", Cashew: "Tejo", Clay: "Raze", Deadeye: "Chamber",
@@ -559,6 +627,20 @@ img { display: block; }
     <div class="abs rwin" id="rwin"><img id="rwin-bg" alt=""><div class="rr" id="rwin-r"></div><div class="rt" id="rwin-t"></div></div>
     <div class="abs toast" id="toast"><img id="toast-logo" alt=""><div class="tx"><b id="toast-t"></b><span id="toast-m"></span></div></div>
 
+    <div class="abs asel" id="asel">
+      <i class="frame"></i>
+      <div class="side l" id="as-l"></div>
+      <i class="edge l"></i>
+      <div class="mid">
+        <i class="ears l"></i><i class="ears r"></i>
+        <div class="flag" id="as-flag"><b>LOOKING</b></div>
+        <div class="map" id="as-map"></div>
+        <div class="vs"><span class="tn l" id="as-tl"></span><i>vs</i><span class="tn r" id="as-tr"></span></div>
+        <div class="sd l" id="as-sl"></div><div class="sd r" id="as-sr"></div>
+      </div>
+      <i class="edge r"></i>
+      <div class="side r" id="as-r"></div>
+    </div>
     <div class="abs cards l combat" id="cards-l"></div>
     <div class="abs cards r combat" id="cards-r"></div>
     <div class="abs duelb combat" id="duel"><div class="dn l" id="duel-l"></div><div class="dv">1 x 1</div><div class="dn r" id="duel-r"></div></div>
@@ -764,6 +846,7 @@ img { display: block; }
     const series = tools.seriesInfo || {};
     const [TL, TR] = d.teams;
     const tri = (t) => t.teamTricode || (t.teamName || "").slice(0, 4).toUpperCase();
+    renderAgentSelect(d, phase, tri);
 
     // faixa informativa
     const mi = Array.isArray(series.mapInfo) ? series.mapInfo : [];
@@ -828,6 +911,73 @@ img { display: block; }
   }
   const shownName = (p) => OVR.map.get(p.fullName) || OVR.map.get(p.name) || p.name || p.fullName || "";
   let SHOW_CREDITS = false;
+
+  // ---------- seleção de agentes ----------
+  // Aparece sozinha na fase LOBBY do Spectra (quando os jogadores já chegaram) e sai quando a compra começa.
+  const ROLE = {};
+  [["due", "Jett Reyna Phoenix Raze Yoru Neon Iso Waylay"], ["ini", "Sova Breach Skye KAY/O Fade Gekko Tejo"],
+   ["con", "Brimstone Viper Omen Astra Harbor Clove"], ["sen", "Sage Cypher Killjoy Chamber Deadlock Vyse Veto"]]
+    .forEach(([r, s]) => s.split(" ").forEach((n) => (ROLE[n] = r)));
+  const ROLE_SVG = {
+    con: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7.6"/><path d="M5.6 7.4h8.8L10 14.6z" fill="currentColor" stroke="none"/></svg>',
+    ini: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.6" y="2.6" width="14.8" height="14.8" rx="2.4"/><path d="M6.6 6.6l6.8 6.8M13.4 6.6l-6.8 6.8" stroke-width="2.4"/></svg>',
+    sen: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 7.6A6.6 6.6 0 0 0 4.2 6.4M4 12.4a6.6 6.6 0 0 0 11.8 1.2"/><path d="M4 2.6v4.2h4.2M16 17.4v-4.2h-4.2" stroke-linejoin="round"/></svg>',
+    due: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"><path d="M3.6 10.4L10 4.6l6.4 5.8"/><path d="M3.6 16L10 10.2 16.4 16"/></svg>',
+  };
+  function buildAsel(el, side) {
+    const out = [];
+    for (let i = 0; i < 5; i++) {
+      const c = document.createElement("div");
+      c.className = "asc"; c.style.setProperty("--i", side === "l" ? 4 - i : i); // entra a partir do centro
+      c.innerHTML = `<i class="bg"></i><div class="none">?</div><img class="ag" alt=""><i class="shade"></i><i class="flash"></i><div class="role"></div><div class="nm"></div>`;
+      el.appendChild(c);
+      out.push({ el: c, ag: c.querySelector(".ag"), none: c.querySelector(".none"), role: c.querySelector(".role"), nm: c.querySelector(".nm"), agent: null, locked: false });
+    }
+    return out;
+  }
+  const ASEL = { l: buildAsel($("as-l"), "l"), r: buildAsel($("as-r"), "r"), flag: null };
+  ASEL.r.forEach((k) => {}); // mesma ordem do jogo: jogador 1 à esquerda em cada lado
+  function renderAgentSelect(d, phase, tri) {
+    const has = d.teams.some((t) => (t.players || []).length);
+    const on = CONFIG.selecaoAgentes !== false && phase === "LOBBY" && has;
+    $("asel").classList.toggle("on", on);
+    stage.classList.toggle("asel-on", on);
+    if (!on) return;
+    // logo do topo: Resources/Logos/looking.png, senão o logo do torneio do Spectra, senão o texto
+    const tl = (d.tools && d.tools.tournamentInfo && d.tools.tournamentInfo.logoUrl) || "";
+    if (ASEL.flag !== tl) {
+      ASEL.flag = tl;
+      const f = $("as-flag"), im = new Image();
+      im.onload = () => { f.innerHTML = ""; f.appendChild(im); };
+      im.onerror = () => { if (tl && im.src !== tl) im.src = tl; };
+      im.src = A("Logos/looking.png");
+    }
+    setText($("as-map"), mapLabel(d.map) || "");
+    d.teams.forEach((t, i) => {
+      const s = sideOf(i);
+      const tn = $("as-t" + s); setText(tn, tri(t)); fitText(tn, 128);
+      setText($("as-s" + s), "[" + (t.isAttacking ? L10N.atk : L10N.dfs) + "]");
+      const ps = (t.players || []).slice(0, 5);
+      ASEL[s].forEach((k, j) => {
+        const p = ps[j];
+        k.el.classList.toggle("hidden", !p); if (!p) return;
+        setText(k.nm, shownName(p));
+        const name = p.agentInternal ? agentName(p.agentInternal) : "";
+        if (name !== k.agent) {
+          k.agent = name;
+          if (name) { k.ag.style.visibility = ""; k.ag.src = agentImg(p.agentInternal); k.ag.classList.remove("sw"); void k.ag.offsetWidth; k.ag.classList.add("sw"); }
+          else { k.ag.style.visibility = "hidden"; k.ag.removeAttribute("src"); }
+          k.ag.onerror = () => (k.ag.style.visibility = "hidden");
+          k.role.innerHTML = ROLE_SVG[ROLE[name]] || "";
+          k.none.style.display = name ? "none" : "";
+        }
+        const locked = !!p.locked && !!name;
+        k.el.classList.toggle("hov", !!name && !locked);
+        if (locked && !k.locked) { k.el.classList.remove("lockfx"); void k.el.offsetWidth; k.el.classList.add("lockfx"); }
+        k.locked = locked;
+      });
+    });
+  }
   // 1x1 (mesma regra do nobii): liga quando sobra 1 vivo de cada lado e só desliga
   // quando um time volta a ter 2+ vivos (nova rodada). Guarda quem eram os dois.
   const DUEL = { on: false, idx: [-1, -1] };
@@ -1255,9 +1405,30 @@ img { display: block; }
       if (v.isObserved) sim.nextObs = sim.t;
     }
   }
+  // prévia da seleção de agentes (?demo&agentes): cada jogador passa o mouse num agente, às vezes troca, e trava
+  function startLobby() {
+    const d = sim.d; d.roundPhase = "LOBBY"; sim.at = sim.t;
+    const pool = Object.keys(AGENTS);
+    sim.lobby = d.teams.flatMap((t) => t.players).map((p) => {
+      const fin = p.agentInternal, hv = sim.t + rnd(0.8, 9), alt = pick(pool);
+      p.agentInternal = ""; p.locked = false;
+      return { p, fin, alt, hv, sw: hv + rnd(1, 2.5), lk: hv + rnd(3.5, 7) };
+    });
+  }
+  function stepLobby() {
+    let last = 0;
+    sim.lobby.forEach((x) => {
+      if (sim.t >= x.hv && sim.t < x.sw) x.p.agentInternal = x.alt + "_PC_C";
+      if (sim.t >= x.sw) x.p.agentInternal = x.fin;
+      if (sim.t >= x.lk) x.p.locked = true;
+      last = Math.max(last, x.lk);
+    });
+    if (sim.t > last + 5) startShopping();
+  }
   function step(dt) {
     const d = sim.d; sim.t += dt; const el = sim.t - sim.at;
-    if (d.roundPhase === "shopping") { sim.plan.forEach((b) => { if (el >= b.at) buy(b); }); if (el >= CONFIG.duracao.compra) startCombat(); }
+    if (d.roundPhase === "LOBBY") stepLobby();
+    else if (d.roundPhase === "shopping") { sim.plan.forEach((b) => { if (el >= b.at) buy(b); }); if (el >= CONFIG.duracao.compra) startCombat(); }
     else if (d.roundPhase === "combat") {
       const att = d.teams.find((t) => t.isAttacking), def = d.teams.find((t) => !t.isAttacking);
       const aA = att.players.some((p) => p.isAlive), dA = def.players.some((p) => p.isAlive);
@@ -1269,11 +1440,16 @@ img { display: block; }
     } else if (d.roundPhase === "end" && el >= 6) nextRound();
   }
   startShopping();
+  if (params.has("agentes")) startLobby();
+  window.__sim = sim;
   // ?state=buy|combat|plant|dead congela a prévia num momento (para comparar com a referência)
   const freeze = params.get("state");
   if (freeze) {
     const d = sim.d;
-    if (freeze !== "buy") startCombat();
+    if (freeze === "agentes") {
+      d.roundPhase = "LOBBY";
+      d.teams.flatMap((t) => t.players).forEach((p, i) => { p.locked = i !== 2 && i !== 6 && i !== 8; if (i === 8) p.agentInternal = ""; });
+    } else if (freeze !== "buy") startCombat();
     if (freeze === "dead" || freeze === "plant") {
       const [X, Y] = d.teams;
       [X.players[0], X.players[2], X.players[4]].forEach((p) => { p.isAlive = false; p.deaths = 1; p.health = 0; });
