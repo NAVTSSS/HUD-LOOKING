@@ -935,6 +935,7 @@ img { display: block; }
 
   if (MODE === "live") {
     let data = null, media = false;
+    stage.style.visibility = "hidden"; // nada na tela até chegar a primeira partida do servidor
     ready.then(() => {
       if (typeof io === "undefined") { show("socket.io não carregou (sem internet no PC do OBS?)"); return; }
       const socket = io(SERVER, { reconnection: true });
@@ -946,6 +947,7 @@ img { display: block; }
       socket.on("connect_error", () => show("Sem conexão com " + SERVER));
       socket.on("match_data", (raw) => {
         try { data = typeof raw === "string" ? JSON.parse(raw) : raw; } catch (e) { return; }
+        stage.style.visibility = "";
         if (!media) { media = true; startMedia(data); }
       });
       setInterval(() => { if (data) render(data, performance.now() / 1000); }, 100);
