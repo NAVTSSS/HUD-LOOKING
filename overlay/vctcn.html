@@ -472,6 +472,44 @@ img { display: block; }
 .asel { z-index: 5; }
 .stage > .abs:not(.asel) { transition: opacity 300ms ease 650ms; } /* volta só depois da faixa sair */
 .stage.asel-on > .abs:not(.asel) { opacity: 0 !important; transition-delay: 0ms; }
+
+/* =====================================================================
+   COMUNICAÇÃO AO VIVO (listen-in): áudio + câmera dos 5 de um time, via câmeras dos jogadores do Spectra (VDO.Ninja)
+   cor = cor do lado do time; quem fala acende
+   ===================================================================== */
+.li { left: 384px; top: 820px; width: 1152px; height: 214px; pointer-events: none; visibility: hidden; --li: var(--l-hi); --lim: var(--l-main); --lib: var(--l-band); }
+.li.t-r { --li: var(--r-hi); --lim: var(--r-main); --lib: var(--r-band); }
+.li.on, .li.out { visibility: visible; }
+.li .tab { position: absolute; left: 0; top: 0; height: 36px; padding: 0 22px 0 14px; display: flex; align-items: center; gap: 12px;
+  background: radial-gradient(rgba(255, 255, 255, 0.16) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(90deg, var(--li), var(--lim));
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 100%, 0 100%); }
+.li .tab svg { width: 15px; height: 15px; color: #fff; }
+.li .tab b { font: 800 18px/1 var(--f-num); letter-spacing: 1.5px; text-transform: uppercase; color: #fff; white-space: nowrap; }
+.li .tab img { height: 28px; max-width: 90px; object-fit: contain; }
+.li .rule { position: absolute; left: 0; right: 0; top: 33px; height: 3px; background: linear-gradient(90deg, var(--li), color-mix(in srgb, var(--li) 35%, transparent)); }
+.li .body { position: absolute; left: 0; top: 36px; width: 100%; height: 178px; display: flex; gap: 6px; padding: 14px 14px 14px 20px;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 3px), rgba(8, 12, 17, 0.94); }
+.li .body::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--li); }
+.li .tile { position: relative; flex: 1; height: 150px; overflow: hidden; background: radial-gradient(rgba(255, 255, 255, 0.12) 0.9px, transparent 1.3px) 0 0 / 5px 5px, linear-gradient(180deg, var(--lim), var(--lib)); }
+.li .tile .ph { position: absolute; left: 50%; bottom: 0; height: 150px; transform: translateX(-50%); opacity: 0.55; filter: grayscale(0.4); }
+.li .tile iframe { position: absolute; left: 50%; top: 0; width: 267px; height: 150px; transform: translateX(-50%); border: 0; }
+.li .tile .sh { position: absolute; left: 0; right: 0; bottom: 0; height: 56px; background: linear-gradient(0deg, rgba(0, 0, 0, 0.8), transparent); }
+.li .tile .nm { position: absolute; left: 10px; right: 34px; bottom: 11px; text-align: center; font: 800 19px/1 var(--f-num); text-transform: uppercase; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7); }
+.li .tile .spk { position: absolute; right: 10px; bottom: 11px; width: 18px; height: 18px; color: rgba(255, 255, 255, 0.35); transition: color 120ms ease, filter 120ms ease; }
+.li .tile .ring { position: absolute; inset: 0; border: 3px solid var(--li); opacity: 0; transition: opacity 120ms ease; box-shadow: inset 0 0 18px color-mix(in srgb, var(--li) 55%, transparent); }
+.li .tile.talk .spk { color: var(--li); filter: drop-shadow(0 0 6px var(--li)); }
+.li .tile.talk .ring { opacity: 1; }
+/* entrada: a aba e a linha abrem, depois os 5 quadros sobem um a um; saída ao contrário */
+.li .tab, .li .rule, .li .body { transition: clip-path 380ms cubic-bezier(.2, .8, .2, 1), transform 380ms cubic-bezier(.2, .8, .2, 1), opacity 260ms ease; }
+.li .rule { transform-origin: 0 50%; transform: scaleX(0); }
+.li .tab { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); }
+.li .body { clip-path: inset(0 0 100% 0); }
+.li .tile { opacity: 0; transform: translateY(16px); transition: opacity 260ms ease, transform 320ms cubic-bezier(.2, .8, .2, 1); transition-delay: calc((4 - var(--i)) * 50ms); }
+.li.on .rule { transform: none; transition-delay: 120ms; }
+.li.on .tab { clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 100%, 0 100%); }
+.li.on .body { clip-path: inset(0 0 0 0); transition-delay: 220ms; }
+.li.on .tile { opacity: 1; transform: none; transition-delay: calc(380ms + var(--i) * 70ms); }
+.li.out .tab { transition-delay: 380ms; } .li.out .rule { transition-delay: 300ms; } .li.out .body { transition-delay: 240ms; }
 </style>
 </head>
 <body>
@@ -495,6 +533,7 @@ img { display: block; }
     trocaPatrocinio: 6,        // segundos entre as artes do bloco do evento (quando o Spectra não manda o tempo)
     quadroVitoria: true,       // quadro "ROUND WIN" no fim de cada rodada (artes em Resources/RoundWin)
     quadroVitoriaSeg: 6,       // segundos na tela
+    listenIn: true,            // comunicação ao vivo: liga/desliga pelo Spectra Client (false = nunca mostra)
     destaque1x1: true,         // 1x1: some com os mortos, sobe o vivo de cada lado e mostra "nome 1 x 1 nome"
     patrocinadoresLocais: false, // true: sem patrocinadores no Spectra, usa as artes de Resources/Sponsors
     armasParaDireita: false,   // as imagens de Armas/ apontam o cano para a direita? (false: apontam para a esquerda, como na pasta Resources)
@@ -508,6 +547,7 @@ img { display: block; }
     if (C.recursos) CONFIG.recursos = C.recursos;
     if (C.fase) CONFIG.fase = C.fase;
     if (typeof C.camera === "boolean") CONFIG.camera = C.camera;
+    if (typeof C.listenIn === "boolean") CONFIG.listenIn = C.listenIn;
     if (typeof C.corPorLado === "boolean") CONFIG.corPorLado = C.corPorLado;
     if (typeof C.armasParaDireita === "boolean") CONFIG.armasParaDireita = C.armasParaDireita;
   }
@@ -637,6 +677,11 @@ img { display: block; }
       </div>
       <i class="edge r"></i>
       <div class="side r" id="as-r"></div>
+    </div>
+    <div class="abs li" id="li">
+      <i class="rule"></i>
+      <div class="tab"><svg viewBox="0 0 16 16"><path d="M3 2l11 6-11 6z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg><b>// Comunicação ao vivo</b><img id="li-logo" alt=""></div>
+      <div class="body" id="li-body"></div>
     </div>
     <div class="abs cards l combat" id="cards-l"></div>
     <div class="abs cards r combat" id="cards-r"></div>
@@ -817,6 +862,7 @@ img { display: block; }
     renderToast(d, phase);
     renderRoundWin(d, phase);
     renderPause(d);
+    renderListen(d);
     updateBrand(d);
     stage.classList.toggle("l-att", !!(CONFIG.corPorLado && d.teams[0].isAttacking));
 
@@ -971,6 +1017,64 @@ img { display: block; }
         k.locked = locked;
       });
     });
+  }
+
+  // ---------- comunicação ao vivo (listen-in) ----------
+  // Usa as câmeras dos jogadores do Spectra: cada jogador transmite câmera + microfone no VDO.Ninja
+  // (sala = playercamsInfo.identifier, nome = Nome_H_Tag). O time ouvido vem do Spectra Client
+  // (playercamsInfo.listenIn = "left" | "right"); ?ouvir=l|r força pelo link.
+  const SPEAK_LIMIT = 10, SPEAK_HOLD = 400;
+  const PLAY_SVG = '<svg viewBox="0 0 16 16"><path d="M3 2l11 6-11 6z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>';
+  const LI = { side: null, room: "", tiles: [], timer: null, outT: null };
+  const liUrl = (room, full) => { const [n, t] = String(full || "").split("#"); return `https://vdo.ninja/?room=${encodeURIComponent(room)}&view=${encodeURIComponent((n || "").replaceAll(" ", "_") + "_H_" + (t || ""))}&scene=0&cleanoutput&vb=5000&transparent&waitmessage=&disablehotkeys&codec=h265,av1,h264,vp8&getloudness`; };
+  addEventListener("message", (e) => {
+    const k = LI.tiles.find((x) => x.frame && x.frame.contentWindow === e.source); if (!k) return;
+    const m = e.data; if (!m || typeof m !== "object") return;
+    if (m.action === "view-connection") { k.ok = m.value === true; liReveal(); }
+    if (m.action === "loudness" && m.loudness) {
+      const v = Math.max(0, ...Object.values(m.loudness).map(Number));
+      if (v > SPEAK_LIMIT) { k.el.classList.add("talk"); clearTimeout(k.t); k.t = setTimeout(() => k.el.classList.remove("talk"), SPEAK_HOLD); }
+    }
+  });
+  function liReveal() {
+    const el = $("li");
+    if (!LI.side || el.classList.contains("on")) return;
+    // como no nobii: espera os 5 conectarem; se algum demorar, mostra mesmo assim depois de 5 s
+    if (LI.tiles.every((k) => k.ok) || Date.now() - LI.at > 5000) { el.classList.remove("out"); void el.offsetWidth; el.classList.add("on"); }
+  }
+  function renderListen(d) {
+    const pc = (d.tools && d.tools.playercamsInfo) || {};
+    const force = String(window.HUD_OUVIR ?? params.get("ouvir") ?? "").toLowerCase();
+    let want = force === "l" || force === "left" ? "left" : force === "r" || force === "right" ? "right" : pc.listenIn || false;
+    if (CONFIG.listenIn === false) want = false;
+    const el = $("li");
+    if (!want) {
+      if (LI.side) {
+        LI.side = null; el.classList.remove("on"); el.classList.add("out");
+        clearTimeout(LI.outT); LI.outT = setTimeout(() => { if (!LI.side) { el.classList.remove("out"); $("li-body").innerHTML = ""; LI.tiles = []; } }, 900);
+      }
+      return;
+    }
+    const ti = want === "left" ? 0 : 1, T = d.teams[ti] || {}, room = pc.identifier || "";
+    const ps = (T.players || []).slice(0, 5);
+    const key = want + "|" + room + "|" + ps.map((p) => p.fullName || p.name).join();
+    el.classList.toggle("t-l", sideOf(ti) === "l"); el.classList.toggle("t-r", sideOf(ti) === "r");
+    setSrc($("li-logo"), T.teamUrl || A(`Logos/logo${ti + 1}.png`));
+    if (LI.key !== key) {
+      LI.key = key; LI.side = want; LI.at = Date.now(); clearTimeout(LI.outT);
+      const body = $("li-body"); body.innerHTML = "";
+      LI.tiles = ps.map((p, i) => {
+        const t = document.createElement("div"); t.className = "tile"; t.style.setProperty("--i", i);
+        t.innerHTML = `${img(agentImg(p.agentInternal, "retrato"), "ph", "")}${room && p.fullName ? `<iframe allow="camera;fullscreen;autoplay" src="${esc(liUrl(room, p.fullName))}"></iframe>` : ""}<i class="sh"></i><div class="nm">${esc(shownName(p))}</div><div class="spk">${PLAY_SVG}</div><i class="ring"></i>`;
+        body.appendChild(t);
+        return { el: t, frame: t.querySelector("iframe"), ok: !room || !p.fullName, t: null };
+      });
+      clearInterval(LI.timer); LI.timer = setInterval(() => { liReveal(); if (el.classList.contains("on")) clearInterval(LI.timer); }, 500);
+      liReveal();
+    }
+    LI.tiles.forEach((k, i) => { const p = ps[i]; if (p) setText(k.el.querySelector(".nm"), shownName(p)); });
+    // prévia: sem câmeras, acende quem "fala" de vez em quando
+    if (MODE === "demo" && !room && !LI.fake) LI.fake = setInterval(() => { const k = LI.tiles[Math.floor(Math.random() * LI.tiles.length)]; if (!k) return; k.el.classList.add("talk"); clearTimeout(k.t); k.t = setTimeout(() => k.el.classList.remove("talk"), 600 + Math.random() * 900); }, 700);
   }
   // 1x1 (mesma regra do nobii): liga quando sobra 1 vivo de cada lado e só desliga
   // quando um time volta a ter 2+ vivos (nova rodada). Guarda quem eram os dois.
@@ -1217,7 +1321,7 @@ img { display: block; }
     const cam = $("cam");
     let who = null, wi = 0;
     d.teams.forEach((t, i) => (t.players || []).forEach((p) => { if (p.isObserved && p.isAlive) { who = p; wi = i; } }));
-    const on = CONFIG.camera && phase === "combat" && !!who;
+    const on = CONFIG.camera && phase === "combat" && !!who && !LI.side; // com a comunicação ao vivo na tela, a câmera sai
     cam.classList.toggle("hidden", !on);
     if (!on) return;
     cam.classList.toggle("l", wi === 0); cam.classList.toggle("r", wi === 1);
