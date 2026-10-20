@@ -145,6 +145,9 @@ img { display: block; }
 .toast span { font: 400 19px/1.25 var(--f-num); color: #dfe6ea; }
 .toast b:empty { display: none; }
 .stage.lobby .combat, .stage.lobby .buy { display: none; }
+/* antes da partida (seleção de agentes / carregando) a HUD não cobre o topo do jogo: só a faixa da seleção pode aparecer */
+.stage.lobby > .abs:not(.asel):not(.dbg) { opacity: 0 !important; }
+.dbg { left: 12px; top: 40px; padding: 6px 10px; background: rgba(0, 0, 0, 0.82); font: 700 14px/1.2 var(--f-num); color: #9ff59f; white-space: nowrap; z-index: 50; }
 .pip { fill: rgba(10, 16, 24, 0.55); stroke: #f2f5f7; stroke-width: 1.4; }
 .pip.won.l { fill: var(--l-hi); stroke: var(--l-hi); }
 .pip.won.r { fill: var(--r-hi); stroke: var(--r-hi); }
@@ -471,7 +474,7 @@ img { display: block; }
 /* durante a seleção o resto da HUD sai de cena */
 .asel { z-index: 5; }
 .stage > .abs:not(.asel) { transition: opacity 300ms ease 650ms; } /* volta só depois da faixa sair */
-.stage.asel-on > .abs:not(.asel) { opacity: 0 !important; transition-delay: 0ms; }
+.stage.asel-on > .abs:not(.asel):not(.dbg) { opacity: 0 !important; transition-delay: 0ms; }
 
 /* =====================================================================
    COMUNICAÇÃO AO VIVO (listen-in): áudio + câmera dos 5 de um time, via câmeras dos jogadores do Spectra (VDO.Ninja)
@@ -717,6 +720,7 @@ img { display: block; }
 
     <div class="abs demo-tag hidden" id="demo-tag">Prévia · dados simulados</div>
     <div class="abs status hidden" id="status"></div>
+    <div class="abs dbg hidden" id="dbg"></div>
   </div>`;
 
   const $ = (id) => document.getElementById(id);
@@ -857,6 +861,12 @@ img { display: block; }
     if (!planted) clock.spikeAt = null;
     stage.classList.toggle("shop", phase === "shopping");
     stage.classList.toggle("lobby", phase === "LOBBY");
+    // &debug: mostra o que o Spectra está mandando (para achar onde falta dado)
+    if (DEBUG) {
+      const pc = d.teams.map((t) => (t.players || []).length), rr = d.teams.map((t) => (t.roundRecord || []).length);
+      const dbg = $("dbg"); dbg.classList.remove("hidden");
+      dbg.textContent = `fase: ${d.roundPhase ?? "(vazia)"} | rodada: ${d.roundNumber ?? "?"} | jogadores: ${pc[0]} x ${pc[1]} | placar: ${d.teams[0].roundsWon ?? "?"} x ${d.teams[1].roundsWon ?? "?"} | histórico: ${rr[0]}/${rr[1]} | mapa: ${d.map || "?"} | rodando: ${d.isRunning ? "sim" : "não"}`;
+    }
     overrides(d);
     SHOW_CREDITS = !!d.showAliveKDA;
     renderToast(d, phase);
